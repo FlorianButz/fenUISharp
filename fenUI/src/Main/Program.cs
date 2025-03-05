@@ -1,4 +1,5 @@
 ﻿using SkiaSharp;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Timers;
 
@@ -19,6 +20,9 @@ namespace FenUISharpTest1
         private const int WM_SETCURSOR = 0x0020;
         private const int WM_TIMER = 0x0113;
         private const int IDC_ARROW = 32512;
+
+        public const uint PM_REMOVE = 0x0001;  // Removes messages after processing
+        public const uint WM_QUIT = 0x0012;    // Quit message
 
         private const int WS_POPUP = unchecked((int)0x80000000);
         private const int WS_EX_LAYERED = 0x00080000;
@@ -147,6 +151,10 @@ namespace FenUISharpTest1
         private static extern bool TranslateMessage([In] ref MSG lpMsg);
 
         [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool PeekMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax, uint wRemoveMsg);
+
+        [DllImport("user32.dll")]
         private static extern IntPtr DispatchMessage([In] ref MSG lpmsg);
 
         [DllImport("user32.dll")]
@@ -186,12 +194,14 @@ namespace FenUISharpTest1
         [DllImport("gdi32.dll", SetLastError = true)]
         static extern bool DeleteObject(IntPtr hObject);
 
+        [DllImport("dwmapi.dll")]
+        static extern void DwmFlush();
+
         [DllImport("user32.dll")]
         private static extern UIntPtr SetTimer(IntPtr hWnd, UIntPtr nIDEvent, uint uElapse, IntPtr lpTimerFunc);
 
         const int TIMER_ID = 1;
         const int FRAME_INTERVAL = 16; // ~60 FPS
-
 
         // Our window procedure
         private static IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
@@ -200,10 +210,6 @@ namespace FenUISharpTest1
             {
                 case WM_PAINT:
                     return IntPtr.Zero;
-
-                case WM_TIMER:
-                        Render(hWnd);
-                    break;
 
                 case WM_SIZE:
                     Console.WriteLine($"Window resized: {wParam} {lParam}");
@@ -326,9 +332,9 @@ namespace FenUISharpTest1
 
             // Update animation position
             if (dir)
-                posX += 1;
+                posX += 5;
             else
-                posX -= 1;
+                posX -= 5;
 
             if (posX >= 100)
                 dir = false;
@@ -340,7 +346,7 @@ namespace FenUISharpTest1
             _canvas.Clear(new SKColor(0, 0, 0, 0));
 
             // Draw a rectangle with opaque color.
-            _canvas.DrawRect(SKRect.Create(posX, 0, 100, 100), new SKPaint() { Color = SKColors.Red, ImageFilter = SKImageFilter.CreateDropShadow(0, 0, 25, 25, SKColors.White) });
+            _canvas.DrawRect(SKRect.Create(posX, 0, 400, 100), new SKPaint() { Color = SKColors.Red });
 
             _canvas.Flush();
 
@@ -369,6 +375,8 @@ namespace FenUISharpTest1
                 ULW_ALPHA
             );
             ReleaseDC(IntPtr.Zero, hdcScreen);
+
+            DwmFlush();
         }
 
         static IntPtr hWnd;
@@ -383,15 +391,33 @@ namespace FenUISharpTest1
             SetupLayeredDC(hWnd);
             DragAcceptFiles(hWnd, true);
 
-            // In your window initialization
-            SetTimer(hWnd, TIMER_ID, FRAME_INTERVAL, IntPtr.Zero);
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            double lastFrameTime = 0;
+            const double frameTime = 1000.0 / 120.0; // 60 FPS
 
             // Message loop
             MSG msg;
-            while (GetMessage(out msg, IntPtr.Zero, 0, 0))
+            while (true)
             {
-                TranslateMessage(ref msg);
-                DispatchMessage(ref msg);
+                while (PeekMessage(out msg, IntPtr.Zero, 0, 0, PM_REMOVE))
+                {
+                    if (msg.message == WM_QUIT)
+                        return; // Exit loop properly
+
+                    TranslateMessage(ref msg);
+                    DispatchMessage(ref msg);
+                }
+
+                // Frame timing
+                double elapsed = stopwatch.Elapsed.TotalMilliseconds;
+                if (elapsed - lastFrameTime >= frameTime)
+                {
+                    lastFrameTime = elapsed;
+                    Render(hWnd); // Call your SkiaSharp render function
+                }
+
+                // Sleep a bit to avoid 100% CPU usage
+                Thread.Sleep(1);
             }
 
             // Cleanup (if needed)
