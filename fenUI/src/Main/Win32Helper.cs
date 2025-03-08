@@ -19,7 +19,35 @@ namespace FenUISharp
             WM_DROPFILES = 0x0233,
             WM_SETCURSOR = 0x0020,
             WM_TIMER = 0x0113,
-            WM_QUIT = 0x0012
+            WM_QUIT = 0x0012,
+            WM_SETICON = 0x80,
+            WM_USER = 0x0400,
+            WM_COMMAND = 0x0111,
+            WM_RBUTTONUP = 0x0205,
+            WM_MENUDRAG = 0x123
+        }
+
+        public enum NIF : uint
+        {
+            NIM_ADD = 0x00000000,
+            NIM_DELETE = 0x00000002,
+            NIF_MESSAGE = 0x00000001,
+            NIF_ICON = 0x00000002,
+            NIF_TIP = 0x00000004
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        public struct NOTIFYICONDATAA
+        {
+            public int cbSize;
+            public IntPtr hWnd;
+            public uint uID;
+            public uint uFlags;
+            public uint uCallbackMessage;
+            public IntPtr hIcon;
+
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+            public string szTip;
         }
 
         // ShowWindow commands
@@ -29,7 +57,8 @@ namespace FenUISharp
         }
 
         // Window longs
-        public enum WindowLongs : int {
+        public enum WindowLongs : int
+        {
             GWL_EXSTYLE = -20
         }
 
@@ -74,6 +103,12 @@ namespace FenUISharp
         public const int IDC_ARROW = 32512;
         public const int HWND_TOPMOST = -1;
         public const int HWND_NOTOPMOST = -2;
+
+        public const int ICON_SMALL = 0;
+        public const int ICON_BIG = 1;
+
+        public const uint IMAGE_ICON = 1;
+        public const uint LR_LOADFROMFILE = 0x00000010;
 
         #endregion
 
@@ -258,9 +293,18 @@ namespace FenUISharp
 
         [DllImport("user32.dll", SetLastError = true)]
         public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-  
+
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr LoadImage(IntPtr hInstance, string lpszName, uint uType, int cx, int cy, uint fuLoad);
+
+        [DllImport("shell32.dll")]
+        public static extern bool Shell_NotifyIconA(uint dwMessage, ref NOTIFYICONDATAA lpData);
 
         #endregion
     }

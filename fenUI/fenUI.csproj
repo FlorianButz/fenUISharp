@@ -10,6 +10,9 @@
   <ItemGroup>
     <PackageReference Include="SkiaSharp" Version="3.116.1" />
     <PackageReference Include="SkiaSharp.Views.Desktop.Common" Version="1.68.1" />
+    <None Include="icons\TrayIcon.ico">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
