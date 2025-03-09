@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Timers;
@@ -28,6 +29,13 @@ namespace FenUISharp
         private static IntPtr _hBitmap = IntPtr.Zero;     // Handle to our DIB section
         private static IntPtr _ppvBits = IntPtr.Zero;     // Pointer to pixel bits
 
+        private static IntPtr _mouseHookID = IntPtr.Zero;
+        private static IntPtr _keyboardHookID = IntPtr.Zero;
+
+        private static Win32Helper.LowLevelMouseProc _mouseProc = MouseHookCallback;
+        private static Win32Helper.LowLevelKeyboardProc _keyboardProc = KeyboardHookCallback;
+        private readonly Win32Helper.WndProcDelegate _wndProcDelegate;
+
         // Rendering / SkiaSharp
 
         private static SKSurface? _surface;
@@ -42,23 +50,44 @@ namespace FenUISharp
         // Events
 
         public static Action<int, int>? onMouseMove;
-        public static Action? onMouseLeftClick;
+
+        public static Action? onMouseLeftDown;
+        public static Action? onMouseLeftUp;
+        public static Action? onMouseMiddleDown;
+        public static Action? onMouseMiddleUp;
+        public static Action? onMouseRightDown;
+        public static Action? onMouseRightUp;
+
+        public static Action<int>? onKeyPressed; // Filters for only when the user presses and ignores repeated inputs after that
+        public static Action<int>? onKeyTyped; // Triggers on raw key input
+        public static Action<int>? onKeyReleased;
+
+        public static Action<int>? onMouseScroll;
         public static Action? onTrayIconRightClicked;
 
         public static Action? onWindowCreated;
-        public static Action? onWindowUpdate; // Runs in a separate thread. DO NOT RENDER HERE
+        public static Action? onWindowUpdate;
 
         public static Action<string>? onFileDropped;
         public static Action? onFileWantDrop;
 
         // Other
 
+        public static Vector2 MousePosition { get; private set; } = new Vector2(0, 0);
+
+        public static SKSamplingOptions samplingOptions { get; private set; } = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
         private static bool alreadyCreated = false;
+
+        Stopwatch renderStepDuration;
+
+        public static float DeltaTime { get; private set; }
 
         public FWindow(string windowTitle, string windowClass)
         {
             if (alreadyCreated == true) throw new Exception("Another FWindow has already been created.");
             alreadyCreated = true;
+
+            _wndProcDelegate = WndProc;
 
             DragDropRegistration.OleInitialize(IntPtr.Zero);
 
@@ -98,17 +127,18 @@ namespace FenUISharp
                 Marshal.ThrowExceptionForHR(hr);
             }
 
-            // Begin render stopwatch
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            Stopwatch renderDuration = new Stopwatch();
-            Stopwatch renderStepDuration = new Stopwatch();
+            RegisterHook();
 
-            double lastFrameTime = 0;
+            // Begin render stopwatch
+            Stopwatch renderDuration = new Stopwatch();
+            renderStepDuration = new Stopwatch();
+
             double frameTime = 1000.0 / WindowRefreshRate;
 
-            renderStopwatch.Restart();
+            // Create and start a stopwatch
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            double lastFrameTime = stopwatch.Elapsed.TotalSeconds;
 
-            // Message loop
             Win32Helper.MSG msg;
             while (true)
             {
@@ -121,26 +151,14 @@ namespace FenUISharp
                     Win32Helper.DispatchMessage(ref msg);
                 }
 
-                double elapsed = stopwatch.Elapsed.TotalMilliseconds;
-                if (elapsed - lastFrameTime >= frameTime)
-                {
-                    // Instead of lastFrameTime = elapsed, do:
-                    lastFrameTime += frameTime;
-
-                    OnWindowUpdate();
-
-                    renderDuration.Restart();
-                    Render(hWnd);
-
-                    // Console.WriteLine("Frame Time: " + renderDuration.ElapsedMilliseconds + "ms");
-                    // Console.WriteLine("Render Step Duration: " + renderStepDuration.ElapsedMilliseconds + "ms");
-                    renderStepDuration.Restart();
-                }
-
-                // For finer control, you could spin-wait or do a more dynamic sleep here
-                Thread.Sleep(1);
+                // Get the current time and calculate DeltaTime
+                double currentFrameTime = stopwatch.Elapsed.TotalSeconds;
+                DeltaTime = (float)(currentFrameTime - lastFrameTime);
+                lastFrameTime = currentFrameTime;
+                
+                OnWindowUpdate();
+                Render(hWnd);
             }
-
         }
 
         private Stopwatch renderStopwatch = new Stopwatch();
@@ -154,18 +172,20 @@ namespace FenUISharp
             // Clear the surface with fully transparent pixels.
             _canvas.Clear(new SKColor(0, 0, 0, 0));
 
-            globalTime = renderStopwatch.Elapsed.TotalMilliseconds / 1000.0;
+            renderStopwatch.Restart();
+            globalTime += renderStopwatch.Elapsed.TotalMilliseconds;
 
             foreach (var component in uiComponents)
             {
-                component.DrawToScreen(_canvas);
+                if (component.enabled)
+                    component.DrawToScreen(_canvas);
             }
 
             _canvas.Flush();
 
             // Set destination point to (0,0) to eliminate margin
             Win32Helper.POINT ptSrc = new Win32Helper.POINT { x = 0, y = 0 };
-            Win32Helper.POINT ptDst = new Win32Helper.POINT { x = 0, y = 0 }; // Fix: Position at top-left corner
+            Win32Helper.POINT ptDst = new Win32Helper.POINT { x = 0, y = 0 };
             Win32Helper.SIZE size = new Win32Helper.SIZE { cx = WindowWidth, cy = WindowHeight };
 
             Win32Helper.BLENDFUNCTION blend = new Win32Helper.BLENDFUNCTION
@@ -294,7 +314,7 @@ namespace FenUISharp
             {
                 cbSize = (uint)Marshal.SizeOf(typeof(Win32Helper.WNDCLASSEX)),
                 style = 0x0020, // CS_OWNDC
-                lpfnWndProc = WndProc,
+                lpfnWndProc = _wndProcDelegate,
                 hInstance = Marshal.GetHINSTANCE(typeof(Program).Module),
                 lpszClassName = className
             };
@@ -332,13 +352,110 @@ namespace FenUISharp
             Win32Helper.SetWindowLong(hWnd, (int)Win32Helper.WindowLongs.GWL_EXSTYLE, exStyle | (int)Win32Helper.WindowStyles.WS_EX_TOOLWINDOW);
         }
 
+        private void RegisterHook()
+        {
+            IntPtr moduleHandle = Win32Helper.GetModuleHandle(null);
+
+            RegMouseHook();
+            _keyboardHookID = Win32Helper.SetWindowsHookEx((int)Win32Helper.WindowsHooks.WH_KEYBOARD_LL, _keyboardProc, moduleHandle, 0);
+        }
+
+        void RegMouseHook()
+        {
+            IntPtr moduleHandle = Win32Helper.GetModuleHandle(null);
+            _mouseHookID = Win32Helper.SetWindowsHookEx((int)Win32Helper.WindowsHooks.WH_MOUSE_LL, _mouseProc, moduleHandle, 0);
+        }
+
+        private static IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0)
+            {
+                Win32Helper.MSLLHOOKSTRUCT mouseInfo = Marshal.PtrToStructure<Win32Helper.MSLLHOOKSTRUCT>(lParam);
+
+                // Mouse coordinates
+                int mouseX = mouseInfo.pt.x;
+                int mouseY = mouseInfo.pt.y;
+
+                // Mouse wheel scrolling
+                if (wParam == (IntPtr)Win32Helper.WindowsHooks.WM_MOUSEWHEEL)
+                {
+                    short scrollDelta = (short)((mouseInfo.mouseData >> 16) & 0xFFFF);
+                    onMouseScroll?.Invoke(scrollDelta);
+                }
+
+                if (wParam == (IntPtr)Win32Helper.WindowMessages.WM_MOUSEMOVE)
+                {
+                    MousePosition = new Vector2(mouseX, mouseY);
+
+                    onMouseMove?.Invoke(mouseX, mouseY);
+                }
+            }
+
+            return Win32Helper.CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
+        }
+
+        private static List<int> _pressedKeys = new List<int>();
+
+        private static IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (nCode >= 0)
+            {
+                Win32Helper.KBDLLHOOKSTRUCT keyInfo = Marshal.PtrToStructure<Win32Helper.KBDLLHOOKSTRUCT>(lParam);
+
+                if (wParam == (IntPtr)Win32Helper.WindowsHooks.WM_KEYDOWN)
+                {
+                    // Console.WriteLine($"Key Down: {keyInfo.vkCode}");
+                    // Console.WriteLine($"Key Down: {KeyInfo.GetKeyName(keyInfo.vkCode)}");
+
+                    if (!_pressedKeys.Contains(keyInfo.vkCode))
+                        onKeyPressed?.Invoke(keyInfo.vkCode);
+                    _pressedKeys.Add(keyInfo.vkCode);
+
+                    onKeyTyped?.Invoke(keyInfo.vkCode);
+                }
+                else if (wParam == (IntPtr)Win32Helper.WindowsHooks.WM_KEYUP)
+                {
+                    // Console.WriteLine($"Key Up: {keyInfo.vkCode}");
+                    // Console.WriteLine($"Key Up: {KeyInfo.GetKeyName(keyInfo.vkCode)}");
+                    onKeyReleased?.Invoke(keyInfo.vkCode);
+
+                    if (_pressedKeys.Contains(keyInfo.vkCode))
+                        _pressedKeys.Remove(keyInfo.vkCode);
+                }
+            }
+
+            return Win32Helper.CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
+        }
+
+        public void UnregisterHook()
+        {
+            if (_keyboardHookID != IntPtr.Zero)
+            {
+                Win32Helper.UnhookWindowsHookEx(_keyboardHookID);
+                _keyboardHookID = IntPtr.Zero;
+            }
+
+            UnRegMouseHook();
+        }
+
+        void UnRegMouseHook()
+        {
+            if (_mouseHookID != IntPtr.Zero)
+            {
+                Win32Helper.UnhookWindowsHookEx(_mouseHookID);
+                _mouseHookID = IntPtr.Zero;
+            }
+        }
+
+        public static MultiAccess<Win32Helper.Cursors> ActiveCursor { get; private set; } = new MultiAccess<Win32Helper.Cursors>(Win32Helper.Cursors.IDC_ARROW);
+
         // Window Procedure
         private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
             switch (msg)
             {
                 case (int)Win32Helper.WindowMessages.WM_USER + 1:
-                    if ((int)lParam == (int)Win32Helper.WindowMessages.WM_RBUTTONUP)
+                    if ((int)lParam == (int)Win32Helper.WindowMessages.WM_RBUTTONDOWN)
                     {
                         onTrayIconRightClicked?.Invoke();
                     }
@@ -353,53 +470,96 @@ namespace FenUISharp
                     return IntPtr.Zero;
 
                 case (int)Win32Helper.WindowMessages.WM_KEYDOWN:
-                    Console.WriteLine($"Key Pressed: {wParam}");
-                    return IntPtr.Zero;
-
-                case (int)Win32Helper.WindowMessages.WM_MOUSEMOVE:
-                    int x = lParam.ToInt32() & 0xFFFF;
-                    int y = (lParam.ToInt32() >> 16) & 0xFFFF;
-                    Console.WriteLine($"Mouse moved: X={x}, Y={y}");
-                    onMouseMove?.Invoke(x, y);
+                    // Console.WriteLine($"Key Pressed: {wParam}");
                     return IntPtr.Zero;
 
                 case (int)Win32Helper.WindowMessages.WM_LBUTTONDOWN:
-                    Console.WriteLine("Left mouse button clicked.");
-                    onMouseLeftClick?.Invoke();
+                    // Console.WriteLine("Left mouse button down.");
+                    onMouseLeftDown?.Invoke();
                     return IntPtr.Zero;
+
+                case (int)Win32Helper.WindowMessages.WM_RBUTTONDOWN:
+                    // Console.WriteLine("Right mouse button down.");
+                    onMouseRightDown?.Invoke();
+                    return IntPtr.Zero;
+
+                case (int)Win32Helper.WindowMessages.WM_MBUTTONDOWN:
+                    // Console.WriteLine("Middle mouse button down.");
+                    onMouseMiddleDown?.Invoke();
+                    return IntPtr.Zero;
+
+                case (int)Win32Helper.WindowMessages.WM_LBUTTONUP:
+                    // Console.WriteLine("Left mouse button up.");
+                    onMouseLeftUp?.Invoke();
+                    return IntPtr.Zero;
+
+                case (int)Win32Helper.WindowMessages.WM_RBUTTONUP:
+                    // Console.WriteLine("Right mouse button up.");
+                    onMouseRightUp?.Invoke();
+                    return IntPtr.Zero;
+
+                case (int)Win32Helper.WindowMessages.WM_MBUTTONUP:
+                    // Console.WriteLine("Middle mouse button up.");
+                    onMouseMiddleUp?.Invoke();
+                    return IntPtr.Zero;
+
+                // This should fix mouse lag - Edit: it doesn't.
+                // case (int)Win32Helper.WindowMessages.WM_MOUSEHOVER:
+                //     Console.WriteLine("Unregister");
+                //     UnRegMouseHook();
+                //     return IntPtr.Zero;
+
+                // case (int)Win32Helper.WindowMessages.WM_MOUSELEAVE:
+                //     Console.WriteLine("Register");
+                //     RegMouseHook();
+                //     return IntPtr.Zero;
+
+                // // Use this for when the mouse is inside client area
+                // case (int)Win32Helper.WindowMessages.WM_MOUSEMOVE:
+                //     int x = lParam.ToInt32() & 0xFFFF;
+                //     int y = (lParam.ToInt32() >> 16) & 0xFFFF;
+                //     onMouseMove?.Invoke(x, y);
+                //     return IntPtr.Zero;
+
 
                 case (int)Win32Helper.WindowMessages.WM_DROPFILES:
-                {
-                    IntPtr hDrop = wParam;
-                    uint fileCount = DragDropRegistration.DragQueryFile(hDrop, 0xFFFFFFFF, null, 0);
-
-                    List<string> droppedFiles = new List<string>();
-
-                    for (uint i = 0; i < fileCount; i++)
                     {
-                        // Get the required buffer size
-                        uint charsRequired = DragDropRegistration.DragQueryFile(hDrop, i, null, 0);
-                        if (charsRequired == 0)
-                            continue;
+                        IntPtr hDrop = wParam;
+                        uint fileCount = DragDropRegistration.DragQueryFile(hDrop, 0xFFFFFFFF, null, 0);
 
-                        StringBuilder buffer = new StringBuilder((int)charsRequired + 1);
-                        DragDropRegistration.DragQueryFile(hDrop, i, buffer, (uint)buffer.Capacity);
-                        droppedFiles.Add(buffer.ToString());
+                        List<string> droppedFiles = new List<string>();
+
+                        for (uint i = 0; i < fileCount; i++)
+                        {
+                            // Get the required buffer size
+                            uint charsRequired = DragDropRegistration.DragQueryFile(hDrop, i, null, 0);
+                            if (charsRequired == 0)
+                                continue;
+
+                            StringBuilder buffer = new StringBuilder((int)charsRequired + 1);
+                            DragDropRegistration.DragQueryFile(hDrop, i, buffer, (uint)buffer.Capacity);
+                            droppedFiles.Add(buffer.ToString());
+                        }
+
+                        DragDropRegistration.DragFinish(hDrop); // Release the handle
+
+                        // Invoke your event with the file paths
+                        FWindow.onFileDropped?.Invoke(droppedFiles[0]);
+                        Console.WriteLine("Dropped File: " + droppedFiles[0]);
+                        return IntPtr.Zero;
                     }
 
-                    DragDropRegistration.DragFinish(hDrop); // Release the handle
-
-                    // Invoke your event with the file paths
-                    FWindow.onFileDropped?.Invoke(droppedFiles[0]);
-                    Console.WriteLine("Dropped File: " + droppedFiles[0]);
-                    return IntPtr.Zero;
-                }
-
                 case (int)Win32Helper.WindowMessages.WM_SETCURSOR:
-                    Win32Helper.SetCursor(Win32Helper.LoadCursor(IntPtr.Zero, Win32Helper.IDC_ARROW));
+                    Win32Helper.SetCursor(Win32Helper.LoadCursor(IntPtr.Zero, (int)ActiveCursor.Value));
+                    return IntPtr.Zero;
+
+                case (int)Win32Helper.WindowMessages.WM_CLOSE:
+                    Cleanup();
+                    Win32Helper.DestroyWindow(hWnd);
                     return IntPtr.Zero;
 
                 case (int)Win32Helper.WindowMessages.WM_DESTROY:
+                    Cleanup();
                     Win32Helper.PostQuitMessage(0);
                     return IntPtr.Zero;
             }

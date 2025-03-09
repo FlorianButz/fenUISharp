@@ -29,6 +29,8 @@ namespace FenUISharp
 
         public void SetValue(object caller, T value, float priority)
         {
+            if(valueList.Any(x => x.caller == caller && x.value.Equals(value))) return;
+
             if (valueList.Any(x => x.caller == caller))
             {
                 DissolveValue(caller);

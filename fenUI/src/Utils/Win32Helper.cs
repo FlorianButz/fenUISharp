@@ -15,7 +15,17 @@ namespace FenUISharp
             WM_SIZE = 0x0005,
             WM_KEYDOWN = 0x0100,
             WM_MOUSEMOVE = 0x0200,
+
             WM_LBUTTONDOWN = 0x0201,
+            WM_LBUTTONUP = 0x0202,
+            WM_MBUTTONDOWN = 0x0207,
+            WM_MBUTTONUP = 0x0208,
+            WM_RBUTTONDOWN = 0x0204,
+            WM_RBUTTONUP = 0x0205,
+
+            WM_MOUSEHOVER = 0x02A1,
+            WM_MOUSELEAVE = 0x02A3,
+
             WM_DROPFILES = 0x0233,
             WM_SETCURSOR = 0x0020,
             WM_TIMER = 0x0113,
@@ -23,8 +33,17 @@ namespace FenUISharp
             WM_SETICON = 0x80,
             WM_USER = 0x0400,
             WM_COMMAND = 0x0111,
-            WM_RBUTTONUP = 0x0205,
-            WM_MENUDRAG = 0x123
+            WM_MENUDRAG = 0x123,
+            WM_CLOSE = 0x0010
+        }
+
+        public enum WindowsHooks : int
+        {
+            WH_MOUSE_LL = 14,
+            WH_KEYBOARD_LL = 13,
+            WM_MOUSEWHEEL = 0x020A,
+            WM_KEYDOWN = 0x0100,
+            WM_KEYUP = 0x0101
         }
 
         public enum NIF : uint
@@ -99,8 +118,15 @@ namespace FenUISharp
             AC_SRC_ALPHA = 0x01
         }
 
+        public enum Cursors : int{
+            IDC_ARROW = 32512,
+            IDC_IBEAM = 32513,
+            IDC_WAIT = 32514,
+            IDC_NO = 32648,
+            IDC_HAND = 32649
+        }
+
         public const int CW_USEDEFAULT = unchecked((int)0x80000000);
-        public const int IDC_ARROW = 32512;
         public const int HWND_TOPMOST = -1;
         public const int HWND_NOTOPMOST = -2;
 
@@ -190,12 +216,35 @@ namespace FenUISharp
             public uint bmiColors; // Not used for 32-bit DIBs
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MSLLHOOKSTRUCT
+        {
+            public POINT pt;
+            public uint mouseData;
+            public uint flags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct KBDLLHOOKSTRUCT
+        {
+            public int vkCode;
+            public int scanCode;
+            public int flags;
+            public int time;
+            public IntPtr dwExtraInfo;
+        }
+
         #endregion
 
         #region Delegate
 
         // Delegate for window procedure callbacks
         public delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+        public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+        public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
         #endregion
 
@@ -297,6 +346,30 @@ namespace FenUISharp
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern IntPtr SetWindowsHookEx(
+            int idHook,
+            LowLevelMouseProc lpfn,
+            IntPtr hMod,
+            uint dwThreadId);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern IntPtr SetWindowsHookEx(
+            int idHook,
+            LowLevelKeyboardProc lpfn,
+            IntPtr hMod,
+            uint dwThreadId);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern IntPtr CallNextHookEx(
+            IntPtr hhk,
+            int nCode,
+            IntPtr wParam,
+            IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
         [DllImport("user32.dll")]
         public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 
@@ -305,6 +378,12 @@ namespace FenUISharp
 
         [DllImport("shell32.dll")]
         public static extern bool Shell_NotifyIconA(uint dwMessage, ref NOTIFYICONDATAA lpData);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern IntPtr GetModuleHandle(string lpModuleName);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool DestroyWindow(IntPtr hWnd);
 
         #endregion
     }
