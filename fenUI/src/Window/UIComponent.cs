@@ -105,6 +105,13 @@ namespace FenUISharp
             canvas.RotateDegrees(transform.rotation, bounds.MidX, bounds.MidY);
             canvas.Scale(transform.scale.x, transform.scale.y, bounds.MidX, bounds.MidY);
 
+            // Applying custom transform
+            // var fullBounds = transform.fullBounds;
+            // canvas.Translate(-(fullBounds.Width / 2), -(fullBounds.Height / 2));
+            if(transform.matrix != null)
+                canvas.Concat(transform.matrix.Value);
+            // canvas.Translate(fullBounds.Width / 2, fullBounds.Height / 2);
+
             // if (useSurfaceCaching)
             // {
             int scaledWidth = FMath.Clamp((int)(bounds.Width * quality), 1, int.MaxValue);
@@ -132,14 +139,18 @@ namespace FenUISharp
                 {
                     // Draw the cached surface onto the main canvas
                     canvas.Scale(1 / quality, 1 / quality); // Scale for proper rendering
-                    canvas.DrawImage(snapshot, transform.position.x * quality, transform.position.y * quality, FWindow.samplingOptions, null);
+
+                    if(transform.matrix == null)
+                        canvas.Translate(transform.position.x * quality, transform.position.y * quality);
+
+                    canvas.DrawImage(snapshot, 0, 0, FWindow.samplingOptions, null);
                     canvas.Scale(quality, quality); // Scale for proper rendering
 
                     snapshot.Dispose();
                 }
             }
             // }
-            
+
             canvas.RestoreToCount(c);
         }
 
@@ -150,7 +161,7 @@ namespace FenUISharp
 
             cachedImageInfo = null;
         }
-        
+
         protected abstract void DrawToSurface(SKCanvas canvas);
 
         private void Update()
@@ -177,6 +188,7 @@ namespace FenUISharp
             FWindow.onMouseLeftDown -= OnMouseLeftDown;
 
             if (currentlySelected == this) currentlySelected = null;
+            if (FWindow.uiComponents.Contains(this)) FWindow.uiComponents.Remove(this);
         }
 
         public UIComponent? GetTopmostComponentAtPosition(Vector2 pos)
@@ -188,6 +200,8 @@ namespace FenUISharp
     public class FTransform
     {
         public FTransform? parent;
+
+        public SKMatrix? matrix { get; set; }
 
         public Vector2 position { get => GetGlobalPosition(_localPosition); }
         public Vector2 localPosition { get => _localPosition + boundsPadding.Value; set => _localPosition = value; }
@@ -238,6 +252,48 @@ namespace FenUISharp
             globalPosition.y -= GetBounds(1).Top;
             return globalPosition;
         }
+
+        public SKMatrix Create3DRotationMatrix(float rotationX, float rotationY, float rotationZ, float depth)
+        {
+            // Use the object's anchor point, not canvas origin
+            float anchorX = fullBounds.Width * anchor.x;
+            float anchorY = fullBounds.Width * anchor.y;
+
+            float z = 0.01f * size.x / depth;
+
+            // Create and apply transformations in correct order
+            var matrix = SKMatrix.CreateIdentity();
+
+            // 1. First translate to make anchor point the origin
+            matrix = SKMatrix.Concat(matrix, SKMatrix.CreateTranslation(position.x + anchorX, position.y + anchorY));
+
+            // 2. Apply all rotations
+            if (rotationZ != 0)
+                matrix = SKMatrix.Concat(matrix, SKMatrix.CreateRotationDegrees(rotationZ));
+
+            if (rotationX != 0)
+            {
+                float radians = rotationX * (float)Math.PI / 180;
+                SKMatrix xRotate = SKMatrix.CreateIdentity();
+                xRotate.ScaleY = (float)Math.Cos(radians);
+                xRotate.Persp1 = -(float)Math.Sin(radians) * z;
+                matrix = SKMatrix.Concat(matrix, xRotate);
+            }
+
+            if (rotationY != 0)
+            {
+                float radians = rotationY * (float)Math.PI / 180;
+                SKMatrix yRotate = SKMatrix.CreateIdentity();
+                yRotate.ScaleX = (float)Math.Cos(radians);
+                yRotate.Persp0 = (float)Math.Sin(radians) * z;
+                matrix = SKMatrix.Concat(matrix, yRotate);
+            }
+
+            // 3. Translate back to original position
+            matrix = SKMatrix.Concat(matrix, SKMatrix.CreateTranslation(-anchorX, -anchorY));
+
+            return matrix;
+        }
     }
 
     public struct Vector2
@@ -254,6 +310,10 @@ namespace FenUISharp
         {
             this.x = v.x;
             this.y = v.y;
+        }
+
+        public float Magnitude(){
+            return (float)Math.Sqrt(Math.Abs(x * x + y * y));
         }
 
         public static Vector2 operator *(Vector2 c1, Vector2 c2)

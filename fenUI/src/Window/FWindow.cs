@@ -78,7 +78,6 @@ namespace FenUISharp
         public static SKSamplingOptions samplingOptions { get; private set; } = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
         private static bool alreadyCreated = false;
 
-        Stopwatch renderStepDuration;
 
         public static float DeltaTime { get; private set; }
 
@@ -102,12 +101,17 @@ namespace FenUISharp
             RemoveTaskbarIcon();
 
             onWindowCreated?.Invoke();
+
+            Thread.CurrentThread.Name = "Win32 Window";
         }
 
-        private void OnWindowUpdate()
+        private void OnWindowUpdate_BeforeFrameRender()
         {
             onWindowUpdate?.Invoke();
         }
+
+        private Thread _renderThread;
+        private volatile bool _isRunning = true;
 
         public void Begin()
         {
@@ -129,15 +133,12 @@ namespace FenUISharp
 
             RegisterHook();
 
-            // Begin render stopwatch
-            Stopwatch renderDuration = new Stopwatch();
-            renderStepDuration = new Stopwatch();
-
-            double frameTime = 1000.0 / WindowRefreshRate;
-
-            // Create and start a stopwatch
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            double lastFrameTime = stopwatch.Elapsed.TotalSeconds;
+            _renderThread = new Thread(RenderLoop)
+            {
+                IsBackground = true
+            };
+            _renderThread.Name = "Render Loop";
+            _renderThread.Start();
 
             Win32Helper.MSG msg;
             while (true)
@@ -150,71 +151,109 @@ namespace FenUISharp
                     Win32Helper.TranslateMessage(ref msg);
                     Win32Helper.DispatchMessage(ref msg);
                 }
-
-                // Get the current time and calculate DeltaTime
-                double currentFrameTime = stopwatch.Elapsed.TotalSeconds;
-                DeltaTime = (float)(currentFrameTime - lastFrameTime);
-                lastFrameTime = currentFrameTime;
-                
-                OnWindowUpdate();
-                Render(hWnd);
             }
         }
 
-        private Stopwatch renderStopwatch = new Stopwatch();
-
-        private void Render(IntPtr hWnd)
+        private void RenderLoop()
         {
-            if (_surface == null)
-                return;
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            double frameInterval = 1000.0 / WindowRefreshRate; // e.g., 16.67 ms for 60 FPS
+            double nextFrameTime = 0;
+            double previousFrameTime = 0;
 
-            _canvas = _surface.Canvas;
-            // Clear the surface with fully transparent pixels.
-            _canvas.Clear(new SKColor(0, 0, 0, 0));
-
-            renderStopwatch.Restart();
-            globalTime += renderStopwatch.Elapsed.TotalMilliseconds;
-
-            foreach (var component in uiComponents)
+            while (_isRunning)
             {
-                if (component.enabled)
-                    component.DrawToScreen(_canvas);
+                double currentTime = stopwatch.Elapsed.TotalMilliseconds;
+
+                // Check if it's time to render the next frame
+                if (currentTime >= nextFrameTime)
+                {
+                    // Calculate DeltaTime (time since the last frame)
+                    DeltaTime = (float)(currentTime - previousFrameTime) / 1000.0f; // Convert to seconds
+                    previousFrameTime = currentTime;
+
+                    // Render the frame
+                    OnWindowUpdate_BeforeFrameRender();
+                    RenderFrame();
+
+                    // Notify the main thread to update the window
+                    Win32Helper.PostMessageA(hWnd, (int)Win32Helper.WindowMessages.WM_RENDER, IntPtr.Zero, IntPtr.Zero);
+
+                    // Schedule the next frame
+                    nextFrameTime = currentTime + frameInterval;
+                }
+
+                // Sleep briefly to avoid busy-waiting
+                Thread.Sleep(1);
             }
+        }
 
-            _canvas.Flush();
+        private readonly object _renderLock = new object();
 
-            // Set destination point to (0,0) to eliminate margin
-            Win32Helper.POINT ptSrc = new Win32Helper.POINT { x = 0, y = 0 };
-            Win32Helper.POINT ptDst = new Win32Helper.POINT { x = 0, y = 0 };
-            Win32Helper.SIZE size = new Win32Helper.SIZE { cx = WindowWidth, cy = WindowHeight };
-
-            Win32Helper.BLENDFUNCTION blend = new Win32Helper.BLENDFUNCTION
+        private void RenderFrame()
+        {
+            lock (_renderLock)
             {
-                BlendOp = (int)Win32Helper.AlphaBlendOptions.AC_SRC_OVER,
-                SourceConstantAlpha = 255,
-                AlphaFormat = (int)Win32Helper.AlphaBlendOptions.AC_SRC_ALPHA
-            };
+                if (_surface == null)
+                {
+                    Console.WriteLine("Surface is null!");
+                    return;
+                }
 
-            IntPtr hdcScreen = Win32Helper.GetDC(IntPtr.Zero);
-            Win32Helper.UpdateLayeredWindow(
-                hWnd,
-                hdcScreen,
-                ref ptDst,  // Now (0,0)
-                ref size,
-                _hdcMemory,
-                ref ptSrc,
-                0,
-                ref blend,
-                (int)Win32Helper.LayeredWindowFlags.ULW_ALPHA
-            );
-            Win32Helper.ReleaseDC(IntPtr.Zero, hdcScreen);
+                _canvas = _surface.Canvas;
+                _canvas.Clear(new SKColor(0, 0, 0, 0));
 
-            Win32Helper.DwmFlush();
+                foreach (var component in uiComponents)
+                {
+                    if (component.enabled)
+                        component.DrawToScreen(_canvas);
+                }
+
+                _canvas.Flush();
+            }
+        }
+
+        private void UpdateWindow()
+        {
+            lock (_renderLock)
+            {
+                Win32Helper.POINT ptSrc = new Win32Helper.POINT { x = 0, y = 0 };
+                Win32Helper.POINT ptDst = new Win32Helper.POINT { x = 0, y = 0 };
+                Win32Helper.SIZE size = new Win32Helper.SIZE { cx = WindowWidth, cy = WindowHeight };
+
+                Win32Helper.BLENDFUNCTION blend = new Win32Helper.BLENDFUNCTION
+                {
+                    BlendOp = (int)Win32Helper.AlphaBlendOptions.AC_SRC_OVER,
+                    SourceConstantAlpha = 255,
+                    AlphaFormat = (int)Win32Helper.AlphaBlendOptions.AC_SRC_ALPHA
+                };
+
+                IntPtr hdcScreen = Win32Helper.GetDC(IntPtr.Zero);
+                Win32Helper.UpdateLayeredWindow(
+                    hWnd,
+                    hdcScreen,
+                    ref ptDst,
+                    ref size,
+                    _hdcMemory,
+                    ref ptSrc,
+                    0,
+                    ref blend,
+                    (int)Win32Helper.LayeredWindowFlags.ULW_ALPHA
+                );
+                Win32Helper.ReleaseDC(IntPtr.Zero, hdcScreen);
+                Win32Helper.DwmFlush();
+            }
         }
 
         public void Cleanup()
         {
             Console.WriteLine("Cleaning up...");
+            _isRunning = false;
+
+            if (_renderThread != null && _renderThread.IsAlive)
+            {
+                _renderThread.Join();
+            }
 
             if (_hdcMemory != IntPtr.Zero)
                 Win32Helper.DeleteDC(_hdcMemory);
@@ -255,7 +294,6 @@ namespace FenUISharp
 
             Win32Helper.ReleaseDC(IntPtr.Zero, hdcScreen);
 
-            // Create a SkiaSharp surface backed by the DIB's pixel memory.
             var imageInfo = new SKImageInfo(WindowWidth, WindowHeight, SKColorType.Bgra8888, SKAlphaType.Premul);
             _surface = SKSurface.Create(imageInfo, _ppvBits, imageInfo.RowBytes);
         }
@@ -461,8 +499,11 @@ namespace FenUISharp
                     }
                     return IntPtr.Zero;
 
+                case (uint)Win32Helper.WindowMessages.WM_RENDER:
+                    UpdateWindow();
+                    return IntPtr.Zero;
+
                 case (int)Win32Helper.WindowMessages.WM_PAINT:
-                    Console.WriteLine($"Window Repaint");
                     return IntPtr.Zero;
 
                 case (int)Win32Helper.WindowMessages.WM_SIZE:

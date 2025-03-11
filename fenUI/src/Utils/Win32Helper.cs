@@ -34,7 +34,8 @@ namespace FenUISharp
             WM_USER = 0x0400,
             WM_COMMAND = 0x0111,
             WM_MENUDRAG = 0x123,
-            WM_CLOSE = 0x0010
+            WM_CLOSE = 0x0010,
+            WM_RENDER = WM_USER + 2
         }
 
         public enum WindowsHooks : int
@@ -288,6 +289,9 @@ namespace FenUISharp
 
         [DllImport("user32.dll")]
         public static extern bool PeekMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax, uint wRemoveMsg);
+        
+        [DllImport("user32.dll")]
+        public static extern bool PostMessageA(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll")]
         public static extern IntPtr DispatchMessage([In] ref MSG lpmsg);
