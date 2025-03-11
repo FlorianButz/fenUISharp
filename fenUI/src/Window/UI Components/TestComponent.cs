@@ -1,3 +1,4 @@
+using DynamicWin;
 using DynamicWin.Utils;
 using SkiaSharp;
 
@@ -12,40 +13,44 @@ namespace FenUISharp
 
             renderQuality.SetValue(this, .9f, 25);
         
-            scaleOrder = new SecondOrder(transform.size, 4f, 2f);
+            scaleOrder = new SecondOrder(transform.scale, 1.5f, 0.6f);
 
             //transform.matrix = transform.Create3DRotationMatrix(0, 0, 0, 500);
+
+            WindowsMediaControls.onThumbnailUpdated += Invalidate;
         }
 
         SecondOrder scaleOrder;
 
-        public Vector2 overrideSize = new Vector2(100, 100);
+        public Vector2 overrideSize = new Vector2(1, 1);
 
 float t =0;
         protected override void OnUpdate()
         {
             base.OnUpdate();
 t+= 5f;
-            transform.matrix = transform.Create3DRotationMatrix(t, t / 1.2938f, t * 2.391f, 250);
+            // transform.matrix = transform.Create3DRotationMatrix(0, t, 0);
 
-            var s = transform.size;
-            transform.size = scaleOrder.Update(FWindow.DeltaTime, overrideSize);
-            renderQuality.SetValue(this, s.Equals(transform.size) ? 1 : 0.75f, 25);
+            var s = transform.scale;
+            transform.scale = scaleOrder.Update(FWindow.DeltaTime, overrideSize);
+            renderQuality.SetValue(this, s.Equals(transform.size) ? 1 : 0.8f, 25);
             
-            if(!s.Equals(transform.size))
+transform.rotation += 0.5f;
+
+            if(!s.Equals(transform.scale))
                 Invalidate();
         }
 
         protected override void OnMouseEnter()
         {
             base.OnMouseEnter();
-            overrideSize = new Vector2(300, 200);
+            overrideSize = new Vector2(2, 2);
         }
 
         protected override void OnMouseExit()
         {
             base.OnMouseEnter();
-            overrideSize = new Vector2(100, 100);
+            overrideSize = new Vector2(1, 1);
         }
 
         // protected override void OnSelectedLost()
@@ -58,15 +63,26 @@ t+= 5f;
         // protected override void OnSelected()
         // {
         //     base.OnSelected();
-            
+
         //     skPaint.Color = SKColors.Blue;
         //     Invalidate();
         // }
 
+        protected override void OnMouseDown()
+        {
+            base.OnMouseDown();
+
+            // WindowsMediaControls.TriggerMediaControl(MediaControlTrigger.SwapLoopMode);
+            WindowsMediaControls.TriggerMediaControl(MediaControlTrigger.ToggleShuffle);
+        }
+
         protected override void DrawToSurface(SKCanvas canvas)
         {
-            //canvas.Clear(SKColors.Aqua);
-            canvas.DrawRoundRect(transform.localBounds, 15, 15, skPaint);
+            // canvas.Clear(SKColors.Aqua.WithAlpha(25));
+            //canvas.DrawRoundRect(transform.localBounds, 15, 15, skPaint);
+            
+            if(WindowsMediaControls.CachedInfo.isActiveSession && WindowsMediaControls.CachedInfo.thumbnail != null)
+                canvas.DrawImage(WindowsMediaControls.CachedInfo.thumbnail, transform.localBounds, skPaint);
         }
     }
 }

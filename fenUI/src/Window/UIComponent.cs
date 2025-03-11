@@ -102,15 +102,12 @@ namespace FenUISharp
             var bounds = transform.fullBounds;
 
             int c = canvas.Save();
-            canvas.RotateDegrees(transform.rotation, bounds.MidX, bounds.MidY);
-            canvas.Scale(transform.scale.x, transform.scale.y, bounds.MidX, bounds.MidY);
+            canvas.RotateDegrees(transform.rotation, transform.position.x + bounds.Width * transform.anchor.x, transform.position.y + bounds.Height * transform.anchor.y);
+            canvas.Scale(transform.scale.x, transform.scale.y, transform.position.x + bounds.Width * transform.anchor.x, transform.position.y + bounds.Height * transform.anchor.y);
 
             // Applying custom transform
-            // var fullBounds = transform.fullBounds;
-            // canvas.Translate(-(fullBounds.Width / 2), -(fullBounds.Height / 2));
-            if(transform.matrix != null)
+            if (transform.matrix != null)
                 canvas.Concat(transform.matrix.Value);
-            // canvas.Translate(fullBounds.Width / 2, fullBounds.Height / 2);
 
             // if (useSurfaceCaching)
             // {
@@ -140,7 +137,7 @@ namespace FenUISharp
                     // Draw the cached surface onto the main canvas
                     canvas.Scale(1 / quality, 1 / quality); // Scale for proper rendering
 
-                    if(transform.matrix == null)
+                    if (transform.matrix == null)
                         canvas.Translate(transform.position.x * quality, transform.position.y * quality);
 
                     canvas.DrawImage(snapshot, 0, 0, FWindow.samplingOptions, null);
@@ -253,21 +250,22 @@ namespace FenUISharp
             return globalPosition;
         }
 
-        public SKMatrix Create3DRotationMatrix(float rotationX, float rotationY, float rotationZ, float depth)
+        public SKMatrix Create3DRotationMatrix(float rotationX = 0, float rotationY = 0, float rotationZ = 0, float depthScale = 1)
         {
-            // Use the object's anchor point, not canvas origin
+            // Use the object's anchor point
             float anchorX = fullBounds.Width * anchor.x;
-            float anchorY = fullBounds.Width * anchor.y;
+            float anchorY = fullBounds.Height * anchor.y;
 
-            float z = 0.01f * size.x / depth;
+            // Dynamically calculate z. Might break at larger or smaller values, maybe fix that later.
+            float z = (5 * (0.1f / size.Magnitude())) / depthScale;
 
             // Create and apply transformations in correct order
             var matrix = SKMatrix.CreateIdentity();
 
-            // 1. First translate to make anchor point the origin
+            // First translate to make anchor point the origin
             matrix = SKMatrix.Concat(matrix, SKMatrix.CreateTranslation(position.x + anchorX, position.y + anchorY));
 
-            // 2. Apply all rotations
+            // Apply all rotations
             if (rotationZ != 0)
                 matrix = SKMatrix.Concat(matrix, SKMatrix.CreateRotationDegrees(rotationZ));
 
@@ -289,7 +287,7 @@ namespace FenUISharp
                 matrix = SKMatrix.Concat(matrix, yRotate);
             }
 
-            // 3. Translate back to original position
+            // Translate back to original position
             matrix = SKMatrix.Concat(matrix, SKMatrix.CreateTranslation(-anchorX, -anchorY));
 
             return matrix;
@@ -312,7 +310,8 @@ namespace FenUISharp
             this.y = v.y;
         }
 
-        public float Magnitude(){
+        public float Magnitude()
+        {
             return (float)Math.Sqrt(Math.Abs(x * x + y * y));
         }
 
