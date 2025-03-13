@@ -8,6 +8,7 @@ namespace FenUISharp
     {
         public FTransform transform { get; set; }
         public SKPaint skPaint { get; set; }
+        protected SKPaint drawImageFromCachePaint { get; set; }
 
         public bool enabled { get; set; } = true;
         public bool careAboutInteractions { get; set; } = true;
@@ -92,6 +93,12 @@ namespace FenUISharp
                 Color = SKColors.White,
                 IsAntialias = true
             };
+
+            drawImageFromCachePaint = new SKPaint()
+            {
+                Color = SKColors.White,
+                IsAntialias = true
+            };
         }
 
         public void DrawToScreen(SKCanvas canvas)
@@ -140,7 +147,7 @@ namespace FenUISharp
                     if (transform.matrix == null)
                         canvas.Translate(transform.position.x * quality, transform.position.y * quality);
 
-                    canvas.DrawImage(snapshot, 0, 0, FWindow.samplingOptions, null);
+                    canvas.DrawImage(snapshot, 0, 0, FWindow.samplingOptions, drawImageFromCachePaint);
                     canvas.Scale(quality, quality); // Scale for proper rendering
 
                     snapshot.Dispose();
@@ -191,6 +198,11 @@ namespace FenUISharp
         public UIComponent? GetTopmostComponentAtPosition(Vector2 pos)
         {
             return FWindow.uiComponents.Last(x => x.enabled && x.careAboutInteractions && FMath.ContainsPoint(x.transform.fullBounds, pos)); ;
+        }
+
+        public void SetColor(SKColor color){
+            skPaint.Color = color;
+            Invalidate();
         }
     }
 

@@ -14,6 +14,11 @@
     <None Include="icons\TrayIcon.ico">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+      <EmbeddedResource Include="fonts\Inter_18pt-Black.ttf" />
+      <EmbeddedResource Include="fonts\Inter_18pt-Bold.ttf" />
+      <EmbeddedResource Include="fonts\Inter_18pt-Regular.ttf" />
+      <EmbeddedResource Include="fonts\Inter_18pt-Medium.ttf" />
+      <EmbeddedResource Include="fonts\Inter_18pt-Light.ttf" />
   </ItemGroup>
 
 </Project>

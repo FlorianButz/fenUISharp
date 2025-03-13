@@ -1,5 +1,3 @@
-using DynamicWin;
-using DynamicWin.Utils;
 using SkiaSharp;
 
 namespace FenUISharp

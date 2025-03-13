@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using DynamicWin;
 using FenUISharp;
 using SkiaSharp;
 
@@ -11,7 +10,11 @@ namespace FenUISharpTest1
     class Program
     {
         [STAThread]
-        static void Main(){
+        static void Main()
+        {
+            FResources.LoadDefault();
+            new WindowsMediaControls();
+
             FWindow window = new FWindow("fenUISharp Test", "fenUISharpTest");
             window.Show();
 
@@ -23,22 +26,24 @@ namespace FenUISharpTest1
                 Console.WriteLine("Tray clicked!");
             };
 
-            new WindowsMediaControls();
+            // var t = new TestComponent(0, 0, 100, 100);
+            // // t.skPaint.ImageFilter = SKImageFilter.CreateDropShadow(0, 0, 25, 25, SKColors.Black);
 
-            var t = new TestComponent(0, 0, 100, 100);
-            // t.skPaint.ImageFilter = SKImageFilter.CreateDropShadow(0, 0, 25, 25, SKColors.Black);
+            // // var t2 = new TestComponent(0, 0, 50, 50);
+            // // t2.skPaint.Color = SKColors.Red;
+            // // //t2.transform.alignment = new Vector2(0.5f, 0);
+            // // t2.transform.parent = t.transform;
 
-            // var t2 = new TestComponent(0, 0, 50, 50);
-            // t2.skPaint.Color = SKColors.Red;
-            // //t2.transform.alignment = new Vector2(0.5f, 0);
-            // t2.transform.parent = t.transform;
+            // FWindow.uiComponents.Add(t);
+            // // FWindow.uiComponents.Add(t2);
 
-            FWindow.uiComponents.Add(t);
-            // FWindow.uiComponents.Add(t2);
+            // // for (int i = 0; i < 1500; i++) {
+            // //     FWindow.uiComponents.Add(new TestComponent());
+            // // }
 
-            // for (int i = 0; i < 1500; i++) {
-            //     FWindow.uiComponents.Add(new TestComponent());
-            // }
+            var c = new FLabel("Test Label!", new Vector2(0, 0), new Vector2(300, 50), 25, "inter-bold");
+            c.SetColor(SKColors.Red);
+            FWindow.uiComponents.Add(c);
 
             window.CreateSurface();
             window.Begin();

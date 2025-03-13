@@ -8,7 +8,7 @@ using Windows.Media;
 using Windows.Media.Control;
 using Windows.Storage.Streams;
 
-namespace DynamicWin
+namespace FenUISharp
 {
     public struct PlaybackInfo
     {
@@ -23,6 +23,8 @@ namespace DynamicWin
         public string album = "";
         public string artist = "";
         public string albumArtist = "";
+
+        public string? sourceAppModelId;
 
         public double duration = 0;
         public double position = 0;
@@ -107,6 +109,8 @@ namespace DynamicWin
                     cachedInfo.artist = info.Artist;
                     cachedInfo.album = info.AlbumTitle;
                     cachedInfo.albumArtist = info.AlbumArtist;
+
+                    cachedInfo.sourceAppModelId = currentSession?.SourceAppUserModelId;
 
                     if (playbackInfo != null)
                     {

@@ -1,6 +1,4 @@
-﻿using FenUISharp;
-
-namespace DynamicWin.Utils
+﻿namespace FenUISharp
 {
     public class SecondOrder
     {
