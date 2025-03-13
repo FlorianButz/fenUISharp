@@ -21,7 +21,7 @@ namespace FenUISharp
         public static int WindowWidth { get; private set; }
         public static int WindowHeight { get; private set; }
 
-        public IntPtr hWnd { get; private set; } // Window Handle
+        public static IntPtr hWnd { get; private set; } // Window Handle
 
         // Private variables
 
@@ -43,7 +43,7 @@ namespace FenUISharp
 
         public static SKRect bounds { get => new SKRect(0, 0, WindowWidth, WindowHeight); }
 
-        public static List<UIComponent> uiComponents = new List<UIComponent>();
+        public static List<FUIComponent> uiComponents = new List<FUIComponent>();
 
         public static double globalTime = 0;
 
@@ -103,6 +103,8 @@ namespace FenUISharp
             onWindowCreated?.Invoke();
 
             Thread.CurrentThread.Name = "Win32 Window";
+
+            Win32Helper.SetWindowDisplayAffinity(hWnd, Win32Helper.WDA_EXCLUDEFROMCAPTURE);
         }
 
         private void OnWindowUpdate_BeforeFrameRender()
@@ -116,7 +118,7 @@ namespace FenUISharp
         public void Begin()
         {
             // Keep a reference to prevent garbage collection
-            IDropTarget _dropTarget = new MyDropTarget();
+            IDropTarget _dropTarget = new FDropTarget();
 
             // Get COM interface pointer for the drop target
             IntPtr pDropTarget = Marshal.GetComInterfaceForObject(
@@ -205,7 +207,7 @@ namespace FenUISharp
 
                 foreach (var component in uiComponents)
                 {
-                    if (component.enabled)
+                    if (component.enabled && component.transform.parent == null)
                         component.DrawToScreen(_canvas);
                 }
 
@@ -325,7 +327,7 @@ namespace FenUISharp
             Win32Helper.NOTIFYICONDATAA nid = new Win32Helper.NOTIFYICONDATAA
             {
                 cbSize = Marshal.SizeOf(typeof(Win32Helper.NOTIFYICONDATAA)),
-                hWnd = this.hWnd,
+                hWnd = FWindow.hWnd,
                 uID = 1,
                 uFlags = (int)Win32Helper.NIF.NIF_MESSAGE | (int)Win32Helper.NIF.NIF_ICON | (int)Win32Helper.NIF.NIF_TIP,
                 uCallbackMessage = (int)Win32Helper.WindowMessages.WM_USER + 1,
@@ -485,7 +487,7 @@ namespace FenUISharp
             }
         }
 
-        public static MultiAccess<Win32Helper.Cursors> ActiveCursor { get; private set; } = new MultiAccess<Win32Helper.Cursors>(Win32Helper.Cursors.IDC_ARROW);
+        public static FMultiAccess<Win32Helper.Cursors> ActiveCursor { get; private set; } = new FMultiAccess<Win32Helper.Cursors>(Win32Helper.Cursors.IDC_ARROW);
 
         // Window Procedure
         private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
@@ -605,6 +607,16 @@ namespace FenUISharp
                     return IntPtr.Zero;
             }
             return Win32Helper.DefWindowProcW(hWnd, msg, wParam, lParam);
+        }
+
+        public static void HideWindow()
+        {
+            Win32Helper.ShowWindow(hWnd, 0);
+        }
+
+        public static void ShowWindow()
+        {
+            Win32Helper.ShowWindow(hWnd, 5);
         }
     }
 }

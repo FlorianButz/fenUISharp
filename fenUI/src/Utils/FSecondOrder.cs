@@ -1,12 +1,12 @@
 ﻿namespace FenUISharp
 {
-    public class SecondOrder
+    public class FSecondOrder
     {
         private Vector2 xp;
         private Vector2 y, yd;
         private float k1, k2, k3;
 
-        public SecondOrder(Vector2 x0, float f = 2f, float z = 0.4f, float r = 0.1f)
+        public FSecondOrder(Vector2 x0, float f = 2f, float z = 0.4f, float r = 0.1f)
         {
             k1 = (float)(z / (Math.PI * f));
             k2 = (float)(1 / ((2 * Math.PI * f) * (2 * Math.PI * f)));

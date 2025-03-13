@@ -2,53 +2,69 @@ using SkiaSharp;
 
 namespace FenUISharp
 {
-    public class TestComponent : UIComponent
+    public class TestComponent : FUIComponent
     {
-        public TestComponent(float x, float y, float width, float height) : base(x, y, width, height)
+
+        AnimatorComponent anim;
+
+        public TestComponent(Vector2 position, Vector2 size) : base(position, size)
         {
             // useSurfaceCaching = false;
             transform.boundsPadding.SetValue(this, 50, 15);
 
             renderQuality.SetValue(this, .9f, 25);
         
-            scaleOrder = new SecondOrder(transform.scale, 1.5f, 0.6f);
+            // scaleOrder = new FSecondOrder(transform.scale, 1.5f, 0.6f);
 
             //transform.matrix = transform.Create3DRotationMatrix(0, 0, 0, 500);
 
-            WindowsMediaControls.onThumbnailUpdated += Invalidate;
+            FWindowsMediaControls.onThumbnailUpdated += Invalidate;
+        
+            anim = new AnimatorComponent(this, FEasing.EaseOutQuint);
+            anim.duration = 0.5f;
+
+            anim.onValueUpdate += (t) => {
+                transform.scale = FMath.Lerp(new Vector2(1, 1), new Vector2(2, 2), t);
+            };
+
+            components.Add(anim);
         }
 
-        SecondOrder scaleOrder;
+        // FSecondOrder scaleOrder;
 
-        public Vector2 overrideSize = new Vector2(1, 1);
+        // public Vector2 overrideSize = new Vector2(1, 1);
 
-float t =0;
-        protected override void OnUpdate()
-        {
-            base.OnUpdate();
-t+= 5f;
-            // transform.matrix = transform.Create3DRotationMatrix(0, t, 0);
+// float t =0;
+//         protected override void OnUpdate()
+//         {
+//             base.OnUpdate();
+// t+= 5f;
+//             // transform.matrix = transform.Create3DRotationMatrix(t / 3, t, t * 2);
 
-            var s = transform.scale;
-            transform.scale = scaleOrder.Update(FWindow.DeltaTime, overrideSize);
-            renderQuality.SetValue(this, s.Equals(transform.size) ? 1 : 0.8f, 25);
+//             var s = transform.scale;
+//             transform.scale = scaleOrder.Update(FWindow.DeltaTime, overrideSize);
+//             renderQuality.SetValue(this, s.Equals(transform.scale) ? 1 : 0.9f, 25);
             
-transform.rotation += 0.5f;
+// // transform.rotation += 0.5f;
 
-            if(!s.Equals(transform.scale))
-                Invalidate();
-        }
+//             if(!s.Equals(transform.scale))
+//                 Invalidate();
+//         }
 
         protected override void OnMouseEnter()
         {
             base.OnMouseEnter();
-            overrideSize = new Vector2(2, 2);
+
+            anim.inverse = false;
+            anim.Start();
         }
 
         protected override void OnMouseExit()
         {
             base.OnMouseEnter();
-            overrideSize = new Vector2(1, 1);
+            
+            anim.inverse = true;
+            anim.Start();
         }
 
         // protected override void OnSelectedLost()
@@ -71,16 +87,16 @@ transform.rotation += 0.5f;
             base.OnMouseDown();
 
             // WindowsMediaControls.TriggerMediaControl(MediaControlTrigger.SwapLoopMode);
-            WindowsMediaControls.TriggerMediaControl(MediaControlTrigger.ToggleShuffle);
+            FWindowsMediaControls.TriggerMediaControl(MediaControlTrigger.ToggleShuffle);
         }
 
         protected override void DrawToSurface(SKCanvas canvas)
         {
-            // canvas.Clear(SKColors.Aqua.WithAlpha(25));
+            canvas.Clear(SKColors.Aqua.WithAlpha(25));
             //canvas.DrawRoundRect(transform.localBounds, 15, 15, skPaint);
             
-            if(WindowsMediaControls.CachedInfo.isActiveSession && WindowsMediaControls.CachedInfo.thumbnail != null)
-                canvas.DrawImage(WindowsMediaControls.CachedInfo.thumbnail, transform.localBounds, skPaint);
+            if(FWindowsMediaControls.CachedInfo.isActiveSession && FWindowsMediaControls.CachedInfo.thumbnail != null)
+                canvas.DrawImage(FWindowsMediaControls.CachedInfo.thumbnail, transform.localBounds, skPaint);
         }
     }
 }

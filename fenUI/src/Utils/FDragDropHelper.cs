@@ -27,7 +27,7 @@ namespace FenUISharp
 
     [ComVisible(true)]
     [ClassInterface(ClassInterfaceType.None)]
-    public class MyDropTarget : IDropTarget
+    public class FDropTarget : IDropTarget
     {
         public void DragEnter([In] nint pDataObj, [In] uint grfKeyState, [In] Win32Helper.POINT pt, [In, Out] ref uint pdwEffect)
         {

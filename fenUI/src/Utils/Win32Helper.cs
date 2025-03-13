@@ -119,13 +119,20 @@ namespace FenUISharp
             AC_SRC_ALPHA = 0x01
         }
 
-        public enum Cursors : int{
+        public enum Cursors : int
+        {
             IDC_ARROW = 32512,
             IDC_IBEAM = 32513,
             IDC_WAIT = 32514,
             IDC_NO = 32648,
             IDC_HAND = 32649
         }
+
+        public const int SRCCOPY = 0x00CC0020;
+
+        public const int SM_CXSCREEN = 0;
+        public const int SM_CYSCREEN = 1;
+        public const uint DIB_RGB_COLORS = 0;
 
         public const int CW_USEDEFAULT = unchecked((int)0x80000000);
         public const int HWND_TOPMOST = -1;
@@ -136,6 +143,9 @@ namespace FenUISharp
 
         public const uint IMAGE_ICON = 1;
         public const uint LR_LOADFROMFILE = 0x00000010;
+
+        public const uint WDA_NONE = 0x00000000;
+        public const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
 
         #endregion
 
@@ -211,6 +221,16 @@ namespace FenUISharp
         }
 
         [StructLayout(LayoutKind.Sequential)]
+        public struct RGBQUAD
+        {
+            public byte rgbBlue;
+            public byte rgbGreen;
+            public byte rgbRed;
+            public byte rgbReserved;
+        }
+
+
+        [StructLayout(LayoutKind.Sequential)]
         public struct BITMAPINFO
         {
             public BITMAPINFOHEADER bmiHeader;
@@ -269,6 +289,10 @@ namespace FenUISharp
              IntPtr hInstance,
              IntPtr lpParam);
 
+
+        [DllImport("user32.dll")]
+        public static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint dwAffinity);
+
         [DllImport("user32.dll")]
         public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
@@ -289,7 +313,7 @@ namespace FenUISharp
 
         [DllImport("user32.dll")]
         public static extern bool PeekMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax, uint wRemoveMsg);
-        
+
         [DllImport("user32.dll")]
         public static extern bool PostMessageA(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
@@ -388,6 +412,13 @@ namespace FenUISharp
 
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool DestroyWindow(IntPtr hWnd);
+
+        [DllImport("gdi32.dll")]
+        public static extern IntPtr CreateCompatibleBitmap(IntPtr hDC, int nWidth, int nHeight);
+
+        [DllImport("gdi32.dll")]
+        public static extern bool BitBlt(IntPtr hdcDest, int nXDest, int nYDest, int nWidth, int nHeight,
+                                    IntPtr hdcSrc, int nXSrc, int nYSrc, int dwRop);
 
         #endregion
     }

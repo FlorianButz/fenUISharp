@@ -1,6 +1,6 @@
 namespace FenUISharp
 {
-    public static class KeyInfo
+    public static class FKeyInfo
     {
         public static string GetKeyName(int vkCode)
         {

@@ -1,6 +1,6 @@
 namespace FenUISharp
 {
-    public class MultiAccess<T>
+    public class FMultiAccess<T>
     {
         public T Value { get => GetValue(); }
 
@@ -15,7 +15,7 @@ namespace FenUISharp
 
         List<MA_V> valueList = new List<MA_V>();
 
-        public MultiAccess(T defaultValue = default(T))
+        public FMultiAccess(T defaultValue = default(T))
         {
             valueList.Add(new MA_V { caller = this, priority = 0, value = defaultValue });
 

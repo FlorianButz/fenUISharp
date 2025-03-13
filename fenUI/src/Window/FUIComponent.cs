@@ -1,35 +1,36 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using SkiaSharp;
 
 namespace FenUISharp
 {
-    public abstract class UIComponent : IDisposable
+    public abstract class FUIComponent : IDisposable
     {
         public FTransform transform { get; set; }
         public SKPaint skPaint { get; set; }
         protected SKPaint drawImageFromCachePaint { get; set; }
 
+        public List<FComponent> components { get; set; } = new List<FComponent>();
+
         public bool enabled { get; set; } = true;
         public bool careAboutInteractions { get; set; } = true;
 
-        public static UIComponent? currentlySelected { get; set; } = null;
+        public static FUIComponent? currentlySelected { get; set; } = null;
 
+        public FMultiAccess<float> renderQuality = new FMultiAccess<float>(1);
         protected SKImageInfo? cachedImageInfo = null;
         protected SKSurface? cachedSurface = null;
-        // public bool useSurfaceCaching { get; set; } = true;
-
-        public MultiAccess<float> renderQuality = new MultiAccess<float>(1);
-
         protected Win32Helper.Cursors hoverCursor = Win32Helper.Cursors.IDC_ARROW;
 
         private bool _isMouseHovering = false;
 
-        public UIComponent(float x, float y, float width, float height)
+
+        public FUIComponent(Vector2 position, Vector2 size)
         {
-            transform = new FTransform();
-            transform.localPosition = new Vector2(x, y);
-            transform.size = new Vector2(width, height);
+            transform = new FTransform(this);
+            transform.localPosition = position;
+            transform.size = size;
 
             CreatePaint();
 
@@ -39,12 +40,16 @@ namespace FenUISharp
             FWindow.onMouseLeftUp += OnMouseLeftUp;
             FWindow.onMouseRightUp += OnMouseRightUp;
 
-            renderQuality.onValueUpdated += (x) => { Invalidate(); };
+            renderQuality.onValueUpdated += OnRenderQualityUpdated;
         }
 
         private void OnMouseRightUp()
         {
-            OnMouseRight();
+            if (FMath.ContainsPoint(transform.bounds, new Vector2(FWindow.MousePosition)) && GetTopmostComponentAtPosition(new Vector2(FWindow.MousePosition)) == this)
+            {
+                OnMouseRight();
+                components.ForEach(x => x.OnMouseRight());
+            }
         }
 
         private void OnMouseLeftUp()
@@ -55,14 +60,18 @@ namespace FenUISharp
 
                 currentlySelected = this;
                 currentlySelected?.OnSelected();
+                OnMouseUp();
+                components.ForEach(x => x.OnMouseUp());
             }
-
-            OnMouseUp();
         }
 
         private void OnMouseLeftDown()
         {
-            OnMouseDown();
+            if (FMath.ContainsPoint(transform.bounds, new Vector2(FWindow.MousePosition)) && GetTopmostComponentAtPosition(new Vector2(FWindow.MousePosition)) == this)
+            {
+                OnMouseDown();
+                components.ForEach(x => x.OnMouseDown());
+            }
         }
 
         private void OnMouseMove(int x, int y)
@@ -84,6 +93,7 @@ namespace FenUISharp
             }
 
             OnMouseMove(new Vector2(x, y));
+            components.ForEach(z => z.OnMouseMove(new Vector2(x, y)));
         }
 
         protected void CreatePaint()
@@ -105,7 +115,7 @@ namespace FenUISharp
         {
             // Render quality
 
-            float quality = FMath.Clamp(renderQuality.Value, 0.05f, 1);
+            float quality = FMath.Clamp(renderQuality.Value * ((transform.parent != null) ? transform.parent.parentComponent.renderQuality.Value : 1), 0.05f, 1);
             var bounds = transform.fullBounds;
 
             int c = canvas.Save();
@@ -116,8 +126,6 @@ namespace FenUISharp
             if (transform.matrix != null)
                 canvas.Concat(transform.matrix.Value);
 
-            // if (useSurfaceCaching)
-            // {
             int scaledWidth = FMath.Clamp((int)(bounds.Width * quality), 1, int.MaxValue);
             int scaledHeight = FMath.Clamp((int)(bounds.Height * quality), 1, int.MaxValue);
 
@@ -139,21 +147,24 @@ namespace FenUISharp
 
             if (cachedSurface != null)
             {
+                // Draw the cached surface onto the main canvas
                 using (var snapshot = cachedSurface.Snapshot())
                 {
-                    // Draw the cached surface onto the main canvas
                     canvas.Scale(1 / quality, 1 / quality); // Scale for proper rendering
 
                     if (transform.matrix == null)
                         canvas.Translate(transform.position.x * quality, transform.position.y * quality);
 
                     canvas.DrawImage(snapshot, 0, 0, FWindow.samplingOptions, drawImageFromCachePaint);
-                    canvas.Scale(quality, quality); // Scale for proper rendering
+
+                    canvas.Translate(-(transform.position.x * quality), -(transform.position.y * quality)); // Always move back to 0;0. Translate always happen, no matter if rotation matrix is set or not.
+                    canvas.Scale(quality, quality); // Scale back for proper rendering
 
                     snapshot.Dispose();
                 }
             }
-            // }
+
+            transform.childs.ForEach(c => c.parentComponent.DrawToScreen(canvas));
 
             canvas.RestoreToCount(c);
         }
@@ -170,13 +181,19 @@ namespace FenUISharp
 
         private void Update()
         {
-            if (enabled) OnUpdate();
+            if (enabled)
+            {
+                OnUpdate();
+                components.ForEach(x => x.OnComponentUpdate());
+            }
         }
 
         protected virtual void OnUpdate() { }
         protected virtual void OnComponentDestroy() { }
+
         protected virtual void OnSelected() { }
         protected virtual void OnSelectedLost() { }
+
         protected virtual void OnMouseEnter() { }
         protected virtual void OnMouseExit() { }
         protected virtual void OnMouseDown() { }
@@ -190,25 +207,37 @@ namespace FenUISharp
             FWindow.onWindowUpdate -= OnUpdate;
             FWindow.onMouseMove -= OnMouseMove;
             FWindow.onMouseLeftDown -= OnMouseLeftDown;
+            renderQuality.onValueUpdated -= OnRenderQualityUpdated;
 
             if (currentlySelected == this) currentlySelected = null;
             if (FWindow.uiComponents.Contains(this)) FWindow.uiComponents.Remove(this);
+
+            components.ForEach(x => x.Dispose());
         }
 
-        public UIComponent? GetTopmostComponentAtPosition(Vector2 pos)
+        public FUIComponent? GetTopmostComponentAtPosition(Vector2 pos)
         {
             return FWindow.uiComponents.Last(x => x.enabled && x.careAboutInteractions && FMath.ContainsPoint(x.transform.fullBounds, pos)); ;
         }
 
-        public void SetColor(SKColor color){
+        public void SetColor(SKColor color)
+        {
             skPaint.Color = color;
+            Invalidate();
+        }
+
+        public void OnRenderQualityUpdated(float v)
+        {
             Invalidate();
         }
     }
 
     public class FTransform
     {
-        public FTransform? parent;
+        public FUIComponent parentComponent { get; private set; }
+
+        public FTransform? parent { get; private set; }
+        public List<FTransform> childs { get; private set; } = new List<FTransform>();
 
         public SKMatrix? matrix { get; set; }
 
@@ -225,9 +254,41 @@ namespace FenUISharp
         public SKRect bounds { get => GetBounds(1); }
         public SKRect localBounds { get => GetBounds(2); }
 
-        public MultiAccess<int> boundsPadding = new MultiAccess<int>(0);
+        public FMultiAccess<int> boundsPadding = new FMultiAccess<int>(0);
 
         public Vector2 alignment { get; set; } = new Vector2(0.5f, 0.5f); // Place object in the middle of parent
+
+        public void SetParent(FTransform transform)
+        {
+            parent = transform;
+            parent.SetChild(this);
+
+            parent.parentComponent.renderQuality.onValueUpdated += parentComponent.OnRenderQualityUpdated;
+        }
+
+        public void ClearParent()
+        {
+            if (parent != null)
+                parent.parentComponent.renderQuality.onValueUpdated -= parentComponent.OnRenderQualityUpdated;
+
+            parent?.RemoveChild(this);
+            parent = null;
+        }
+
+        public void SetChild(FTransform transform)
+        {
+            childs.Add(transform);
+        }
+
+        public void RemoveChild(FTransform transform)
+        {
+            childs.Remove(transform);
+        }
+
+        public FTransform(FUIComponent component)
+        {
+            parentComponent = component;
+        }
 
         private Vector2 GetGlobalPosition(Vector2 localPosition)
         {
@@ -246,7 +307,7 @@ namespace FenUISharp
 
             var pos = id <= 1 ? position : new Vector2(0, 0);
             if (id != 2)
-                return new SKRect(pos.x - pad, pos.y - pad, pos.x + size.x + pad, pos.y + size.y + pad);
+                return new SKRect(pos.x, pos.y, pos.x + size.x + pad * 2, pos.y + size.y + pad * 2);
             else
                 return new SKRect(pos.x + pad, pos.y + pad, pos.x + size.x + pad, pos.y + size.y + pad);
         }
@@ -269,7 +330,7 @@ namespace FenUISharp
             float anchorY = fullBounds.Height * anchor.y;
 
             // Dynamically calculate z. Might break at larger or smaller values, maybe fix that later.
-            float z = (5 * (0.1f / size.Magnitude())) / depthScale;
+            float z = (3f * (0.1f / size.Magnitude())) / depthScale;
 
             // Create and apply transformations in correct order
             var matrix = SKMatrix.CreateIdentity();

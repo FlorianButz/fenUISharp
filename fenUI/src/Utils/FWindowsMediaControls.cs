@@ -34,7 +34,7 @@ namespace FenUISharp
         public PlaybackInfo() { }
     }
 
-    public class WindowsMediaControls
+    public class FWindowsMediaControls
     {
         static GlobalSystemMediaTransportControlsSessionManager? globSessionManager;
         static GlobalSystemMediaTransportControlsSession? currentSession;
@@ -60,7 +60,7 @@ namespace FenUISharp
             }
         }
 
-        public WindowsMediaControls()
+        public FWindowsMediaControls()
         {
             InitWindowsMediaControls();
             Task.Run(() => PollMediaInfoAsync());
