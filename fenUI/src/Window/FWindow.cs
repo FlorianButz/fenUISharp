@@ -13,7 +13,7 @@ namespace FenUISharp
 
         // Window Specifications
 
-        public static double WindowRefreshRate { get; set; } = 5.0;
+        public static double WindowRefreshRate { get; set; } = 60.0;
 
         public static string WindowTitle { get; private set; } = "FenUISharp Window";
         public static string WindowClass { get; private set; } = "fenUISharpWindow";
@@ -78,6 +78,7 @@ namespace FenUISharp
         public static SKSamplingOptions samplingOptions { get; private set; } = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
         private static bool alreadyCreated = false;
 
+        public static bool showBounds { get; set; } = false;
 
         public static float DeltaTime { get; private set; }
 
@@ -135,7 +136,11 @@ namespace FenUISharp
 
             RegisterHook();
 
-            Task.Run(() => RenderLoop());
+            Task.Run(() =>
+            {
+                Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
+                RenderLoop();
+            });
 
             Win32Helper.MSG msg;
             while (true)
@@ -147,6 +152,8 @@ namespace FenUISharp
 
                     Win32Helper.TranslateMessage(ref msg);
                     Win32Helper.DispatchMessage(ref msg);
+
+                    Thread.Sleep(1);
                 }
             }
         }
@@ -154,36 +161,36 @@ namespace FenUISharp
         private async void RenderLoop()
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
-            double frameInterval = 1000.0 / WindowRefreshRate; // e.g., 16.67 ms for 60 FPS
+            double frameInterval = 1000.0 / WindowRefreshRate;
             double nextFrameTime = 0;
             double previousFrameTime = 0;
 
             while (_isRunning)
             {
                 double currentTime = stopwatch.Elapsed.TotalMilliseconds;
+                bool needsRender = uiComponents.Any(x => x._isGloballyInvalidated);
+                // Console.WriteLine(needsRender);
 
-                // Check if it's time to render the next frame
                 if (currentTime >= nextFrameTime)
                 {
-                    // Calculate DeltaTime (time since the last frame)
-                    DeltaTime = (float)(currentTime - previousFrameTime) / 1000.0f; // Convert to seconds
+                    DeltaTime = (float)(currentTime - previousFrameTime) / 1000.0f;
                     previousFrameTime = currentTime;
 
-                    // Render the frame
                     OnWindowUpdate_BeforeFrameRender();
-                    RenderFrame();
+                    if (needsRender)
+                    {
+                        RenderFrame();
+                        Win32Helper.PostMessageA(hWnd, (int)Win32Helper.WindowMessages.WM_RENDER, IntPtr.Zero, IntPtr.Zero);
+                    }
 
-                    // Notify the main thread to update the window
-                    Win32Helper.PostMessageA(hWnd, (int)Win32Helper.WindowMessages.WM_RENDER, IntPtr.Zero, IntPtr.Zero);
-
-                    // Schedule the next frame
                     nextFrameTime = currentTime + frameInterval;
                 }
 
-                // Sleep briefly to avoid busy-waiting
+                //await Task.Delay(needsRender ? 1 : 16); // If not rendering, sleep longer (saves CPU)
                 await Task.Delay(1);
             }
         }
+
 
         private readonly object _renderLock = new object();
 
@@ -204,6 +211,23 @@ namespace FenUISharp
                 {
                     if (component.enabled && component.transform.parent == null)
                         component.DrawToScreen(_canvas);
+
+                    if (showBounds)
+                    {
+                        using (var s = new SKPaint() { IsStroke = true, StrokeWidth = 2, Color = SKColors.Red })
+                        {
+                            s.StrokeWidth = 8;
+                            _canvas.DrawRect(component.transform.bounds, s);
+                            s.Color = SKColors.Green;
+                            s.StrokeWidth = 3;
+                            _canvas.Translate(component.transform.position.x, component.transform.position.y);
+                            _canvas.DrawRect(component.transform.localBounds, s);
+                            _canvas.Translate(-component.transform.position.x, -component.transform.position.y);
+                            s.Color = SKColors.Blue;
+                            s.StrokeWidth = 1;
+                            _canvas.DrawRect(component.transform.fullBounds, s);
+                        }
+                    }
                 }
 
                 _canvas.Flush();
@@ -501,6 +525,10 @@ namespace FenUISharp
                     return IntPtr.Zero;
 
                 case (int)Win32Helper.WindowMessages.WM_PAINT:
+                    return IntPtr.Zero;
+
+                case (int)Win32Helper.WindowMessages.WM_ACTIVATE:
+                    SetAlwaysOnTop();
                     return IntPtr.Zero;
 
                 case (int)Win32Helper.WindowMessages.WM_SIZE:

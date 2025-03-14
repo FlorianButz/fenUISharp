@@ -14,44 +14,62 @@ namespace FenUISharp
         SKColor basecolor = new SKColor(100, 90, 100);
         SKColor hovercolor = new SKColor(115, 105, 115);
 
-        SKColor highlight = new SKColor(112, 102, 107, 150);
+        SKColor highlight = new SKColor(112, 102, 107, 210);
         SKColor hoverhighlight = new SKColor(135, 125, 125, 255);
 
+        float padding = 5f;
+        float minWidth = 0;
+        float maxWidth = 0;
         float cornerRadius = 5.5f;
         Action? onClick;
 
-        public FSimpleButton(Vector2 position, string text, Action? onClick) : base(position, new Vector2(0, 0))
+        public FSimpleButton(Vector2 position, string text, Action? onClick = null, float minWidth = 25, float maxWidth = 175) : base(position, new Vector2(0, 0))
         {
             this.onClick = onClick;
             label = new FLabel(text, new Vector2(0, 0), new Vector2(0, 0), 12);
 
-            float padding = 5f;
-            float height = label.GetSignleLineTextHeight() + padding;
-            float width = label.GetSignleLineTextWidth() + padding * 2.5f;
+            this.maxWidth = FMath.Clamp(maxWidth, minWidth, float.MaxValue);
+            this.minWidth = FMath.Clamp(minWidth, 0, this.maxWidth);
 
-            label.transform.size = new Vector2(width, height);
+            SetText(text);
 
             label.transform.SetParent(transform);
             label.careAboutInteractions = false;
             FWindow.uiComponents.Add(label);
-
-            transform.size = new Vector2(width, height);
 
             currentcolor = basecolor;
             currenthighlight = highlight;
 
             transform.boundsPadding.SetValue(this, 5, 25);
 
-            animatorComponent = new AnimatorComponent(this, FEasing.EaseOutQuint);
-            animatorComponent.duration = 0.1f;
+            animatorComponent = new AnimatorComponent(this, FEasing.EaseOutCubic);
+            animatorComponent.duration = 0.2f;
             
             animatorComponent.onValueUpdate += (t) => {
                 currentcolor = FMath.Lerp(basecolor, hovercolor, t);
                 currenthighlight = FMath.Lerp(highlight, hoverhighlight, t);
+
+                float pixelsAdd = 1f;
+                float sx = (transform.size.x + pixelsAdd) / transform.size.x;
+                float sy = (transform.size.y + pixelsAdd / 2) / transform.size.y;
+
+                transform.scale = FMath.Lerp(new Vector2(1, 1), new Vector2(sx, sy), t);
                 Invalidate();
             };
 
+            transform.boundsPadding.SetValue(this, 15, 15);
+
             components.Add(animatorComponent);
+        }
+
+        public void SetText(string text){
+            label.Text = text;
+
+            float height = label.GetSingleLineTextHeight();
+            float width = FMath.Clamp(label.GetSingleLineTextWidth(), minWidth, maxWidth);
+
+            label.transform.size = new Vector2(width, height);
+            transform.size = new Vector2(width + padding * 2.5f, height + padding);
         }
 
         protected override void OnMouseEnter()

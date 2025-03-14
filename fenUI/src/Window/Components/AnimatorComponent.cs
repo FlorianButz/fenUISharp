@@ -64,6 +64,7 @@ namespace FenUISharp
             // Interpolate from the starting value to the target value.
             currentValue = startValue + (targetValue - startValue) * easedT;
             onValueUpdate?.Invoke(currentValue);
+            parent.SoftInvalidate();
 
             if (_timePassed >= duration)
             {

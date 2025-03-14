@@ -7,7 +7,9 @@ namespace FenUISharp
         public FPanel(Vector2 position, Vector2 size, SKColor color) : base(position, size)
         {
             skPaint.Color = color;
-            skPaint.ImageFilter = SKImageFilter.CreateDropShadow(2, 2, 15, 15, SKColors.Black.WithAlpha(150));
+            skPaint.ImageFilter = SKImageFilter.CreateDropShadow(2, 2, 15, 15, SKColors.Black.WithAlpha(125));
+        
+            transform.boundsPadding.SetValue(this, 35, 35);
         }
 
         protected override void DrawToSurface(SKCanvas canvas)

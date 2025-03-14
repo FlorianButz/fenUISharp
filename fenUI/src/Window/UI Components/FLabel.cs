@@ -10,8 +10,9 @@ namespace FenUISharp
 
         public bool UseLinebreaks { get; set; }
         private float _scrollOffset = 0;
-        private float ScrollSpeed { get; set; } = 0.5f;
-        private float FadeLength { get; set; } = 0.1f;
+        private float _speedMulti = -10;
+        private float ScrollSpeed { get; set; } = 0.75f;
+        private float FadeLength { get; set; } = 0.075f;
 
         public SKTypeface? Typeface { get; private set; }
         private float _textSize = 14;
@@ -31,6 +32,7 @@ namespace FenUISharp
             Font = new SKFont(Typeface, TextSize);
             Font.Hinting = SKFontHinting.Full;
             Font.Subpixel = true;
+	        Font.Edging = SKFontEdging.SubpixelAntialias;
 
             Invalidate();
         }
@@ -55,7 +57,7 @@ namespace FenUISharp
 
         public FLabel(string text, Vector2 position, Vector2 size, float fontSize = 14, string? typefaceName = null, bool useLinebreaks = false) : base(position, size)
         {
-            Text = text;
+            _text = text;
             _textSize = fontSize;
             UseLinebreaks = useLinebreaks;
 
@@ -166,13 +168,6 @@ namespace FenUISharp
             }
         }
 
-        protected override void OnMouseEnter()
-        {
-            base.OnMouseEnter();
-
-            SetText("Test Text On Hover! Hello there!");
-        }
-
         void DrawScrollingText(SKCanvas canvas, string text, SKRect bounds)
         {
             Font.GetFontMetrics(out SKFontMetrics fm);
@@ -191,25 +186,21 @@ namespace FenUISharp
                 {
                     x = bounds.Right - textWidth;
                 }
-                
+
                 canvas.DrawText(text, x, y, Font, skPaint);
                 return;
-            }
-
-            float gap = bounds.Width / 4;
-
-            _scrollOffset -= ScrollSpeed;
-            if (_scrollOffset < -textWidth /* Keep Offset when teleporting */ - gap)
-            {
-                _scrollOffset += textWidth /* Add the offset */ + gap;
             }
 
             canvas.SaveLayer(bounds, null);
             canvas.ClipRect(bounds);
 
+            float gap = transform.localBounds.Width / 4;
             float startX = bounds.Left + _scrollOffset;
+
             canvas.DrawText(text, startX, y, Font, skPaint);
             canvas.DrawText(text, startX + textWidth /* Add Offset */ + gap, y, Font, skPaint);
+
+            var leftAlpha = 1f - FMath.Clamp(Math.Abs(startX) / 2, 0, 1) + FMath.Clamp(1 - (startX + (textWidth + gap) - 30), 0, 1);
 
             using (var maskPaint = new SKPaint())
             {
@@ -217,7 +208,7 @@ namespace FenUISharp
                 maskPaint.Shader = SKShader.CreateLinearGradient(
                     new SKPoint(bounds.Left, 0),
                     new SKPoint(bounds.Right, 0),
-                    new SKColor[] { SKColors.Transparent, SKColors.Black, SKColors.Black, SKColors.Transparent },
+                    new SKColor[] { SKColors.Black.WithAlpha((byte)(leftAlpha * 255)), SKColors.Black, SKColors.Black, SKColors.Transparent },
                     new float[] { 0f, FadeLength, 1 - FadeLength, 1f },
                     SKShaderTileMode.Clamp
                 );
@@ -227,8 +218,6 @@ namespace FenUISharp
             canvas.Restore();
         }
 
-
-
         protected override void OnUpdate()
         {
             base.OnUpdate();
@@ -237,7 +226,20 @@ namespace FenUISharp
             {
                 float textWidth = Font.MeasureText(Text);
                 if (textWidth > transform.localBounds.Width)
+                {
+                    float gap = transform.localBounds.Width / 4;
+
+                    _speedMulti = FMath.Lerp(_speedMulti, 1f, FWindow.DeltaTime);
+                    _scrollOffset -= ScrollSpeed * FMath.Clamp(_speedMulti, 0, 1) * (FWindow.DeltaTime * 35);
+
+                    if (_scrollOffset < -textWidth /* Keep Offset when teleporting */ - gap)
+                    {
+                        _scrollOffset += textWidth /* Add the offset */ + gap;
+                        _speedMulti = -10;
+                    }
+
                     Invalidate();
+                }
             }
         }
 
@@ -249,11 +251,13 @@ namespace FenUISharp
                 DrawScrollingText(canvas, Text, transform.localBounds);
         }
 
-        public float GetSignleLineTextWidth(){
+        public float GetSingleLineTextWidth()
+        {
             return Font.MeasureText(Text, skPaint);
         }
-     
-        public float GetSignleLineTextHeight(){
+
+        public float GetSingleLineTextHeight()
+        {
             Font.GetFontMetrics(out SKFontMetrics fm);
             float lineHeight = (fm.Descent - fm.Ascent) + fm.Leading;
             return lineHeight;

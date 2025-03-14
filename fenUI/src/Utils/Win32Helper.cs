@@ -10,6 +10,7 @@ namespace FenUISharp
         // Window Messages
         public enum WindowMessages : uint
         {
+            WM_ACTIVATE = 0x0006,
             WM_DESTROY = 0x0002,
             WM_PAINT = 0x000F,
             WM_SIZE = 0x0005,
@@ -412,6 +413,9 @@ namespace FenUISharp
 
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool DestroyWindow(IntPtr hWnd);
+        
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool WaitMessage();
 
         [DllImport("gdi32.dll")]
         public static extern IntPtr CreateCompatibleBitmap(IntPtr hDC, int nWidth, int nHeight);

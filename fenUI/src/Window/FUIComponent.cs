@@ -24,7 +24,7 @@ namespace FenUISharp
         protected Win32Helper.Cursors hoverCursor = Win32Helper.Cursors.IDC_ARROW;
 
         private bool _isMouseHovering = false;
-
+        public bool _isGloballyInvalidated { get; set; }
 
         public FUIComponent(Vector2 position, Vector2 size)
         {
@@ -39,8 +39,6 @@ namespace FenUISharp
             FWindow.onMouseLeftDown += OnMouseLeftDown;
             FWindow.onMouseLeftUp += OnMouseLeftUp;
             FWindow.onMouseRightUp += OnMouseRightUp;
-
-            renderQuality.onValueUpdated += OnRenderQualityUpdated;
         }
 
         private void OnMouseRightUp()
@@ -165,8 +163,8 @@ namespace FenUISharp
             }
 
             transform.childs.ForEach(c => c.parentComponent.DrawToScreen(canvas));
-
             canvas.RestoreToCount(c);
+            _isGloballyInvalidated = false;
         }
 
         public void Invalidate()
@@ -175,6 +173,11 @@ namespace FenUISharp
             cachedSurface = null; // Mark for redraw
 
             cachedImageInfo = null;
+            _isGloballyInvalidated = true;
+        }
+
+        public void SoftInvalidate(){
+            _isGloballyInvalidated = true;
         }
 
         protected abstract void DrawToSurface(SKCanvas canvas);
@@ -246,10 +249,16 @@ namespace FenUISharp
         public Vector2 localPosition { get => _localPosition + boundsPadding.Value; set => _localPosition = value; }
         private Vector2 _localPosition { get; set; }
         public Vector2 anchor { get; set; } = new Vector2(0.5f, 0.5f);
-        public Vector2 size { get; set; }
+        private Vector2 _size { get; set; }
+        public Vector2 size { get => GetSize(); set => _size = value; }
 
         public Vector2 scale { get; set; } = new Vector2(1, 1);
         public float rotation { get; set; } = 0;
+
+        public float marginHorizontal { get; set; } = 15;
+        public float marginVertical { get; set; } = 15;
+        public bool stretchHorizontal { get; set; } = false;
+        public bool stretchVertical { get; set; } = false;
 
         public SKRect fullBounds { get => GetBounds(0); }
         public SKRect bounds { get => GetBounds(1); }
@@ -258,6 +267,21 @@ namespace FenUISharp
         public FMultiAccess<int> boundsPadding = new FMultiAccess<int>(0);
 
         public Vector2 alignment { get; set; } = new Vector2(0.5f, 0.5f); // Place object in the middle of parent
+
+        public Vector2 GetSize(){
+            var sp = FWindow.bounds;
+            var ss = parent?.size;
+
+            var s = _size;
+            
+            var x = (parent == null) ? sp.Width : ss.Value.x;
+            var y = (parent == null) ? sp.Height : ss.Value.y;
+
+            if(stretchHorizontal) s.x = x - marginHorizontal * 2;
+            if(stretchVertical) s.y = y  - marginVertical * 2;
+
+            return s;
+        }
 
         public void SetParent(FTransform transform)
         {
@@ -304,10 +328,10 @@ namespace FenUISharp
 
         private SKRect GetBounds(int id)
         {
-            var pad = boundsPadding.Value;
+            var pad = (parent == null) ? boundsPadding.Value : 0;
 
             var pos = id <= 1 ? position : new Vector2(0, 0);
-            if (id != 2)
+            if (id == 0)
                 return new SKRect(pos.x, pos.y, pos.x + size.x + pad * 2, pos.y + size.y + pad * 2);
             else
                 return new SKRect(pos.x + pad, pos.y + pad, pos.x + size.x + pad, pos.y + size.y + pad);

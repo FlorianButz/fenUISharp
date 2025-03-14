@@ -18,18 +18,13 @@ namespace FenUISharp
         public FMultiAccess(T defaultValue = default(T))
         {
             valueList.Add(new MA_V { caller = this, priority = 0, value = defaultValue });
-
-            onValueUpdated?.Invoke(GetValue());
-        }
-
-        public void Update()
-        {
-            onValueUpdated?.Invoke(GetValue());
         }
 
         public void SetValue(object caller, T value, float priority)
         {
             if(valueList.Any(x => x.caller == caller && x.value.Equals(value))) return;
+
+            var valueBefore = Value;
 
             if (valueList.Any(x => x.caller == caller))
             {
@@ -42,18 +37,22 @@ namespace FenUISharp
                 {
                     valueList.Insert(i, new MA_V { caller = caller, priority = priority, value = value });
 
-                    onValueUpdated?.Invoke(GetValue());
+                    if(!EqualityComparer<T>.Default.Equals(Value, valueBefore))
+                        onValueUpdated?.Invoke(GetValue());
                     return;
                 }
             }
 
             valueList.Insert(valueList.Count, new MA_V { caller = caller, priority = priority, value = value });
 
-            onValueUpdated?.Invoke(GetValue());
+            if(!EqualityComparer<T>.Default.Equals(Value, valueBefore))
+                onValueUpdated?.Invoke(GetValue());
         }
 
         public void DissolveValue(object caller)
         {
+            var valueBefore = Value;
+
             int index = -1;
             for (int i = 0; i < valueList.Count; i++)
             {
@@ -64,7 +63,8 @@ namespace FenUISharp
             if (index != -1)
                 valueList.RemoveAt(index);
 
-            onValueUpdated?.Invoke(GetValue());
+            if(!EqualityComparer<T>.Default.Equals(Value, valueBefore))
+                onValueUpdated?.Invoke(GetValue());
         }
 
         T GetValue()
