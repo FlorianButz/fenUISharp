@@ -13,7 +13,7 @@ namespace FenUISharp
 
         // Window Specifications
 
-        public static double WindowRefreshRate { get; set; } = 60.0;
+        public static double WindowRefreshRate { get; set; } = 5.0;
 
         public static string WindowTitle { get; private set; } = "FenUISharp Window";
         public static string WindowClass { get; private set; } = "fenUISharpWindow";
@@ -135,12 +135,7 @@ namespace FenUISharp
 
             RegisterHook();
 
-            _renderThread = new Thread(RenderLoop)
-            {
-                IsBackground = true
-            };
-            _renderThread.Name = "Render Loop";
-            _renderThread.Start();
+            Task.Run(() => RenderLoop());
 
             Win32Helper.MSG msg;
             while (true)
@@ -156,7 +151,7 @@ namespace FenUISharp
             }
         }
 
-        private void RenderLoop()
+        private async void RenderLoop()
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
             double frameInterval = 1000.0 / WindowRefreshRate; // e.g., 16.67 ms for 60 FPS
@@ -186,7 +181,7 @@ namespace FenUISharp
                 }
 
                 // Sleep briefly to avoid busy-waiting
-                Thread.Sleep(1);
+                await Task.Delay(1);
             }
         }
 

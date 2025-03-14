@@ -31,9 +31,12 @@ namespace FenUISharpTest1
 
             FSimpleButton simpleButton = new FSimpleButton(new Vector2(0, 0), "Test Button!", () => Console.WriteLine("Test Button Clicked!"));
             simpleButton.transform.SetParent(c.transform);
+            FSimpleButton simpleButton2 = new FSimpleButton(new Vector2(0, 25), "aoidjaoiwjoidjawoidjawoidowajd", () => Console.WriteLine("Test Button Clicked!"));
+            simpleButton2.transform.SetParent(c.transform);
 
             FWindow.uiComponents.Add(c);
             FWindow.uiComponents.Add(simpleButton);
+            FWindow.uiComponents.Add(simpleButton2);
 
             window.CreateSurface();
             window.Begin();

@@ -217,7 +217,8 @@ namespace FenUISharp
 
         public FUIComponent? GetTopmostComponentAtPosition(Vector2 pos)
         {
-            return FWindow.uiComponents.Last(x => x.enabled && x.careAboutInteractions && FMath.ContainsPoint(x.transform.fullBounds, pos)); ;
+            if(!FWindow.uiComponents.Any(x => x.enabled && x.careAboutInteractions && FMath.ContainsPoint(x.transform.fullBounds, pos))) return null;
+            return FWindow.uiComponents.Last(x => x.enabled && x.careAboutInteractions && FMath.ContainsPoint(x.transform.fullBounds, pos));
         }
 
         public void SetColor(SKColor color)

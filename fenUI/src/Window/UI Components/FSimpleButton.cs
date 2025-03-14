@@ -43,7 +43,7 @@ namespace FenUISharp
             transform.boundsPadding.SetValue(this, 5, 25);
 
             animatorComponent = new AnimatorComponent(this, FEasing.EaseOutQuint);
-            animatorComponent.duration = 0.2f;
+            animatorComponent.duration = 0.1f;
             
             animatorComponent.onValueUpdate += (t) => {
                 currentcolor = FMath.Lerp(basecolor, hovercolor, t);
