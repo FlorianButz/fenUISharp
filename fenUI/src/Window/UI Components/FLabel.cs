@@ -46,6 +46,8 @@ namespace FenUISharp
             if(Text == text || isSettingText == true) return;
             isSettingText = true;
 
+            // renderQuality.SetValue(this, 1f, 35);
+
             changeTextAnim.Start();
             changeTextAnim.onComplete = () => {
                 _text = text;
@@ -60,6 +62,9 @@ namespace FenUISharp
                     isSettingText = false;
 
                     skPaint.ImageFilter = dropShadow;
+                    
+                    renderQuality.DissolveValue(this);
+                    Invalidate();
                 };
             };
         }

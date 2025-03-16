@@ -2,9 +2,6 @@
 using FenUISharp;
 using SkiaSharp;
 
-using Windows.Media.Control;
-using Windows.Storage.Streams;
-
 namespace FenUISharpTest1
 {
     class Program
@@ -53,7 +50,6 @@ c2.transform.SetParent(c.transform);
 FWindow.AddUIComponent(c2);
 
 FWindow.AddUIComponent(new FBlurPane(new Vector2(150, 0), new Vector2(100, 50), 15, new Vector2(10, 10), true));
-
 
             window.CreateSurface();
             window.Begin();

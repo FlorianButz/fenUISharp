@@ -5,6 +5,7 @@ using System.Text;
 using System.Timers;
 using FenUISharpTest1;
 using SkiaSharp;
+using System.Drawing;
 
 namespace FenUISharp
 {
@@ -89,6 +90,8 @@ namespace FenUISharp
             instance = this;
             alreadyCreated = true;
 
+            new FDesktopCapture();
+
             _wndProcDelegate = WndProc;
 
             // Pre initialize OLE DragDrop
@@ -106,10 +109,7 @@ namespace FenUISharp
             RemoveTaskbarIcon();
 
             onWindowCreated?.Invoke();
-
             Thread.CurrentThread.Name = "Win32 Window";
-
-            // Win32Helper.SetWindowDisplayAffinity(hWnd, Win32Helper.WDA_EXCLUDEFROMCAPTURE);
         }
 
         public static void AddUIComponent(FUIComponent c)
@@ -155,7 +155,6 @@ namespace FenUISharp
             }
 
             Marshal.Release(pDropTarget);
-
             RegisterHook();
 
             _renderThread = new Thread(() =>
@@ -181,12 +180,16 @@ namespace FenUISharp
             }
         }
 
-        public static SKImage? CaptureRegion(SKRect region)
+        public static SKImage? CaptureRegion(SKRect region, float quality = 0.5f)
         {
             if (_surface == null || _canvas == null)
                 return null;
 
-            return _surface.Snapshot(new SKRectI((int)region.Left, (int)region.Top, (int)region.Right, (int)region.Bottom));
+            var snapshot = _surface.Snapshot(new SKRectI((int)region.Left, (int)region.Top, (int)region.Right, (int)region.Bottom));
+            var scaled = FMath.CreateLowResImage(snapshot, FMath.Clamp(quality, 0.05f, 1f));
+            snapshot.Dispose();
+
+            return scaled;
         }
 
         public static bool IsNextFrameRendering()

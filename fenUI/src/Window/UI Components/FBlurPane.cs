@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using SkiaSharp;
 
 namespace FenUISharp
@@ -13,16 +14,15 @@ namespace FenUISharp
         private Vector2 _brightContrast;
         public float Brightness { get => _brightContrast.x; set => _brightContrast.x = value; }
         public float Contrast { get => _brightContrast.y; set => _brightContrast.y = value; }
+        public bool DesktopBlur { get => _blurDesktop; set => UpdateDoesCaptureDesktop(value); }
 
         private bool _useDropShadow;
-
-        float q = 0.5f;
+        private bool _blurDesktop = false;
 
         public FBlurPane(Vector2 position, Vector2 size, float cornerRadius, Vector2 blurAmount, bool useDropShadow = false, float brightness = 0.4f, float contrast = 0.77f)
             : base(position, size, cornerRadius, SKColors.Black)
         {
             _blurAmount = blurAmount;
-            // renderQuality.SetValue(this, 0.1f, 25);
             transform.boundsPadding.SetValue(this, 60, 35);
 
             _brightContrast = new Vector2(brightness, contrast);
@@ -42,8 +42,11 @@ namespace FenUISharp
                     0, 0, 0, 1, 0  // Alpha (unchanged)
                 };
 
-                using (var colorFilter = SKImageFilter.CreateColorFilter(SKColorFilter.CreateCompose(SKColorFilter.CreateLighting(
-                    SKColors.White, new SKColor((byte)(25 * FMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * FMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * FMath.Clamp((int)_brightContrast.x, 0, 1)))), SKColorFilter.CreateColorMatrix(contrastMatrix))))
+                using (var colorFilter = SKImageFilter.CreateColorFilter(
+                    SKColorFilter.CreateCompose(SKColorFilter.CreateLighting(
+                    SKColors.White, new SKColor(
+                        (byte)(25 * FMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * FMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * FMath.Clamp((int)_brightContrast.x, 0, 1)))),
+                        SKColorFilter.CreateColorMatrix(contrastMatrix))))
                 {
                     blurPaint = skPaint.Clone();
                     blurPaint.ImageFilter = SKImageFilter.CreateCompose(blur, colorFilter);
@@ -54,6 +57,22 @@ namespace FenUISharp
                 dropShadowPaint = skPaint.Clone();
                 dropShadowPaint.ImageFilter = drop;
             }
+
+            UpdateDoesCaptureDesktop(_blurDesktop, true);
+        }
+
+        void UpdateDoesCaptureDesktop(bool value, bool forced = false)
+        {
+            if (_blurDesktop == value && !forced) return;
+
+            if (value)
+            {
+                FDesktopCapture.instance.Begin();
+            }
+            else
+            {
+                FDesktopCapture.instance.Stop();
+            }
         }
 
         protected override void OnComponentDestroy()
@@ -62,6 +81,11 @@ namespace FenUISharp
 
             blurPaint.Dispose();
             dropShadowPaint.Dispose();
+
+            if (_blurDesktop)
+            {
+                FDesktopCapture.instance.Stop();
+            }
         }
 
         protected override void OnUpdate()
@@ -69,7 +93,7 @@ namespace FenUISharp
             base.OnUpdate();
 
             _isGloballyInvalidated = false;
-            if (FWindow.IsNextFrameRendering())
+            if (FWindow.IsNextFrameRendering() || _blurDesktop)
             {
                 Invalidate();
             }
@@ -78,21 +102,54 @@ namespace FenUISharp
         protected override void DrawToSurface(SKCanvas canvas)
         {
             var bounds = transform.fullBounds;
-            var pad = 60; // Required for larger blur scales. Should not be a number that isn't dividable through 2, otherwise visual issues will start appear because of integer rounding at lower blur scales
-
+            var pad = 60;
             var rect = new SKRoundRect(transform.localBounds, _cornerRadius);
             var captureArea = new SKRect(bounds.Left - pad, bounds.Top - pad, bounds.Right + pad, bounds.Bottom + pad);
 
-            using (var capture = FWindow.CaptureRegion(captureArea))
-            {
-                canvas.Save();
-                canvas.ClipRoundRect(rect, antialias: true);
-                canvas.Translate(-pad, -pad);
+            float scaleFactor = 0.5f;
 
+            using (var capture = FWindow.CaptureRegion(captureArea, scaleFactor))
+            {
+                // Save for clipping
+                int c = canvas.Save();
+                canvas.ClipRoundRect(rect, antialias: true);
+
+                if (_blurDesktop)
+                {
+                    // Draw the desktop capture at reduced resolution
+                    if (FDesktopCapture.instance.lastCapture != null && FDesktopCapture.instance.previousCapture != null)
+                    {
+                        int c2 = canvas.Save();
+
+                        const float shrink = 0.5f;
+
+                        // Avoid ugly borders
+                        rect.Inflate(-shrink, -shrink);
+                        canvas.ClipRoundRect(rect, antialias: true);
+                        rect.Inflate(shrink, shrink);
+
+                        var opacityLatest = ((float)FDesktopCapture.instance.timeSinceLastCapture / (float)FDesktopCapture.instance.CaptureInterval);
+
+                        canvas.Translate(-transform.position.x, -transform.position.y);
+                        canvas.DrawImage(FDesktopCapture.instance.previousCapture, FWindow.bounds, FWindow.samplingOptions);
+
+                        using(var paint = skPaint.Clone()){
+                            paint.Color = blurPaint.Color.WithAlpha((byte)(opacityLatest * 255));
+                            canvas.DrawImage(FDesktopCapture.instance.lastCapture, FWindow.bounds, FWindow.samplingOptions, paint);
+                        }
+                        canvas.Translate(transform.position.x, transform.position.y);
+
+                        canvas.RestoreToCount(c2);
+                    }
+                }
+
+                canvas.Translate(-pad, -pad);
+                canvas.Scale(1 / scaleFactor);
                 canvas.DrawImage(capture, 0, 0, blurPaint);
-                
+                canvas.Scale(scaleFactor);
                 canvas.Translate(pad, pad);
-                canvas.Restore();
+
+                canvas.RestoreToCount(c);
 
                 if (_useDropShadow)
                 {
@@ -102,7 +159,6 @@ namespace FenUISharp
                     canvas.Restore();
                 }
             }
-
             rect.Dispose();
         }
     }

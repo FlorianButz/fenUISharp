@@ -441,6 +441,19 @@ namespace FenUISharp
         [DllImport("dwmapi.dll")]
         private static extern int DwmEnableComposition(int enable);
 
+        [DllImport("d3d11.dll")]
+        public static extern int D3D11CreateDevice(
+                IntPtr pAdapter,
+                int DriverType,
+                IntPtr Software,
+                uint Flags,
+                IntPtr pFeatureLevels,
+                uint FeatureLevels,
+                uint SDKVersion,
+                out IntPtr ppDevice,
+                IntPtr pFeatureLevel,
+                out IntPtr ppImmediateContext);
+
         #endregion
     }
 

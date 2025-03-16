@@ -36,7 +36,8 @@ namespace FenUISharp
 
             FWindow.instance.onFileWantDrop?.Invoke();
 
-            throw new Exception(); // For some reason it only works when it throws this
+            // throw new Exception(); // For some reason it only works when it throws this; Edit: Now it actually throws the error. Idk why.
+            // Probably means I accidentally fixed the OLE implementation to work correctly
         }
 
         void IDropTarget.DragOver(uint grfKeyState, Win32Helper.POINT pt, ref uint pdwEffect)
@@ -44,20 +45,22 @@ namespace FenUISharp
             Console.WriteLine("File Drop Over");
             pdwEffect = (uint)DROPEFFECT.Copy;
 
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         void IDropTarget.DragLeave()
         {
             Console.WriteLine("File Drop Leave");
 
-            throw new NotImplementedException();
+            // throw new NotImplementedException();
         }
 
         // Doesn't work
         public void Drop([In] nint pDataObj, [In] uint grfKeyState, [In] Win32Helper.POINT pt, [In, Out] ref uint pdwEffect)
         {
-            throw new NotImplementedException();
+            Console.WriteLine("Dropped");
+
+            // throw new NotImplementedException();
         }
     }
 

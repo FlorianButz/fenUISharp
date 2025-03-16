@@ -71,13 +71,34 @@ namespace FenUISharp
             return new Vector2(((point.x - anchor.x) * s.x) + anchor.x, ((point.y - anchor.y) * s.y) + anchor.y);
         }
 
-        public static bool ContainsPoint(SKRect rect, Vector2 point){
+        public static bool ContainsPoint(SKRect rect, Vector2 point)
+        {
             return rect.Left < point.x && rect.Top < point.y && (rect.Left + rect.Width) > point.x && (rect.Top + rect.Height) > point.y;
         }
 
         internal static float LimitDecimalPoints(float x, int v)
         {
             return (float)Math.Round(x, 2);
+        }
+
+        public static SKImage CreateLowResImage(SKImage sourceImage, float scaleFactor)
+        {
+            int newWidth = (int)(sourceImage.Width * scaleFactor);
+            int newHeight = (int)(sourceImage.Height * scaleFactor);
+
+            var info = new SKImageInfo(newWidth, newHeight);
+            using (var surface = SKSurface.Create(info))
+            {
+                var canvas = surface.Canvas;
+
+                // Draw the original image scaled down
+                canvas.DrawImage(sourceImage,
+                    SKRect.Create(0, 0, sourceImage.Width, sourceImage.Height),
+                    SKRect.Create(0, 0, newWidth, newHeight),
+                    FWindow.samplingOptions);
+
+                return surface.Snapshot();
+            }
         }
     }
 }
