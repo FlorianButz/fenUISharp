@@ -35,12 +35,10 @@ namespace FenUISharp
 
             label.transform.SetParent(transform);
             label.careAboutInteractions = false;
-            FWindow.uiComponents.Add(label);
+            FWindow.AddUIComponent(label);
 
             currentcolor = basecolor;
             currenthighlight = highlight;
-
-            transform.boundsPadding.SetValue(this, 5, 25);
 
             animatorComponent = new AnimatorComponent(this, FEasing.EaseOutCubic);
             animatorComponent.duration = 0.2f;
@@ -57,7 +55,7 @@ namespace FenUISharp
                 Invalidate();
             };
 
-            transform.boundsPadding.SetValue(this, 15, 15);
+            transform.boundsPadding.SetValue(this, 5, 100);
 
             components.Add(animatorComponent);
         }
@@ -65,7 +63,7 @@ namespace FenUISharp
         public void SetText(string text){
             label.Text = text;
 
-            float height = label.GetSingleLineTextHeight();
+            float height = label.GetSingleLineTextHeight() + 1;
             float width = FMath.Clamp(label.GetSingleLineTextWidth(), minWidth, maxWidth);
 
             label.transform.size = new Vector2(width, height);
@@ -105,7 +103,7 @@ namespace FenUISharp
         protected override void OnComponentDestroy()
         {
             base.OnComponentDestroy();
-            FWindow.uiComponents.Remove(label);
+            FWindow.DestroyUIComponent(label);
             label.Dispose();
         }
 

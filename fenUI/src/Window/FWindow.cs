@@ -10,10 +10,11 @@ namespace FenUISharp
 {
     public class FWindow
     {
+        public static FWindow instance;
 
         // Window Specifications
 
-        public static double WindowRefreshRate { get; set; } = 60.0;
+        public static double WindowRefreshRate { get; set; } = 120.0;
 
         public static string WindowTitle { get; private set; } = "FenUISharp Window";
         public static string WindowClass { get; private set; } = "fenUISharpWindow";
@@ -25,15 +26,15 @@ namespace FenUISharp
 
         // Private variables
 
-        private static IntPtr _hdcMemory = IntPtr.Zero; // Memory DC
-        private static IntPtr _hBitmap = IntPtr.Zero;     // Handle to our DIB section
-        private static IntPtr _ppvBits = IntPtr.Zero;     // Pointer to pixel bits
+        private IntPtr _hdcMemory = IntPtr.Zero; // Memory DC
+        private IntPtr _hBitmap = IntPtr.Zero;     // Handle to our DIB section
+        private IntPtr _ppvBits = IntPtr.Zero;     // Pointer to pixel bits
 
-        private static IntPtr _mouseHookID = IntPtr.Zero;
-        private static IntPtr _keyboardHookID = IntPtr.Zero;
+        private IntPtr _mouseHookID = IntPtr.Zero;
+        private IntPtr _keyboardHookID = IntPtr.Zero;
 
-        private static Win32Helper.LowLevelMouseProc _mouseProc = MouseHookCallback;
-        private static Win32Helper.LowLevelKeyboardProc _keyboardProc = KeyboardHookCallback;
+        private Win32Helper.LowLevelMouseProc _mouseProc = MouseHookCallback;
+        private Win32Helper.LowLevelKeyboardProc _keyboardProc = KeyboardHookCallback;
         private readonly Win32Helper.WndProcDelegate _wndProcDelegate;
 
         // Rendering / SkiaSharp
@@ -43,57 +44,60 @@ namespace FenUISharp
 
         public static SKRect bounds { get => new SKRect(0, 0, WindowWidth, WindowHeight); }
 
-        public static List<FUIComponent> uiComponents = new List<FUIComponent>();
+        public List<FUIComponent> uiComponents = new List<FUIComponent>();
 
-        public static double globalTime = 0;
+        public double globalTime = 0;
 
         // Events
 
-        public static Action<int, int>? onMouseMove;
+        public Action<int, int>? onMouseMove;
 
-        public static Action? onMouseLeftDown;
-        public static Action? onMouseLeftUp;
-        public static Action? onMouseMiddleDown;
-        public static Action? onMouseMiddleUp;
-        public static Action? onMouseRightDown;
-        public static Action? onMouseRightUp;
+        public Action? onMouseLeftDown;
+        public Action? onMouseLeftUp;
+        public Action? onMouseMiddleDown;
+        public Action? onMouseMiddleUp;
+        public Action? onMouseRightDown;
+        public Action? onMouseRightUp;
 
-        public static Action<int>? onKeyPressed; // Filters for only when the user presses and ignores repeated inputs after that
-        public static Action<int>? onKeyTyped; // Triggers on raw key input
-        public static Action<int>? onKeyReleased;
+        public Action<int>? onKeyPressed; // Filters for only when the user presses and ignores repeated inputs after that
+        public Action<int>? onKeyTyped; // Triggers on raw key input
+        public Action<int>? onKeyReleased;
 
-        public static Action<int>? onMouseScroll;
-        public static Action? onTrayIconRightClicked;
+        public Action<int>? onMouseScroll;
+        public Action? onTrayIconRightClicked;
 
-        public static Action? onWindowCreated;
-        public static Action? onWindowUpdate;
+        public Action? onWindowCreated;
+        public Action? onWindowUpdate;
 
-        public static Action<string>? onFileDropped;
-        public static Action? onFileWantDrop;
+        public Action<string>? onFileDropped;
+        public Action? onFileWantDrop;
 
         // Other
 
-        public static Vector2 MousePosition { get; private set; } = new Vector2(0, 0);
+        public Vector2 mousePosition = new Vector2(0, 0);
+        public Vector2 MousePosition { get => mousePosition; }
 
         public static SKSamplingOptions samplingOptions { get; private set; } = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
+
         private static bool alreadyCreated = false;
-
         public static bool showBounds { get; set; } = false;
-
         public static float DeltaTime { get; private set; }
 
         public FWindow(string windowTitle, string windowClass)
         {
             if (alreadyCreated == true) throw new Exception("Another FWindow has already been created.");
+            instance = this;
             alreadyCreated = true;
 
             _wndProcDelegate = WndProc;
 
+            // Pre initialize OLE DragDrop
             DragDropRegistration.OleInitialize(IntPtr.Zero);
 
             WindowTitle = windowTitle;
             WindowClass = windowClass;
 
+            // Create window and get handle
             hWnd = CreateWin32Window();
 
             Win32Helper.DragAcceptFiles(hWnd, true);
@@ -105,7 +109,23 @@ namespace FenUISharp
 
             Thread.CurrentThread.Name = "Win32 Window";
 
-            Win32Helper.SetWindowDisplayAffinity(hWnd, Win32Helper.WDA_EXCLUDEFROMCAPTURE);
+            // Win32Helper.SetWindowDisplayAffinity(hWnd, Win32Helper.WDA_EXCLUDEFROMCAPTURE);
+        }
+
+        public static void AddUIComponent(FUIComponent c)
+        {
+            instance.uiComponents.Add(c);
+        }
+
+        public static void DestroyUIComponent(FUIComponent c)
+        {
+            c.Dispose();
+            instance.uiComponents.Remove(c);
+        }
+
+        public static List<FUIComponent> GetUIComponents()
+        {
+            return instance.uiComponents;
         }
 
         private void OnWindowUpdate_BeforeFrameRender()
@@ -134,18 +154,21 @@ namespace FenUISharp
                 Marshal.ThrowExceptionForHR(hr);
             }
 
+            Marshal.Release(pDropTarget);
+
             RegisterHook();
 
-            Task.Run(() =>
+            _renderThread = new Thread(() =>
             {
-                Thread.CurrentThread.Priority = ThreadPriority.BelowNormal;
+                Thread.CurrentThread.Priority = ThreadPriority.Lowest;
                 RenderLoop();
             });
+            _renderThread.Start();
 
             Win32Helper.MSG msg;
             while (true)
             {
-                while (Win32Helper.PeekMessage(out msg, IntPtr.Zero, 0, 0, (int)Win32Helper.PeekMessageRemoveOptions.PM_REMOVE))
+                while (Win32Helper.GetMessage(out msg, IntPtr.Zero, 0, 0))
                 {
                     if (msg.message == (int)Win32Helper.WindowMessages.WM_QUIT)
                         return;
@@ -158,9 +181,23 @@ namespace FenUISharp
             }
         }
 
+        public static SKImage? CaptureRegion(SKRect region)
+        {
+            if (_surface == null || _canvas == null)
+                return null;
+
+            return _surface.Snapshot(new SKRectI((int)region.Left, (int)region.Top, (int)region.Right, (int)region.Bottom));
+        }
+
+        public static bool IsNextFrameRendering()
+        {
+            return instance.uiComponents.Any(x => x._isGloballyInvalidated);
+        }
+
         private async void RenderLoop()
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
+
             double frameInterval = 1000.0 / WindowRefreshRate;
             double nextFrameTime = 0;
             double previousFrameTime = 0;
@@ -168,8 +205,7 @@ namespace FenUISharp
             while (_isRunning)
             {
                 double currentTime = stopwatch.Elapsed.TotalMilliseconds;
-                bool needsRender = uiComponents.Any(x => x._isGloballyInvalidated);
-                // Console.WriteLine(needsRender);
+                bool needsRender = IsNextFrameRendering();
 
                 if (currentTime >= nextFrameTime)
                 {
@@ -180,17 +216,22 @@ namespace FenUISharp
                     if (needsRender)
                     {
                         RenderFrame();
-                        Win32Helper.PostMessageA(hWnd, (int)Win32Helper.WindowMessages.WM_RENDER, IntPtr.Zero, IntPtr.Zero);
+                        UpdateWindow();
+
+                        // Console.WriteLine("Frame rendered");
+                        // Win32Helper.PostMessageA(hWnd, (int)Win32Helper.WindowMessages.WM_RENDER, IntPtr.Zero, IntPtr.Zero);
                     }
+
+                    _surface?.Canvas?.Flush();
+                    _surface?.Flush();
 
                     nextFrameTime = currentTime + frameInterval;
                 }
 
-                //await Task.Delay(needsRender ? 1 : 16); // If not rendering, sleep longer (saves CPU)
+                // await Task.Delay(needsRender ? 1 : 16); // If not rendering, sleep longer (saves CPU); Edit: Not good, since the Update method inside the FUIComponents gets skipped then
                 await Task.Delay(1);
             }
         }
-
 
         private readonly object _renderLock = new object();
 
@@ -216,10 +257,10 @@ namespace FenUISharp
                     {
                         using (var s = new SKPaint() { IsStroke = true, StrokeWidth = 2, Color = SKColors.Red })
                         {
-                            s.StrokeWidth = 8;
+                            s.StrokeWidth = 3;
                             _canvas.DrawRect(component.transform.bounds, s);
                             s.Color = SKColors.Green;
-                            s.StrokeWidth = 3;
+                            s.StrokeWidth = 2;
                             _canvas.Translate(component.transform.position.x, component.transform.position.y);
                             _canvas.DrawRect(component.transform.localBounds, s);
                             _canvas.Translate(-component.transform.position.x, -component.transform.position.y);
@@ -282,8 +323,11 @@ namespace FenUISharp
                 Win32Helper.DeleteObject(_hBitmap);
 
             Win32Helper.Shell_NotifyIconA((uint)Win32Helper.NIF.NIM_DELETE, ref _nid);
-
             DragDropRegistration.RevokeDragDrop(hWnd);
+
+            _surface?.Dispose();
+
+            UnregisterHook();
         }
 
         public void CreateSurface()
@@ -314,6 +358,8 @@ namespace FenUISharp
             Win32Helper.SelectObject(_hdcMemory, _hBitmap);
 
             Win32Helper.ReleaseDC(IntPtr.Zero, hdcScreen);
+
+            if (_surface != null) _surface.Dispose();
 
             var imageInfo = new SKImageInfo(WindowWidth, WindowHeight, SKColorType.Bgra8888, SKAlphaType.Premul);
             _surface = SKSurface.Create(imageInfo, _ppvBits, imageInfo.RowBytes);
@@ -439,18 +485,19 @@ namespace FenUISharp
                 if (wParam == (IntPtr)Win32Helper.WindowsHooks.WM_MOUSEWHEEL)
                 {
                     short scrollDelta = (short)((mouseInfo.mouseData >> 16) & 0xFFFF);
-                    onMouseScroll?.Invoke(scrollDelta);
+                    instance.onMouseScroll?.Invoke(scrollDelta);
                 }
 
                 if (wParam == (IntPtr)Win32Helper.WindowMessages.WM_MOUSEMOVE)
                 {
-                    MousePosition = new Vector2(mouseX, mouseY);
+                    instance.mousePosition.x = mouseX;
+                    instance.mousePosition.y = mouseY;
 
-                    onMouseMove?.Invoke(mouseX, mouseY);
+                    instance.onMouseMove?.Invoke(mouseX, mouseY);
                 }
             }
 
-            return Win32Helper.CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
+            return Win32Helper.CallNextHookEx(instance._mouseHookID, nCode, wParam, lParam);
         }
 
         private static List<int> _pressedKeys = new List<int>();
@@ -467,23 +514,23 @@ namespace FenUISharp
                     // Console.WriteLine($"Key Down: {KeyInfo.GetKeyName(keyInfo.vkCode)}");
 
                     if (!_pressedKeys.Contains(keyInfo.vkCode))
-                        onKeyPressed?.Invoke(keyInfo.vkCode);
+                        instance.onKeyPressed?.Invoke(keyInfo.vkCode);
                     _pressedKeys.Add(keyInfo.vkCode);
 
-                    onKeyTyped?.Invoke(keyInfo.vkCode);
+                    instance.onKeyTyped?.Invoke(keyInfo.vkCode);
                 }
                 else if (wParam == (IntPtr)Win32Helper.WindowsHooks.WM_KEYUP)
                 {
                     // Console.WriteLine($"Key Up: {keyInfo.vkCode}");
                     // Console.WriteLine($"Key Up: {KeyInfo.GetKeyName(keyInfo.vkCode)}");
-                    onKeyReleased?.Invoke(keyInfo.vkCode);
+                    instance.onKeyReleased?.Invoke(keyInfo.vkCode);
 
                     if (_pressedKeys.Contains(keyInfo.vkCode))
                         _pressedKeys.Remove(keyInfo.vkCode);
                 }
             }
 
-            return Win32Helper.CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
+            return Win32Helper.CallNextHookEx(instance._keyboardHookID, nCode, wParam, lParam);
         }
 
         public void UnregisterHook()
@@ -569,25 +616,6 @@ namespace FenUISharp
                     onMouseMiddleUp?.Invoke();
                     return IntPtr.Zero;
 
-                // This should fix mouse lag - Edit: it doesn't.
-                // case (int)Win32Helper.WindowMessages.WM_MOUSEHOVER:
-                //     Console.WriteLine("Unregister");
-                //     UnRegMouseHook();
-                //     return IntPtr.Zero;
-
-                // case (int)Win32Helper.WindowMessages.WM_MOUSELEAVE:
-                //     Console.WriteLine("Register");
-                //     RegMouseHook();
-                //     return IntPtr.Zero;
-
-                // // Use this for when the mouse is inside client area
-                // case (int)Win32Helper.WindowMessages.WM_MOUSEMOVE:
-                //     int x = lParam.ToInt32() & 0xFFFF;
-                //     int y = (lParam.ToInt32() >> 16) & 0xFFFF;
-                //     onMouseMove?.Invoke(x, y);
-                //     return IntPtr.Zero;
-
-
                 case (int)Win32Helper.WindowMessages.WM_DROPFILES:
                     {
                         IntPtr hDrop = wParam;
@@ -610,7 +638,7 @@ namespace FenUISharp
                         DragDropRegistration.DragFinish(hDrop); // Release the handle
 
                         // Invoke your event with the file paths
-                        FWindow.onFileDropped?.Invoke(droppedFiles[0]);
+                        FWindow.instance.onFileDropped?.Invoke(droppedFiles[0]);
                         Console.WriteLine("Dropped File: " + droppedFiles[0]);
                         return IntPtr.Zero;
                     }

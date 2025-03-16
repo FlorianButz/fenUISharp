@@ -147,6 +147,7 @@ namespace FenUISharp
 
         public const uint WDA_NONE = 0x00000000;
         public const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
+        public const int ULW_ALPHA = 0x00000002;
 
         #endregion
 
@@ -230,13 +231,14 @@ namespace FenUISharp
             public byte rgbReserved;
         }
 
-
         [StructLayout(LayoutKind.Sequential)]
         public struct BITMAPINFO
         {
             public BITMAPINFOHEADER bmiHeader;
-            public uint bmiColors; // Not used for 32-bit DIBs
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
+            public RGBQUAD[] bmiColors;
         }
+
 
         [StructLayout(LayoutKind.Sequential)]
         public struct MSLLHOOKSTRUCT
@@ -256,6 +258,12 @@ namespace FenUISharp
             public int flags;
             public int time;
             public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MARGINS
+        {
+            public int cxLeftWidth, cxRightWidth, cyTopHeight, cyBottomHeight;
         }
 
         #endregion
@@ -413,7 +421,7 @@ namespace FenUISharp
 
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool DestroyWindow(IntPtr hWnd);
-        
+
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool WaitMessage();
 
@@ -423,6 +431,15 @@ namespace FenUISharp
         [DllImport("gdi32.dll")]
         public static extern bool BitBlt(IntPtr hdcDest, int nXDest, int nYDest, int nWidth, int nHeight,
                                     IntPtr hdcSrc, int nXSrc, int nYSrc, int dwRop);
+
+        [DllImport("user32.dll")]
+        public static extern int DefWindowProc(IntPtr hWnd, int uMsg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("dwmapi.dll")]
+        public static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref MARGINS margins);
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmEnableComposition(int enable);
 
         #endregion
     }

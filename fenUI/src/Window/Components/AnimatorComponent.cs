@@ -13,6 +13,7 @@ namespace FenUISharp
 
         private bool isRunning { get; set; } = false;
         private Func<float, float> easing;
+        private Func<float, float> inverseEasing;
 
         public bool inverse { get; set; } = false;
         public bool autoLowerRenderQuality { get; set; } = false;
@@ -21,9 +22,12 @@ namespace FenUISharp
         private float targetValue;
         private float currentValue;
 
-        public AnimatorComponent(FUIComponent parent, Func<float, float> easing) : base(parent)
+        public AnimatorComponent(FUIComponent parent, Func<float, float> easing, Func<float, float>? inverseEasing = null) : base(parent)
         {
             this.easing = easing;
+            if(inverseEasing == null) this.inverseEasing = easing;
+            else this.inverseEasing = inverseEasing;
+
             // Initialize current value based on the expected default.
             currentValue = !inverse ? 0f : 1f;
             startValue = currentValue;
@@ -59,7 +63,7 @@ namespace FenUISharp
 
             // Normalize time and clamp between 0 and 1.
             float t = Math.Clamp(_timePassed / duration, 0f, 1f);
-            float easedT = easing(t);
+            float easedT = (inverse) ? inverseEasing(t) : easing(t);
 
             // Interpolate from the starting value to the target value.
             currentValue = startValue + (targetValue - startValue) * easedT;
@@ -71,6 +75,13 @@ namespace FenUISharp
                 isRunning = false;
                 onComplete?.Invoke();
             }
+        }
+
+        public override void OnComponentDestroy()
+        {
+            base.OnComponentDestroy();
+            onValueUpdate = null;
+            onComplete = null;
         }
     }
 

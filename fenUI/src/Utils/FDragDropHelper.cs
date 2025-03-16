@@ -34,7 +34,7 @@ namespace FenUISharp
             Console.WriteLine("File Drop Enter");
             pdwEffect = (uint)DROPEFFECT.Copy;
 
-            FWindow.onFileWantDrop?.Invoke();
+            FWindow.instance.onFileWantDrop?.Invoke();
 
             throw new Exception(); // For some reason it only works when it throws this
         }
