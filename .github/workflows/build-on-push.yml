@@ -1,0 +1,36 @@
+name: Build .NET DLL
+
+on:
+  push:
+    branches:
+      - main  # Runs when code is pushed to the main branch
+  pull_request:
+    branches:
+      - main  # Runs on PRs to the main branch
+  workflow_dispatch:  # Allows manual triggering in GitHub UI
+
+jobs:
+  build:
+    runs-on: windows-latest  # Use Windows runner
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4  # Fetches your code
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'  # Set to your .NET version
+
+      - name: Restore Dependencies
+        run: dotnet restore
+
+      - name: Build Project (DLL)
+        run: dotnet build --configuration Release -p:OutputType=Library
+
+      - name: Upload DLL as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-dll
+          path: bin/Release/**/*.dll  # Uploads the compiled DLL
+  
