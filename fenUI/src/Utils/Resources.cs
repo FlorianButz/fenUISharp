@@ -3,7 +3,7 @@ using SkiaSharp;
 
 namespace FenUISharp
 {
-    public static class FResources
+    public static class Resources
     {
         private static Dictionary<string, SKTypeface> typefaces = new Dictionary<string, SKTypeface>();
 

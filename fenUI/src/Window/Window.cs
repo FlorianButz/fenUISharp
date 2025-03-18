@@ -9,9 +9,9 @@ using System.Drawing;
 
 namespace FenUISharp
 {
-    public class FWindow
+    public class Window
     {
-        public static FWindow instance;
+        public static Window instance;
 
         // Window Specifications
 
@@ -45,7 +45,7 @@ namespace FenUISharp
 
         public static SKRect bounds { get => new SKRect(0, 0, WindowWidth, WindowHeight); }
 
-        public List<FUIComponent> uiComponents = new List<FUIComponent>();
+        public List<UIComponent> uiComponents = new List<UIComponent>();
 
         public double globalTime = 0;
 
@@ -84,13 +84,13 @@ namespace FenUISharp
         public static bool showBounds { get; set; } = false;
         public static float DeltaTime { get; private set; }
 
-        public FWindow(string windowTitle, string windowClass)
+        public Window(string windowTitle, string windowClass)
         {
             if (alreadyCreated == true) throw new Exception("Another FWindow has already been created.");
             instance = this;
             alreadyCreated = true;
 
-            new FDesktopCapture();
+            new DesktopCapture();
 
             _wndProcDelegate = WndProc;
 
@@ -112,18 +112,18 @@ namespace FenUISharp
             Thread.CurrentThread.Name = "Win32 Window";
         }
 
-        public static void AddUIComponent(FUIComponent c)
+        public static void AddUIComponent(UIComponent c)
         {
             instance.uiComponents.Add(c);
         }
 
-        public static void DestroyUIComponent(FUIComponent c)
+        public static void DestroyUIComponent(UIComponent c)
         {
             c.Dispose();
             instance.uiComponents.Remove(c);
         }
 
-        public static List<FUIComponent> GetUIComponents()
+        public static List<UIComponent> GetUIComponents()
         {
             return instance.uiComponents;
         }
@@ -139,7 +139,7 @@ namespace FenUISharp
         public void Begin()
         {
             // Keep a reference to prevent garbage collection
-            IDropTarget _dropTarget = new FDropTarget();
+            IDropTarget _dropTarget = new DropTarget();
 
             // Get COM interface pointer for the drop target
             IntPtr pDropTarget = Marshal.GetComInterfaceForObject(
@@ -186,7 +186,7 @@ namespace FenUISharp
                 return null;
 
             var snapshot = _surface.Snapshot(new SKRectI((int)region.Left, (int)region.Top, (int)region.Right, (int)region.Bottom));
-            var scaled = FMath.CreateLowResImage(snapshot, FMath.Clamp(quality, 0.05f, 1f));
+            var scaled = RMath.CreateLowResImage(snapshot, RMath.Clamp(quality, 0.05f, 1f));
             snapshot.Dispose();
 
             return scaled;
@@ -395,7 +395,7 @@ namespace FenUISharp
             Win32Helper.NOTIFYICONDATAA nid = new Win32Helper.NOTIFYICONDATAA
             {
                 cbSize = Marshal.SizeOf(typeof(Win32Helper.NOTIFYICONDATAA)),
-                hWnd = FWindow.hWnd,
+                hWnd = Window.hWnd,
                 uID = 1,
                 uFlags = (int)Win32Helper.NIF.NIF_MESSAGE | (int)Win32Helper.NIF.NIF_ICON | (int)Win32Helper.NIF.NIF_TIP,
                 uCallbackMessage = (int)Win32Helper.WindowMessages.WM_USER + 1,
@@ -556,7 +556,7 @@ namespace FenUISharp
             }
         }
 
-        public static FMultiAccess<Win32Helper.Cursors> ActiveCursor { get; private set; } = new FMultiAccess<Win32Helper.Cursors>(Win32Helper.Cursors.IDC_ARROW);
+        public static MultiAccess<Win32Helper.Cursors> ActiveCursor { get; private set; } = new MultiAccess<Win32Helper.Cursors>(Win32Helper.Cursors.IDC_ARROW);
 
         // Window Procedure
         private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
@@ -618,33 +618,6 @@ namespace FenUISharp
                     // Console.WriteLine("Middle mouse button up.");
                     onMouseMiddleUp?.Invoke();
                     return IntPtr.Zero;
-
-                case (int)Win32Helper.WindowMessages.WM_DROPFILES:
-                    {
-                        IntPtr hDrop = wParam;
-                        uint fileCount = DragDropRegistration.DragQueryFile(hDrop, 0xFFFFFFFF, null, 0);
-
-                        List<string> droppedFiles = new List<string>();
-
-                        for (uint i = 0; i < fileCount; i++)
-                        {
-                            // Get the required buffer size
-                            uint charsRequired = DragDropRegistration.DragQueryFile(hDrop, i, null, 0);
-                            if (charsRequired == 0)
-                                continue;
-
-                            StringBuilder buffer = new StringBuilder((int)charsRequired + 1);
-                            DragDropRegistration.DragQueryFile(hDrop, i, buffer, (uint)buffer.Capacity);
-                            droppedFiles.Add(buffer.ToString());
-                        }
-
-                        DragDropRegistration.DragFinish(hDrop); // Release the handle
-
-                        // Invoke your event with the file paths
-                        FWindow.instance.onFileDropped?.Invoke(droppedFiles[0]);
-                        Console.WriteLine("Dropped File: " + droppedFiles[0]);
-                        return IntPtr.Zero;
-                    }
 
                 case (int)Win32Helper.WindowMessages.WM_SETCURSOR:
                     Win32Helper.SetCursor(Win32Helper.LoadCursor(IntPtr.Zero, (int)ActiveCursor.Value));

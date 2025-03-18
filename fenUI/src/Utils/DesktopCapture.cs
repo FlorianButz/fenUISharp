@@ -3,9 +3,9 @@ using SkiaSharp;
 
 namespace FenUISharp
 {
-    public class FDesktopCapture
+    public class DesktopCapture
     {
-        public static FDesktopCapture instance;
+        public static DesktopCapture instance;
         private Thread _captureThread;
         private bool _isRunning = false;
 
@@ -18,7 +18,7 @@ namespace FenUISharp
 
         public int timeSinceLastCapture = 0;
 
-        public FDesktopCapture()
+        public DesktopCapture()
         {
             instance = this;
         }
@@ -111,7 +111,7 @@ namespace FenUISharp
 
                         // Create new image
                         var capture = GetSKImageFromCapture(pBits, width, height);
-                        lastCapture = FMath.CreateLowResImage(capture, CaptureQuality);
+                        lastCapture = RMath.CreateLowResImage(capture, CaptureQuality);
                         capture.Dispose();
 
                         if(firstRun) previousCapture = lastCapture;
@@ -133,7 +133,7 @@ namespace FenUISharp
                 }
             });
 
-            Win32Helper.SetWindowDisplayAffinity(FWindow.hWnd, Win32Helper.WDA_EXCLUDEFROMCAPTURE);
+            Win32Helper.SetWindowDisplayAffinity(Window.hWnd, Win32Helper.WDA_EXCLUDEFROMCAPTURE);
 
             _captureThread.IsBackground = true;
             _captureThread.Start();
@@ -153,7 +153,7 @@ namespace FenUISharp
             lastCapture?.Dispose();
             lastCapture = null;
 
-            Win32Helper.SetWindowDisplayAffinity(FWindow.hWnd, Win32Helper.WDA_NONE);
+            Win32Helper.SetWindowDisplayAffinity(Window.hWnd, Win32Helper.WDA_NONE);
         }
     }
 }

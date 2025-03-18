@@ -2,7 +2,7 @@ using SkiaSharp;
 
 namespace FenUISharp
 {
-    public class FLabel : FUIComponent
+    public class FLabel : UIComponent
     {
         private string _text = "";
         public string Text { get => _text; set { SetText(value); } }
@@ -94,14 +94,14 @@ namespace FenUISharp
             Truncation = truncation;
 
             if (typefaceName == null)
-                Typeface = FResources.GetTypeface("inter-regular");
+                Typeface = Resources.GetTypeface("inter-regular");
             else
-                Typeface = FResources.GetTypeface(typefaceName);
+                Typeface = Resources.GetTypeface(typefaceName);
 
             dropShadow = SKImageFilter.CreateDropShadow(0, 0, 3, 3, SKColors.Black.WithAlpha(100));
             skPaint.ImageFilter = dropShadow;
 
-            changeTextAnim = new AnimatorComponent(this, FEasing.EaseInCubic, FEasing.EaseOutCubic);
+            changeTextAnim = new AnimatorComponent(this, Easing.EaseInCubic, Easing.EaseOutCubic);
             changeTextAnim.duration = 0.2f;
             changeTextAnim.onValueUpdate += (t) => {
                 float scaleTime = 0.75f + (1f - t) * 0.25f;
@@ -249,7 +249,7 @@ namespace FenUISharp
             canvas.DrawText(text, startX, y, Font, skPaint);
             canvas.DrawText(text, startX + textWidth /* Add Offset */ + gap, y, Font, skPaint);
 
-            var leftAlpha = 1f - FMath.Clamp(Math.Abs(startX) / 2, 0, 1) + FMath.Clamp(1 - (startX + (textWidth + gap) - 30), 0, 1);
+            var leftAlpha = 1f - RMath.Clamp(Math.Abs(startX) / 2, 0, 1) + RMath.Clamp(1 - (startX + (textWidth + gap) - 30), 0, 1);
 
             using (var maskPaint = new SKPaint())
             {
@@ -278,8 +278,8 @@ namespace FenUISharp
                 {
                     float gap = transform.localBounds.Width / 4;
 
-                    _speedMulti = FMath.Lerp(_speedMulti, 1f, FWindow.DeltaTime);
-                    _scrollOffset -= ScrollSpeed * FMath.Clamp(_speedMulti, 0, 1) * (FWindow.DeltaTime * 35);
+                    _speedMulti = RMath.Lerp(_speedMulti, 1f, Window.DeltaTime);
+                    _scrollOffset -= ScrollSpeed * RMath.Clamp(_speedMulti, 0, 1) * (Window.DeltaTime * 35);
 
                     if (_scrollOffset < -textWidth /* Keep Offset when teleporting */ - gap)
                     {

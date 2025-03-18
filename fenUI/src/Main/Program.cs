@@ -9,10 +9,10 @@ namespace FenUISharpTest1
         [STAThread]
         static void Main()
         {
-            FResources.LoadDefault();
-            new FWindowsMediaControls();
+            Resources.LoadDefault();
+            new WindowsMediaControls();
 
-            FWindow window = new FWindow("fenUISharp Test", "fenUISharpTest");
+            Window window = new Window("fenUISharp Test", "fenUISharpTest");
             window.Show();
             // FWindow.showBounds = true;
 
@@ -20,7 +20,7 @@ namespace FenUISharpTest1
             window.SetWindowIcon(iconPath);
             window.CreateTray(iconPath, "Test tray icon!");
             
-            FWindow.instance.onTrayIconRightClicked += () => {
+            Window.instance.onTrayIconRightClicked += () => {
                 Console.WriteLine("Tray clicked!");
             };
 
@@ -43,13 +43,13 @@ c2.transform.SetParent(c.transform);
             FSimpleButton simpleButton2 = new FSimpleButton(new Vector2(0, 25), "Longer Test Button Here! waddawdawdadwawd", () => Console.WriteLine("Test Button Clicked!"));
             simpleButton2.transform.SetParent(c.transform);
 
-            FWindow.AddUIComponent(c);
-            FWindow.AddUIComponent(simpleButton);
-            FWindow.AddUIComponent(simpleButton2);
-            FWindow.AddUIComponent(label);
-FWindow.AddUIComponent(c2);
+            Window.AddUIComponent(c);
+            Window.AddUIComponent(simpleButton);
+            Window.AddUIComponent(simpleButton2);
+            Window.AddUIComponent(label);
+Window.AddUIComponent(c2);
 
-FWindow.AddUIComponent(new FBlurPane(new Vector2(150, 0), new Vector2(100, 50), 15, new Vector2(10, 10), true));
+Window.AddUIComponent(new FBlurPane(new Vector2(150, 0), new Vector2(100, 50), 15, new Vector2(10, 10), true));
 
             window.CreateSurface();
             window.Begin();

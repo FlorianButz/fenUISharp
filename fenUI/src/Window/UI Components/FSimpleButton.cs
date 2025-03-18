@@ -2,7 +2,7 @@ using SkiaSharp;
 
 namespace FenUISharp
 {
-    public class FSimpleButton : FUIComponent
+    public class FSimpleButton : UIComponent
     {
         public FLabel label;
 
@@ -28,30 +28,30 @@ namespace FenUISharp
             this.onClick = onClick;
             label = new FLabel(text, new Vector2(0, 0), new Vector2(0, 0), 12);
 
-            this.maxWidth = FMath.Clamp(maxWidth, minWidth, float.MaxValue);
-            this.minWidth = FMath.Clamp(minWidth, 0, this.maxWidth);
+            this.maxWidth = RMath.Clamp(maxWidth, minWidth, float.MaxValue);
+            this.minWidth = RMath.Clamp(minWidth, 0, this.maxWidth);
 
             SetText(text);
 
             label.transform.SetParent(transform);
             label.careAboutInteractions = false;
-            FWindow.AddUIComponent(label);
+            Window.AddUIComponent(label);
 
             currentcolor = basecolor;
             currenthighlight = highlight;
 
-            animatorComponent = new AnimatorComponent(this, FEasing.EaseOutCubic);
+            animatorComponent = new AnimatorComponent(this, Easing.EaseOutCubic);
             animatorComponent.duration = 0.2f;
             
             animatorComponent.onValueUpdate += (t) => {
-                currentcolor = FMath.Lerp(basecolor, hovercolor, t);
-                currenthighlight = FMath.Lerp(highlight, hoverhighlight, t);
+                currentcolor = RMath.Lerp(basecolor, hovercolor, t);
+                currenthighlight = RMath.Lerp(highlight, hoverhighlight, t);
 
                 float pixelsAdd = 1f;
                 float sx = (transform.size.x + pixelsAdd) / transform.size.x;
                 float sy = (transform.size.y + pixelsAdd / 2) / transform.size.y;
 
-                transform.scale = FMath.Lerp(new Vector2(1, 1), new Vector2(sx, sy), t);
+                transform.scale = RMath.Lerp(new Vector2(1, 1), new Vector2(sx, sy), t);
                 Invalidate();
             };
 
@@ -64,7 +64,7 @@ namespace FenUISharp
             label.Text = text;
 
             float height = label.GetSingleLineTextHeight() + 1;
-            float width = FMath.Clamp(label.GetSingleLineTextWidth(), minWidth, maxWidth);
+            float width = RMath.Clamp(label.GetSingleLineTextWidth(), minWidth, maxWidth);
 
             label.transform.size = new Vector2(width, height);
             transform.size = new Vector2(width + padding * 2.5f, height + padding);
@@ -103,7 +103,7 @@ namespace FenUISharp
         protected override void OnComponentDestroy()
         {
             base.OnComponentDestroy();
-            FWindow.DestroyUIComponent(label);
+            Window.DestroyUIComponent(label);
             label.Dispose();
         }
 

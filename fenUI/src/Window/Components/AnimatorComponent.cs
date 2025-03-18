@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace FenUISharp
 {
 
-    public class AnimatorComponent : FComponent
+    public class AnimatorComponent : Component
     {
         public float duration { get; set; } = 1;
 
@@ -22,7 +22,7 @@ namespace FenUISharp
         private float targetValue;
         private float currentValue;
 
-        public AnimatorComponent(FUIComponent parent, Func<float, float> easing, Func<float, float>? inverseEasing = null) : base(parent)
+        public AnimatorComponent(UIComponent parent, Func<float, float> easing, Func<float, float>? inverseEasing = null) : base(parent)
         {
             this.easing = easing;
             if(inverseEasing == null) this.inverseEasing = easing;
@@ -59,7 +59,7 @@ namespace FenUISharp
             if (!isRunning)
                 return;
 
-            _timePassed += FWindow.DeltaTime;
+            _timePassed += Window.DeltaTime;
 
             // Normalize time and clamp between 0 and 1.
             float t = Math.Clamp(_timePassed / duration, 0f, 1f);

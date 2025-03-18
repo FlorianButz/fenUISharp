@@ -2,7 +2,7 @@ using SkiaSharp;
 
 namespace FenUISharp
 {
-    public class TestComponent : FUIComponent
+    public class TestComponent : UIComponent
     {
 
         AnimatorComponent anim;
@@ -18,13 +18,13 @@ namespace FenUISharp
 
             //transform.matrix = transform.Create3DRotationMatrix(0, 0, 0, 500);
 
-            FWindowsMediaControls.onThumbnailUpdated += Invalidate;
+            WindowsMediaControls.onThumbnailUpdated += Invalidate;
         
-            anim = new AnimatorComponent(this, FEasing.EaseOutQuint);
+            anim = new AnimatorComponent(this, Easing.EaseOutQuint);
             anim.duration = 0.5f;
 
             anim.onValueUpdate += (t) => {
-                transform.scale = FMath.Lerp(new Vector2(1, 1), new Vector2(2, 2), t);
+                transform.scale = RMath.Lerp(new Vector2(1, 1), new Vector2(2, 2), t);
             };
 
             components.Add(anim);
@@ -87,7 +87,7 @@ namespace FenUISharp
             base.OnMouseDown();
 
             // WindowsMediaControls.TriggerMediaControl(MediaControlTrigger.SwapLoopMode);
-            FWindowsMediaControls.TriggerMediaControl(MediaControlTrigger.ToggleShuffle);
+            WindowsMediaControls.TriggerMediaControl(MediaControlTrigger.ToggleShuffle);
         }
 
         protected override void DrawToSurface(SKCanvas canvas)
@@ -95,8 +95,8 @@ namespace FenUISharp
             canvas.Clear(SKColors.Aqua.WithAlpha(25));
             //canvas.DrawRoundRect(transform.localBounds, 15, 15, skPaint);
             
-            if(FWindowsMediaControls.CachedInfo.isActiveSession && FWindowsMediaControls.CachedInfo.thumbnail != null)
-                canvas.DrawImage(FWindowsMediaControls.CachedInfo.thumbnail, transform.localBounds, skPaint);
+            if(WindowsMediaControls.CachedInfo.isActiveSession && WindowsMediaControls.CachedInfo.thumbnail != null)
+                canvas.DrawImage(WindowsMediaControls.CachedInfo.thumbnail, transform.localBounds, skPaint);
         }
     }
 }

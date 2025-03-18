@@ -29,9 +29,9 @@ namespace FenUISharp
 
             _useDropShadow = useDropShadow;
 
-            using (var blur = SKImageFilter.CreateBlur(FMath.Clamp(_blurAmount.x, 0.1f, 50), FMath.Clamp(_blurAmount.y, 0.1f, 50)))
+            using (var blur = SKImageFilter.CreateBlur(RMath.Clamp(_blurAmount.x, 0.1f, 50), RMath.Clamp(_blurAmount.y, 0.1f, 50)))
             {
-                float contrastFactor = FMath.Clamp(_brightContrast.y, 0, 1); // Less than 1 to reduce contrast
+                float contrastFactor = RMath.Clamp(_brightContrast.y, 0, 1); // Less than 1 to reduce contrast
                 float translate = (1f - contrastFactor) * 0.5f;
 
                 float[] contrastMatrix = new float[]
@@ -45,7 +45,7 @@ namespace FenUISharp
                 using (var colorFilter = SKImageFilter.CreateColorFilter(
                     SKColorFilter.CreateCompose(SKColorFilter.CreateLighting(
                     SKColors.White, new SKColor(
-                        (byte)(25 * FMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * FMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * FMath.Clamp((int)_brightContrast.x, 0, 1)))),
+                        (byte)(25 * RMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * RMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * RMath.Clamp((int)_brightContrast.x, 0, 1)))),
                         SKColorFilter.CreateColorMatrix(contrastMatrix))))
                 {
                     blurPaint = skPaint.Clone();
@@ -67,11 +67,11 @@ namespace FenUISharp
 
             if (value)
             {
-                FDesktopCapture.instance.Begin();
+                DesktopCapture.instance.Begin();
             }
             else
             {
-                FDesktopCapture.instance.Stop();
+                DesktopCapture.instance.Stop();
             }
         }
 
@@ -84,7 +84,7 @@ namespace FenUISharp
 
             if (_blurDesktop)
             {
-                FDesktopCapture.instance.Stop();
+                DesktopCapture.instance.Stop();
             }
         }
 
@@ -93,7 +93,7 @@ namespace FenUISharp
             base.OnUpdate();
 
             _isGloballyInvalidated = false;
-            if (FWindow.IsNextFrameRendering() || _blurDesktop)
+            if (Window.IsNextFrameRendering() || _blurDesktop)
             {
                 Invalidate();
             }
@@ -108,7 +108,7 @@ namespace FenUISharp
 
             float scaleFactor = 0.5f;
 
-            using (var capture = FWindow.CaptureRegion(captureArea, scaleFactor))
+            using (var capture = Window.CaptureRegion(captureArea, scaleFactor))
             {
                 // Save for clipping
                 int c = canvas.Save();
@@ -117,7 +117,7 @@ namespace FenUISharp
                 if (_blurDesktop)
                 {
                     // Draw the desktop capture at reduced resolution
-                    if (FDesktopCapture.instance.lastCapture != null && FDesktopCapture.instance.previousCapture != null)
+                    if (DesktopCapture.instance.lastCapture != null && DesktopCapture.instance.previousCapture != null)
                     {
                         int c2 = canvas.Save();
 
@@ -128,14 +128,14 @@ namespace FenUISharp
                         canvas.ClipRoundRect(rect, antialias: true);
                         rect.Inflate(shrink, shrink);
 
-                        var opacityLatest = ((float)FDesktopCapture.instance.timeSinceLastCapture / (float)FDesktopCapture.instance.CaptureInterval);
+                        var opacityLatest = ((float)DesktopCapture.instance.timeSinceLastCapture / (float)DesktopCapture.instance.CaptureInterval);
 
                         canvas.Translate(-transform.position.x, -transform.position.y);
-                        canvas.DrawImage(FDesktopCapture.instance.previousCapture, FWindow.bounds, FWindow.samplingOptions);
+                        canvas.DrawImage(DesktopCapture.instance.previousCapture, Window.bounds, Window.samplingOptions);
 
                         using(var paint = skPaint.Clone()){
                             paint.Color = blurPaint.Color.WithAlpha((byte)(opacityLatest * 255));
-                            canvas.DrawImage(FDesktopCapture.instance.lastCapture, FWindow.bounds, FWindow.samplingOptions, paint);
+                            canvas.DrawImage(DesktopCapture.instance.lastCapture, Window.bounds, Window.samplingOptions, paint);
                         }
                         canvas.Translate(transform.position.x, transform.position.y);
 

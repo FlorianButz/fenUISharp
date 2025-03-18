@@ -182,7 +182,7 @@ namespace FenUISharp
             public uint time;
             public POINT pt;
         }
-
+        
         [StructLayout(LayoutKind.Sequential)]
         public struct POINT
         {

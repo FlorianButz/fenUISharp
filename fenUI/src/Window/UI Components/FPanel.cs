@@ -2,7 +2,7 @@ using SkiaSharp;
 
 namespace FenUISharp
 {
-    public class FPanel : FUIComponent
+    public class FPanel : UIComponent
     {
         protected float _cornerRadius;
 

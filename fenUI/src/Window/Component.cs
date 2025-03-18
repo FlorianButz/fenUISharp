@@ -1,9 +1,9 @@
 namespace FenUISharp {
-    public class FComponent : IDisposable
+    public class Component : IDisposable
     {
-        public FUIComponent parent { get; private set; }
+        public UIComponent parent { get; private set; }
 
-        public FComponent(FUIComponent parent){
+        public Component(UIComponent parent){
             this.parent = parent;
         }
 

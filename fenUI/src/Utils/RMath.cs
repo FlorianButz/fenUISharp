@@ -2,7 +2,7 @@ using SkiaSharp;
 
 namespace FenUISharp
 {
-    public static class FMath
+    public static class RMath
     {
         public static float Clamp(float value, float min, float max)
         {
@@ -95,7 +95,7 @@ namespace FenUISharp
                 canvas.DrawImage(sourceImage,
                     SKRect.Create(0, 0, sourceImage.Width, sourceImage.Height),
                     SKRect.Create(0, 0, newWidth, newHeight),
-                    FWindow.samplingOptions);
+                    Window.samplingOptions);
 
                 return surface.Snapshot();
             }

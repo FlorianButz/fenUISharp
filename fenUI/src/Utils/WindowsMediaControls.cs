@@ -34,7 +34,7 @@ namespace FenUISharp
         public PlaybackInfo() { }
     }
 
-    public class FWindowsMediaControls
+    public class WindowsMediaControls
     {
         static GlobalSystemMediaTransportControlsSessionManager? globSessionManager;
         static GlobalSystemMediaTransportControlsSession? currentSession;
@@ -60,7 +60,7 @@ namespace FenUISharp
             }
         }
 
-        public FWindowsMediaControls()
+        public WindowsMediaControls()
         {
             InitWindowsMediaControls();
             Task.Run(() => PollMediaInfoAsync());
@@ -164,7 +164,7 @@ namespace FenUISharp
                 var originalBitmap = SKBitmap.Decode(skStream);
                 if (originalBitmap == null) return null;
 
-                var resizedBitmap = originalBitmap.Resize(new SKImageInfo(128, 128), FWindow.samplingOptions);
+                var resizedBitmap = originalBitmap.Resize(new SKImageInfo(128, 128), Window.samplingOptions);
                 originalBitmap.Dispose();
 
                 using (resizedBitmap) { return SKImage.FromBitmap(resizedBitmap); }

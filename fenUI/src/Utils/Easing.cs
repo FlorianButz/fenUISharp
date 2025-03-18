@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FenUISharp
 {
-    public class FEasing
+    public class Easing
     {
         public static float EaseInQuint(float x)
         {
