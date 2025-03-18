@@ -1,0 +1,39 @@
+name: Build .NET DLL
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:  # Allow manual runs
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore
+
+      - name: Build Project (DLL)
+        run: dotnet build --configuration Release -p:OutputType=Library --output build
+
+      - name: Get Current Date
+        run: echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
+      - name: Move to Nightly Directory
+        run: |
+          mkdir -p nightly/${{ env.DATE }}
+          mv build/*.dll nightly/${{ env.DATE }}/
+
+      - name: Upload DLL as Nightly Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fenUISharp-nightly-${{ env.DATE }}
+          path: nightly/${{ env.DATE }}/
