@@ -3,7 +3,7 @@ namespace FenUISharp
     using System;
     using System.Runtime.InteropServices;
 
-    public static class Win32Helper
+    private static class Win32Helper
     {
         #region Enums & Constants
 
@@ -74,6 +74,7 @@ namespace FenUISharp
         // ShowWindow commands
         public enum ShowWindowCommands : int
         {
+            SW_SHOWNORMAL = 1
             SW_SHOWNORMAL = 1
         }
 

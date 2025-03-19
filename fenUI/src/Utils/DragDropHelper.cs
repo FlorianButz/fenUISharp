@@ -9,10 +9,10 @@ namespace FenUISharp
     [ComImport, Guid("00000122-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     public interface IDropTarget
     {
-        void DragEnter([In] IntPtr pDataObj, [In] uint grfKeyState, [In] Win32Helper.POINT pt, [In, Out] ref uint pdwEffect);
-        void DragOver([In] uint grfKeyState, [In] Win32Helper.POINT pt, [In, Out] ref uint pdwEffect);
+        void DragEnter([In] IntPtr pDataObj, [In] uint grfKeyState, [In] OLENativeHelper.POINT pt, [In, Out] ref uint pdwEffect);
+        void DragOver([In] uint grfKeyState, [In] OLENativeHelper.POINT pt, [In, Out] ref uint pdwEffect);
         void DragLeave();
-        void Drop([In] IntPtr pDataObj, [In] uint grfKeyState, [In] Win32Helper.POINT pt, [In, Out] ref uint pdwEffect);
+        void Drop([In] IntPtr pDataObj, [In] uint grfKeyState, [In] OLENativeHelper.POINT pt, [In, Out] ref uint pdwEffect);
     }
 
     [Flags]
@@ -25,49 +25,40 @@ namespace FenUISharp
         Scroll = 0x80000000
     }
 
-    // Updated drop target class that extracts dropped file names.
     [ComVisible(true)]
     [ClassInterface(ClassInterfaceType.None)]
-    public class DropTarget : IDropTarget
+    public class DragDropHandler : IDropTarget
     {
         public Action? dragEnter { get; set; }
         public Action? dragOver { get; set; }
         public Action? dragLeave { get; set; }
         public Action? dragDrop { get; set; }
 
-        public void DragEnter([In] IntPtr pDataObj, [In] uint grfKeyState, [In] Win32Helper.POINT pt, [In, Out] ref uint pdwEffect)
-        {
-            // Console.WriteLine("File Drop Enter");
-            
+        public void DragEnter([In] IntPtr pDataObj, [In] uint grfKeyState, [In] OLENativeHelper.POINT pt, [In, Out] ref uint pdwEffect)
+        {            
             pdwEffect = (uint)DROPEFFECT.None; // Temporarily disallow drag drop operations.
             // Transfer data to event
 
             dragEnter?.Invoke();
         }
 
-        void IDropTarget.DragOver(uint grfKeyState, Win32Helper.POINT pt, ref uint pdwEffect)
+        void IDropTarget.DragOver(uint grfKeyState, OLENativeHelper.POINT pt, ref uint pdwEffect)
         {
-            // Console.WriteLine("File Drop Over");
-
             pdwEffect = (uint)DROPEFFECT.None;
             dragOver?.Invoke();
         }
 
         void IDropTarget.DragLeave()
-        {
-            // Console.WriteLine("File Drop Leave");
-            
+        {            
             dragLeave?.Invoke();
         }
 
-        public void Drop([In] IntPtr pDataObj, [In] uint grfKeyState, [In] Win32Helper.POINT pt, [In, Out] ref uint pdwEffect)
+        public void Drop([In] IntPtr pDataObj, [In] uint grfKeyState, [In] OLENativeHelper.POINT pt, [In, Out] ref uint pdwEffect)
         {
-            // Console.WriteLine("Dropped");
-
             // Convert the pointer to an IDataObject.
             IDataObject dataObject = (IDataObject)Marshal.GetObjectForIUnknown(pDataObj);
 
-            // Set up the format we want to retrieve (file drop, CF_HDROP).
+            // Set up the format.
             OLENativeHelper.FORMATETC format = new OLENativeHelper.FORMATETC
             {
                 cfFormat = (short)OLENativeHelper.DataFormats.CF_HDROP,
@@ -104,9 +95,17 @@ namespace FenUISharp
         }
     }
 
-    // P/Invokes used for drag-drop registration.
     public static class DragDropRegistration
     {
+        private static bool _hasBeenInitialized = false;
+
+        public static void Initialize(){
+            if(_hasBeenInitialized) return;
+            _hasBeenInitialized = true;
+
+            OleInitialize(IntPtr.Zero);
+        }
+
         [DllImport("ole32.dll", ExactSpelling = true)]
         public static extern int OleInitialize(IntPtr pvReserved);
 
@@ -125,6 +124,13 @@ namespace FenUISharp
 
     public static class OLENativeHelper
     {
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int x;
+            public int y;
+        }
+
         public static class DataFormats
         {
             public const int CF_HDROP = 15;       // File drop format.
@@ -150,7 +156,6 @@ namespace FenUISharp
             public IntPtr pUnkForRelease; // For custom release (typically IntPtr.Zero).
         }
 
-        // DVASPECT enumeration.
         public enum DVASPECT : uint
         {
             DVASPECT_CONTENT = 1,
@@ -159,7 +164,6 @@ namespace FenUISharp
             DVASPECT_DOCPRINT = 8
         }
 
-        // TYMED enumeration.
         [Flags]
         public enum TYMED : uint
         {

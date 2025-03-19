@@ -7,7 +7,9 @@ namespace FenUISharp
 {
     public abstract class UIComponent : IDisposable
     {
-        public FTransform transform { get; set; }
+        public readonly Window WindowRoot; 
+
+        public Transform transform { get; set; }
         public SKPaint skPaint { get; set; }
         protected SKPaint drawImageFromCachePaint { get; set; }
 
@@ -21,26 +23,30 @@ namespace FenUISharp
         public MultiAccess<float> renderQuality = new MultiAccess<float>(1);
         protected SKImageInfo? cachedImageInfo = null;
         protected SKSurface? cachedSurface = null;
-        protected Win32Helper.Cursors hoverCursor = Win32Helper.Cursors.IDC_ARROW;
 
         private bool _isMouseHovering = false;
         public bool _isGloballyInvalidated { get; set; }
 
-        public UIComponent(Vector2 position, Vector2 size)
+        public UIComponent(Window rootWindow, Vector2 position, Vector2 size)
         {
-            transform = new FTransform(this);
+            if(rootWindow == null) throw new Exception("Root window cannot be null."); 
+
+            transform = new Transform(this);
             transform.localPosition = position;
             transform.size = size;
 
             CreatePaint();
 
-            Window.instance.onWindowUpdate += Update;
-            Window.instance.onMouseMove += OnMouseMove;
-            Window.instance.onMouseLeftDown += OnMouseLeftDown;
-            Window.instance.onMouseLeftUp += OnMouseLeftUp;
-            Window.instance.onMouseRightUp += OnMouseRightUp;
+            // rootWindow.onWindowUpdate += Update;
+            rootWindow.MouseMove += OnMouseMove;
+            rootWindow.MouseAction += OnMouseAction;
+        }
 
-            Console.WriteLine("Hallo");
+        private void OnMouseAction(MouseInputCode inputCode){
+            if (RMath.ContainsPoint(transform.bounds, new Vector2(Window.instance.MousePosition)) && GetTopmostComponentAtPosition(new Vector2(Window.instance.MousePosition)) == this)
+            {
+                
+            }
         }
 
         private void OnMouseRightUp()
@@ -74,26 +80,22 @@ namespace FenUISharp
             }
         }
 
-        private void OnMouseMove(int x, int y)
+        private void OnMouseMove(Vector2 pos)
         {
             if (RMath.ContainsPoint(transform.bounds, new Vector2(x, y)) && !_isMouseHovering && GetTopmostComponentAtPosition(new Vector2(x, y)) == this)
             {
                 _isMouseHovering = true;
-                Window.ActiveCursor.SetValue(this, hoverCursor, 15);
-
                 OnMouseEnter();
             }
             else if ((RMath.ContainsPoint(transform.bounds, new Vector2(x, y)) && _isMouseHovering && GetTopmostComponentAtPosition(new Vector2(x, y)) != this)
                 || !RMath.ContainsPoint(transform.bounds, new Vector2(x, y)) && _isMouseHovering)
             {
                 _isMouseHovering = false;
-                Window.ActiveCursor.DissolveValue(this);
-
                 OnMouseExit();
             }
 
-            OnMouseMove(new Vector2(x, y));
-            components.ForEach(z => z.OnMouseMove(new Vector2(x, y)));
+            OnMouseMove(pos);
+            components.ForEach(z => z.OnMouseMove(pos));
         }
 
         protected void CreatePaint()
@@ -164,7 +166,7 @@ namespace FenUISharp
                     if (transform.matrix == null)
                         canvas.Translate(transform.position.x * quality, transform.position.y * quality);
 
-                    canvas.DrawImage(snapshot, 0, 0, Window.samplingOptions, drawImageFromCachePaint);
+                    canvas.DrawImage(snapshot, 0, 0, WindowRoot.FGRCONTEXT.samplingOptions, drawImageFromCachePaint);
 
                     canvas.Translate(-(transform.position.x * quality), -(transform.position.y * quality)); // Always move back to 0;0. Translate always happen, no matter if rotation matrix is set or not.
                     canvas.Scale(quality, quality); // Scale back for proper rendering
@@ -211,21 +213,15 @@ namespace FenUISharp
 
         protected virtual void OnMouseEnter() { }
         protected virtual void OnMouseExit() { }
-        protected virtual void OnMouseDown() { }
-        protected virtual void OnMouseUp() { }
-        protected virtual void OnMouseRight() { }
-        protected virtual void OnMouseMove(Vector2 pos) { }
+        protected virtual void OnMouseActionCalled(MouseInputCode inputCode) { }
+        protected virtual void OnMouseMoved(Vector2 pos) { }
 
         public void Dispose()
         {
             OnComponentDestroy();
             renderQuality.onValueUpdated -= OnRenderQualityUpdated;
 
-            Window.instance.onWindowUpdate -= Update;
-            Window.instance.onMouseMove -= OnMouseMove;
-            Window.instance.onMouseLeftDown -= OnMouseLeftDown;
-            Window.instance.onMouseLeftUp -= OnMouseLeftUp;
-            Window.instance.onMouseRightUp -= OnMouseRightUp;
+            Console.WriteLine("DISPOSE ACTIONS INSIDE UICOMPONENT DISPOSE");
 
             if (currentlySelected == this) currentlySelected = null;
             if (Window.GetUIComponents().Contains(this)) Window.GetUIComponents().Remove(this);
@@ -253,12 +249,12 @@ namespace FenUISharp
         }
     }
 
-    public class FTransform : IDisposable
+    public class Transform : IDisposable
     {
         public UIComponent parentComponent { get; private set; }
 
-        public FTransform? parent { get; private set; }
-        public List<FTransform> childs { get; private set; } = new List<FTransform>();
+        public Transform? parent { get; private set; }
+        public List<Transform> childs { get; private set; } = new List<Transform>();
 
         public SKMatrix? matrix { get; set; }
 
@@ -301,7 +297,7 @@ namespace FenUISharp
             return s;
         }
 
-        public void SetParent(FTransform transform)
+        public void SetParent(Transform transform)
         {
             parent = transform;
             parent.SetChild(this);
@@ -318,17 +314,17 @@ namespace FenUISharp
             parent = null;
         }
 
-        public void SetChild(FTransform transform)
+        public void SetChild(Transform transform)
         {
             childs.Add(transform);
         }
 
-        public void RemoveChild(FTransform transform)
+        public void RemoveChild(Transform transform)
         {
             childs.Remove(transform);
         }
 
-        public FTransform(UIComponent component)
+        public Transform(UIComponent component)
         {
             parentComponent = component;
         }

@@ -9,9 +9,9 @@ using System.Drawing;
 
 namespace FenUISharp
 {
-    public class Window
+    public class WindowOld
     {
-        public static Window instance;
+        public static WindowOld instance;
 
         // Window Specifications
 
@@ -84,7 +84,7 @@ namespace FenUISharp
         public static bool showBounds { get; set; } = false;
         public static float DeltaTime { get; private set; }
 
-        public Window(string windowTitle, string windowClass)
+        public WindowOld(string windowTitle, string windowClass)
         {
             if (alreadyCreated == true) throw new Exception("Another FWindow has already been created.");
             instance = this;
