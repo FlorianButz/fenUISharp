@@ -26,6 +26,8 @@ namespace FenUISharp
 
         private bool _alwaysOnTop;
 
+        private List<UIComponent> uiComponents = new List<UIComponent>();
+
         #endregion
 
         #region Actions
@@ -33,7 +35,6 @@ namespace FenUISharp
         public Action<MouseInputCode> MouseAction { get; set; }
         public Action<MouseInputCode> MouseMove { get; set; }
         public Action<Vector2> OnWindowResize { get; set; }
-
         public Action<MouseInputCode> OnTrayIconClick { get; set; }
 
         #endregion
@@ -68,6 +69,31 @@ namespace FenUISharp
         }
 
         #endregion
+
+        public void AddUIComponent(UIComponent component){
+            if(component == null) return;
+
+            component.WindowRoot = this;
+            uiComponents.Add(component);
+        }
+        
+        public void RemoveUIComponent(UIComponent component){
+            if(component == null) return;
+
+            // component.WindowRoot = null; // Don't do, could break some stuff
+            uiComponents.Remove(component);
+        }
+
+        public void DestroyUIComponent(UIComponent component){
+            if(component == null) return;
+
+            component.Dispose();
+            uiComponents.Remove(component);
+        }
+
+        public List<UIComponent> GetUIComponents() {
+            return uiComponents;
+        }
 
         public void SetWindowVisibility(bool visible)
         {

@@ -7,7 +7,7 @@ namespace FenUISharp
 {
     public abstract class UIComponent : IDisposable
     {
-        public readonly Window WindowRoot; 
+        public Window WindowRoot { get; set; }
 
         public Transform transform { get; set; }
         public SKPaint skPaint { get; set; }
@@ -224,7 +224,7 @@ namespace FenUISharp
             Console.WriteLine("DISPOSE ACTIONS INSIDE UICOMPONENT DISPOSE");
 
             if (currentlySelected == this) currentlySelected = null;
-            if (Window.GetUIComponents().Contains(this)) Window.GetUIComponents().Remove(this);
+            if (WindowRoot.GetUIComponents().Contains(this)) WindowRoot.GetUIComponents().Remove(this);
 
             components.ForEach(x => x.Dispose());
 
@@ -233,8 +233,8 @@ namespace FenUISharp
 
         public UIComponent? GetTopmostComponentAtPosition(Vector2 pos)
         {
-            if (!Window.GetUIComponents().Any(x => x.enabled && x.careAboutInteractions && RMath.ContainsPoint(x.transform.bounds, pos))) return null;
-            return Window.GetUIComponents().Last(x => x.enabled && x.careAboutInteractions && RMath.ContainsPoint(x.transform.bounds, pos));
+            if (!WindowRoot.GetUIComponents().Any(x => x.enabled && x.careAboutInteractions && RMath.ContainsPoint(x.transform.bounds, pos))) return null;
+            return WindowRoot.GetUIComponents().Last(x => x.enabled && x.careAboutInteractions && RMath.ContainsPoint(x.transform.bounds, pos));
         }
 
         public void SetColor(SKColor color)
