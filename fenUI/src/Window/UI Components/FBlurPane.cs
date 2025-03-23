@@ -23,6 +23,8 @@ namespace FenUISharp
             _blurAmount = blurAmount;
             transform.boundsPadding.SetValue(this, 60, 35);
 
+            var useBrightContrast = !(brightness == contrast && brightness == 1);
+
             _brightContrast = new Vector2(brightness, contrast);
 
             _useDropShadow = useDropShadow;
@@ -40,14 +42,22 @@ namespace FenUISharp
                     0, 0, 0, 1, 0  // Alpha (unchanged)
                 };
 
-                using (var colorFilter = SKImageFilter.CreateColorFilter(
+                if (useBrightContrast)
+                {
+                    using (var colorFilter = SKImageFilter.CreateColorFilter(
                     SKColorFilter.CreateCompose(SKColorFilter.CreateLighting(
                     SKColors.White, new SKColor(
                         (byte)(25 * RMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * RMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * RMath.Clamp((int)_brightContrast.x, 0, 1)))),
                         SKColorFilter.CreateColorMatrix(contrastMatrix))))
+                    {
+                        blurPaint = skPaint.Clone();
+                        blurPaint.ImageFilter = SKImageFilter.CreateCompose(blur, colorFilter);
+                    }
+                }
+                else
                 {
                     blurPaint = skPaint.Clone();
-                    blurPaint.ImageFilter = SKImageFilter.CreateCompose(blur, colorFilter);
+                    blurPaint.ImageFilter = blur;
                 }
             }
             using (var drop = SKImageFilter.CreateDropShadowOnly(2, 2, 15, 15, SKColors.Black.WithAlpha(165)))
