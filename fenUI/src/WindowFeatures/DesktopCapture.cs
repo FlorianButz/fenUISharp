@@ -26,16 +26,16 @@ namespace FenUISharp
         static IntPtr CaptureDesktop(out int width, out int height, out IntPtr ppBits)
         {
             // Get the device context for the entire screen.
-            IntPtr hdcScreen = Win32Helper.GetDC(IntPtr.Zero);
+            IntPtr hdcScreen = GetDC(IntPtr.Zero);
             // Create a memory DC compatible with the screen.
-            IntPtr hdcMem = Win32Helper.CreateCompatibleDC(hdcScreen);
+            IntPtr hdcMem = CreateCompatibleDC(hdcScreen);
 
-            width = Win32Helper.GetSystemMetrics(Win32Helper.SM_CXSCREEN);
-            height = Win32Helper.GetSystemMetrics(Win32Helper.SM_CYSCREEN);
+            width = GetSystemMetrics(SM_CXSCREEN);
+            height = GetSystemMetrics(SM_CYSCREEN);
 
             // Set up the BITMAPINFO header.
-            Win32Helper.BITMAPINFO bmi = new Win32Helper.BITMAPINFO();
-            bmi.bmiHeader.biSize = (uint)Marshal.SizeOf(typeof(Win32Helper.BITMAPINFOHEADER));
+            BITMAPINFO bmi = new BITMAPINFO();
+            bmi.bmiHeader.biSize = (uint)Marshal.SizeOf(typeof(BITMAPINFOHEADER));
             bmi.bmiHeader.biWidth = width;
             // Use a negative height to indicate a top-down DIB.
             bmi.bmiHeader.biHeight = -height;
@@ -46,21 +46,21 @@ namespace FenUISharp
 
             // Create a DIB section (a bitmap we can directly access).
             IntPtr pBits;
-            IntPtr hBitmap = Win32Helper.CreateDIBSection(hdcScreen, ref bmi, Win32Helper.DIB_RGB_COLORS, out pBits, IntPtr.Zero, 0);
+            IntPtr hBitmap = CreateDIBSection(hdcScreen, ref bmi, DIB_RGB_COLORS, out pBits, IntPtr.Zero, 0);
             if (hBitmap == IntPtr.Zero)
                 throw new Exception("Failed to create DIB section.");
 
             // Select the DIB into our memory DC.
-            IntPtr hOld = Win32Helper.SelectObject(hdcMem, hBitmap);
+            IntPtr hOld = SelectObject(hdcMem, hBitmap);
 
             // Copy the screen into our DIB.
-            if (!Win32Helper.BitBlt(hdcMem, 0, 0, width, height, hdcScreen, 0, 0, Win32Helper.SRCCOPY))
+            if (!BitBlt(hdcMem, 0, 0, width, height, hdcScreen, 0, 0, SRCCOPY))
                 throw new Exception("BitBlt failed.");
 
             // Clean up our DCs.
-            Win32Helper.SelectObject(hdcMem, hOld);
-            Win32Helper.DeleteDC(hdcMem);
-            Win32Helper.ReleaseDC(IntPtr.Zero, hdcScreen);
+            SelectObject(hdcMem, hOld);
+            DeleteDC(hdcMem);
+            ReleaseDC(IntPtr.Zero, hdcScreen);
 
             ppBits = pBits;
             return hBitmap;
@@ -83,20 +83,11 @@ namespace FenUISharp
             return image;
         }
 
-        private int requested = 0;
-
-        public void Begin()
+        public void RequestCaptureDesktop()
         {
-            requested++;
-
-            if (_isRunning) return;
-            _isRunning = true;
-
-            bool firstRun = true;
-
-            _captureThread = new Thread(() =>
+            Task.Run(() =>
             {
-                while (_isRunning)
+                while (lastCapture == null)
                 {
                     int width, height;
                     IntPtr pBits;
@@ -104,17 +95,10 @@ namespace FenUISharp
 
                     try
                     {
-                        // Dispose previous image
-                        if(previousCapture != lastCapture)
-                            previousCapture?.Dispose();
-                        previousCapture = lastCapture;
-
                         // Create new image
                         var capture = GetSKImageFromCapture(pBits, width, height);
-                        lastCapture = RMath.CreateLowResImage(capture, CaptureQuality);
+                        lastCapture = RMath.CreateLowResImage(capture, CaptureQuality, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
                         capture.Dispose();
-
-                        if(firstRun) previousCapture = lastCapture;
 
                         // Invoke callback
                         onCapture?.Invoke(lastCapture);
@@ -122,38 +106,90 @@ namespace FenUISharp
                     finally
                     {
                         if (hBmp != IntPtr.Zero)
-                            Win32Helper.DeleteObject(hBmp);
+                            DeleteObject(hBmp);
                     }
 
-                    for(int i = 0; i < CaptureInterval; i++){
-                        timeSinceLastCapture = i;
-                        Thread.Sleep(1);
-                    }
-                    firstRun = false;
+                    Thread.Sleep(25);
                 }
             });
-
-            Win32Helper.SetWindowDisplayAffinity(Window.hWnd, Win32Helper.WDA_EXCLUDEFROMCAPTURE);
-
-            _captureThread.IsBackground = true;
-            _captureThread.Start();
         }
 
-        public void Stop()
+        public SKImage? GetLastCapture()
         {
-            requested--;
-            if(requested > 0) return;
+            return lastCapture;
+        }
+        
+        private const int SM_CXSCREEN = 0;
+        private const int SM_CYSCREEN = 1;
+        private const uint DIB_RGB_COLORS = 0;
 
-            _isRunning = false;
+        private const int SRCCOPY = 0x00CC0020;
+        private const uint WDA_NONE = 0x00000000;
+        private const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
+        private const int ULW_ALPHA = 0x00000002;
 
-            // Clean up resources
-            previousCapture?.Dispose();
-            previousCapture = null;
 
-            lastCapture?.Dispose();
-            lastCapture = null;
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern bool DeleteObject(IntPtr hObject);
 
-            Win32Helper.SetWindowDisplayAffinity(Window.hWnd, Win32Helper.WDA_NONE);
+        [DllImport("user32.dll")]
+        private static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint dwAffinity);
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern bool DeleteDC(IntPtr hdc);
+        
+        [DllImport("gdi32.dll")]
+        private static extern bool BitBlt(IntPtr hdcDest, int nXDest, int nYDest, int nWidth, int nHeight,
+                                    IntPtr hdcSrc, int nXSrc, int nYSrc, int dwRop);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        private static extern IntPtr CreateDIBSection(IntPtr hdc, [In] ref BITMAPINFO pbmi,
+             uint iUsage, out IntPtr ppvBits, IntPtr hSection, uint dwOffset);
+
+        [DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        public static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+             
+        [StructLayout(LayoutKind.Sequential)]
+        private struct BITMAPINFOHEADER
+        {
+            public uint biSize;
+            public int biWidth;
+            public int biHeight;
+            public ushort biPlanes;
+            public ushort biBitCount;
+            public uint biCompression;
+            public uint biSizeImage;
+            public int biXPelsPerMeter;
+            public int biYPelsPerMeter;
+            public uint biClrUsed;
+            public uint biClrImportant;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct BITMAPINFO
+        {
+            public BITMAPINFOHEADER bmiHeader;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
+            public RGBQUAD[] bmiColors;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RGBQUAD
+        {
+            public byte rgbBlue;
+            public byte rgbGreen;
+            public byte rgbRed;
+            public byte rgbReserved;
         }
     }
 }

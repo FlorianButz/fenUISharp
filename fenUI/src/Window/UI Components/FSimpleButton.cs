@@ -21,12 +21,13 @@ namespace FenUISharp
         float minWidth = 0;
         float maxWidth = 0;
         float cornerRadius = 5.5f;
-        Action? onClick;
 
-        public FSimpleButton(Vector2 position, string text, Action? onClick = null, float minWidth = 25, float maxWidth = 175) : base(position, new Vector2(0, 0))
+        public Action? onClick { get; set; }
+
+        public FSimpleButton(Window root, Vector2 position, string text, Action? onClick = null, float minWidth = 25, float maxWidth = 175) : base(root, position, new Vector2(0, 0))
         {
             this.onClick = onClick;
-            label = new FLabel(text, new Vector2(0, 0), new Vector2(0, 0), 12);
+            label = new FLabel(root, text, new Vector2(0, 0), new Vector2(0, 0), 12);
 
             this.maxWidth = RMath.Clamp(maxWidth, minWidth, float.MaxValue);
             this.minWidth = RMath.Clamp(minWidth, 0, this.maxWidth);
@@ -35,15 +36,16 @@ namespace FenUISharp
 
             label.transform.SetParent(transform);
             label.careAboutInteractions = false;
-            Window.AddUIComponent(label);
+            WindowRoot.AddUIComponent(label);
 
             currentcolor = basecolor;
             currenthighlight = highlight;
 
             animatorComponent = new AnimatorComponent(this, Easing.EaseOutCubic);
             animatorComponent.duration = 0.2f;
-            
-            animatorComponent.onValueUpdate += (t) => {
+
+            animatorComponent.onValueUpdate += (t) =>
+            {
                 currentcolor = RMath.Lerp(basecolor, hovercolor, t);
                 currenthighlight = RMath.Lerp(highlight, hoverhighlight, t);
 
@@ -60,7 +62,8 @@ namespace FenUISharp
             components.Add(animatorComponent);
         }
 
-        public void SetText(string text){
+        public void SetText(string text)
+        {
             label.Text = text;
 
             float height = label.GetSingleLineTextHeight() + 1;
@@ -70,41 +73,40 @@ namespace FenUISharp
             transform.size = new Vector2(width + padding * 2.5f, height + padding);
         }
 
-        protected override void OnMouseEnter()
+        protected override void MouseEnter()
         {
-            base.OnMouseEnter();
+            base.MouseEnter();
             animatorComponent.inverse = false;
             animatorComponent.Start();
         }
 
-        protected override void OnMouseExit()
+        protected override void MouseExit()
         {
-            base.OnMouseExit();
+            base.MouseExit();
             animatorComponent.inverse = true;
             animatorComponent.Start();
         }
 
-        protected override void OnMouseDown()
+        protected override void MouseAction(MouseInputCode inputCode)
         {
-            base.OnMouseDown();
-            animatorComponent.inverse = true;
-            animatorComponent.Start();
+            base.MouseAction(inputCode);
+
+            if (inputCode.button == 0 && inputCode.state == 0)
+            {
+                animatorComponent.inverse = true;
+                animatorComponent.Start();
+            }
+            else if (inputCode.button == 0 && inputCode.state == 1)
+            {
+                animatorComponent.inverse = false;
+                animatorComponent.Start();
+            }
         }
 
-        protected override void OnMouseUp()
+        protected override void ComponentDestroy()
         {
-            base.OnMouseUp();
-            animatorComponent.inverse = false;
-            animatorComponent.Start();
-
-            onClick?.Invoke();
-        }
-
-        protected override void OnComponentDestroy()
-        {
-            base.OnComponentDestroy();
-            Window.DestroyUIComponent(label);
-            label.Dispose();
+            base.ComponentDestroy();
+            WindowRoot.DestroyUIComponent(label);
         }
 
         protected override void DrawToSurface(SKCanvas canvas)

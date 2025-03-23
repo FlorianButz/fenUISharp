@@ -7,23 +7,21 @@ namespace FenUISharp {
             this.parent = parent;
         }
 
-        public virtual void OnComponentUpdate() { }
+        public virtual void ComponentUpdate() { }
 
-        public virtual void OnComponentDestroy() { }
+        public virtual void ComponentDestroy() { }
 
-        public virtual void OnSelected() { }
-        public virtual void OnSelectedLost() { }
+        public virtual void Selected() { }
+        public virtual void SelectedLost() { }
 
-        public virtual void OnMouseEnter() { }
-        public virtual void OnMouseExit() { }
-        public virtual void OnMouseDown() { }
-        public virtual void OnMouseUp() { }
-        public virtual void OnMouseRight() { }
-        public virtual void OnMouseMove(Vector2 pos) { }
+        public virtual void MouseEnter() { }
+        public virtual void MouseExit() { }
+        public virtual void MouseAction(MouseInputCode inputCode) { }
+        public virtual void MouseMove(Vector2 pos) { }
 
         public void Dispose()
         {
-            OnComponentDestroy();
+            ComponentDestroy();
         }
     }
 }

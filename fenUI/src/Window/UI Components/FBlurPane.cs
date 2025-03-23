@@ -14,13 +14,11 @@ namespace FenUISharp
         private Vector2 _brightContrast;
         public float Brightness { get => _brightContrast.x; set => _brightContrast.x = value; }
         public float Contrast { get => _brightContrast.y; set => _brightContrast.y = value; }
-        public bool DesktopBlur { get => _blurDesktop; set => UpdateDoesCaptureDesktop(value); }
 
         private bool _useDropShadow;
-        private bool _blurDesktop = false;
 
-        public FBlurPane(Vector2 position, Vector2 size, float cornerRadius, Vector2 blurAmount, bool useDropShadow = false, float brightness = 0.4f, float contrast = 0.77f)
-            : base(position, size, cornerRadius, SKColors.Black)
+        public FBlurPane(Window root, Vector2 position, Vector2 size, float cornerRadius, Vector2 blurAmount, bool useDropShadow = false, float brightness = 0.4f, float contrast = 0.77f)
+            : base(root, position, size, cornerRadius, SKColors.Black)
         {
             _blurAmount = blurAmount;
             transform.boundsPadding.SetValue(this, 60, 35);
@@ -57,35 +55,14 @@ namespace FenUISharp
                 dropShadowPaint = skPaint.Clone();
                 dropShadowPaint.ImageFilter = drop;
             }
-
-            UpdateDoesCaptureDesktop(_blurDesktop, true);
         }
 
-        void UpdateDoesCaptureDesktop(bool value, bool forced = false)
+        protected override void ComponentDestroy()
         {
-            if (_blurDesktop == value && !forced) return;
-
-            if (value)
-            {
-                DesktopCapture.instance.Begin();
-            }
-            else
-            {
-                DesktopCapture.instance.Stop();
-            }
-        }
-
-        protected override void OnComponentDestroy()
-        {
-            base.OnComponentDestroy();
+            base.ComponentDestroy();
 
             blurPaint.Dispose();
             dropShadowPaint.Dispose();
-
-            if (_blurDesktop)
-            {
-                DesktopCapture.instance.Stop();
-            }
         }
 
         protected override void OnUpdate()
@@ -93,7 +70,7 @@ namespace FenUISharp
             base.OnUpdate();
 
             _isGloballyInvalidated = false;
-            if (Window.IsNextFrameRendering() || _blurDesktop)
+            if (WindowRoot.IsNextFrameRendering())
             {
                 Invalidate();
             }
@@ -108,40 +85,11 @@ namespace FenUISharp
 
             float scaleFactor = 0.5f;
 
-            using (var capture = Window.CaptureRegion(captureArea, scaleFactor))
+            using (var capture = WindowRoot.RenderContext.CaptureWindowRegion(captureArea, scaleFactor))
             {
                 // Save for clipping
                 int c = canvas.Save();
                 canvas.ClipRoundRect(rect, antialias: true);
-
-                if (_blurDesktop)
-                {
-                    // Draw the desktop capture at reduced resolution
-                    if (DesktopCapture.instance.lastCapture != null && DesktopCapture.instance.previousCapture != null)
-                    {
-                        int c2 = canvas.Save();
-
-                        const float shrink = 0.5f;
-
-                        // Avoid ugly borders
-                        rect.Inflate(-shrink, -shrink);
-                        canvas.ClipRoundRect(rect, antialias: true);
-                        rect.Inflate(shrink, shrink);
-
-                        var opacityLatest = ((float)DesktopCapture.instance.timeSinceLastCapture / (float)DesktopCapture.instance.CaptureInterval);
-
-                        canvas.Translate(-transform.position.x, -transform.position.y);
-                        canvas.DrawImage(DesktopCapture.instance.previousCapture, Window.bounds, Window.samplingOptions);
-
-                        using(var paint = skPaint.Clone()){
-                            paint.Color = blurPaint.Color.WithAlpha((byte)(opacityLatest * 255));
-                            canvas.DrawImage(DesktopCapture.instance.lastCapture, Window.bounds, Window.samplingOptions, paint);
-                        }
-                        canvas.Translate(transform.position.x, transform.position.y);
-
-                        canvas.RestoreToCount(c2);
-                    }
-                }
 
                 canvas.Translate(-pad, -pad);
                 canvas.Scale(1 / scaleFactor);

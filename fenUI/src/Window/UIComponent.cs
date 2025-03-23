@@ -16,6 +16,7 @@ namespace FenUISharp
         public List<Component> components { get; set; } = new List<Component>();
 
         public bool enabled { get; set; } = true;
+        public bool visible { get; set; } = true;
         public bool careAboutInteractions { get; set; } = true;
 
         public static UIComponent? currentlySelected { get; set; } = null;
@@ -30,6 +31,7 @@ namespace FenUISharp
         public UIComponent(Window rootWindow, Vector2 position, Vector2 size)
         {
             if(rootWindow == null) throw new Exception("Root window cannot be null."); 
+            WindowRoot = rootWindow;
 
             transform = new Transform(this);
             transform.localPosition = position;
@@ -37,65 +39,51 @@ namespace FenUISharp
 
             CreatePaint();
 
-            // rootWindow.onWindowUpdate += Update;
-            rootWindow.MouseMove += OnMouseMove;
+            WindowFeatures.GlobalHooks.onMouseMove += OnMouseMove;
+            rootWindow.OnUpdate += Update;
             rootWindow.MouseAction += OnMouseAction;
         }
 
         private void OnMouseAction(MouseInputCode inputCode){
-            if (RMath.ContainsPoint(transform.bounds, new Vector2(Window.instance.MousePosition)) && GetTopmostComponentAtPosition(new Vector2(Window.instance.MousePosition)) == this)
+            if (RMath.ContainsPoint(transform.bounds, WindowRoot.ClientMousePosition) && GetTopmostComponentAtPosition(WindowRoot.ClientMousePosition) == this)
             {
-                
-            }
-        }
+                switch(inputCode.button){
+                    case 0: {
 
-        private void OnMouseRightUp()
-        {
-            if (RMath.ContainsPoint(transform.bounds, new Vector2(Window.instance.MousePosition)) && GetTopmostComponentAtPosition(new Vector2(Window.instance.MousePosition)) == this)
-            {
-                OnMouseRight();
-                components.ForEach(x => x.OnMouseRight());
-            }
-        }
+                        if(inputCode.state == 1){
+                            if (currentlySelected != this) currentlySelected?.SelectedLost();
 
-        private void OnMouseLeftUp()
-        {
-            if (RMath.ContainsPoint(transform.bounds, new Vector2(Window.instance.MousePosition)) && GetTopmostComponentAtPosition(new Vector2(Window.instance.MousePosition)) == this)
-            {
-                if (currentlySelected != this) currentlySelected?.OnSelectedLost();
+                            currentlySelected = this;
+                            currentlySelected?.Selected();
+                        }
 
-                currentlySelected = this;
-                currentlySelected?.OnSelected();
-                OnMouseUp();
-                components.ForEach(x => x.OnMouseUp());
-            }
-        }
+                        break;
+                    }
+                }
 
-        private void OnMouseLeftDown()
-        {
-            if (RMath.ContainsPoint(transform.bounds, new Vector2(Window.instance.MousePosition)) && GetTopmostComponentAtPosition(new Vector2(Window.instance.MousePosition)) == this)
-            {
-                OnMouseDown();
-                components.ForEach(x => x.OnMouseDown());
+                MouseAction(inputCode);
+                components.ForEach(x => x.MouseAction(inputCode));
             }
         }
 
         private void OnMouseMove(Vector2 pos)
         {
-            if (RMath.ContainsPoint(transform.bounds, new Vector2(x, y)) && !_isMouseHovering && GetTopmostComponentAtPosition(new Vector2(x, y)) == this)
+            Vector2 mousePos = WindowRoot.GlobalPointToClient(pos);
+
+            if (RMath.ContainsPoint(transform.bounds, mousePos) && !_isMouseHovering && GetTopmostComponentAtPosition(mousePos) == this)
             {
                 _isMouseHovering = true;
-                OnMouseEnter();
+                MouseEnter();
             }
-            else if ((RMath.ContainsPoint(transform.bounds, new Vector2(x, y)) && _isMouseHovering && GetTopmostComponentAtPosition(new Vector2(x, y)) != this)
-                || !RMath.ContainsPoint(transform.bounds, new Vector2(x, y)) && _isMouseHovering)
+            else if ((RMath.ContainsPoint(transform.bounds, mousePos) && _isMouseHovering && GetTopmostComponentAtPosition(mousePos) != this)
+                || !RMath.ContainsPoint(transform.bounds, mousePos) && _isMouseHovering)
             {
                 _isMouseHovering = false;
-                OnMouseExit();
+                MouseExit();
             }
 
-            OnMouseMove(pos);
-            components.ForEach(z => z.OnMouseMove(pos));
+            MouseMove(mousePos);
+            components.ForEach(z => z.MouseMove(mousePos));
         }
 
         protected void CreatePaint()
@@ -119,8 +107,9 @@ namespace FenUISharp
 
         public void DrawToScreen(SKCanvas canvas)
         {
-            // Render quality
+            if(!visible) return;
 
+            // Render quality
             float quality = RMath.Clamp(renderQuality.Value * ((transform.parent != null) ? transform.parent.parentComponent.renderQuality.Value : 1), 0.05f, 1);
             var bounds = transform.fullBounds;
 
@@ -166,7 +155,7 @@ namespace FenUISharp
                     if (transform.matrix == null)
                         canvas.Translate(transform.position.x * quality, transform.position.y * quality);
 
-                    canvas.DrawImage(snapshot, 0, 0, WindowRoot.FGRCONTEXT.samplingOptions, drawImageFromCachePaint);
+                    canvas.DrawImage(snapshot, 0, 0, WindowRoot.RenderContext.SamplingOptions, drawImageFromCachePaint);
 
                     canvas.Translate(-(transform.position.x * quality), -(transform.position.y * quality)); // Always move back to 0;0. Translate always happen, no matter if rotation matrix is set or not.
                     canvas.Scale(quality, quality); // Scale back for proper rendering
@@ -201,30 +190,32 @@ namespace FenUISharp
             if (enabled)
             {
                 OnUpdate();
-                components.ForEach(x => x.OnComponentUpdate());
+                components.ForEach(x => x.ComponentUpdate());
             }
         }
 
         protected virtual void OnUpdate() { }
-        protected virtual void OnComponentDestroy() { }
+        protected virtual void ComponentDestroy() { }
 
-        protected virtual void OnSelected() { }
-        protected virtual void OnSelectedLost() { }
+        protected virtual void Selected() { }
+        protected virtual void SelectedLost() { }
 
-        protected virtual void OnMouseEnter() { }
-        protected virtual void OnMouseExit() { }
-        protected virtual void OnMouseActionCalled(MouseInputCode inputCode) { }
-        protected virtual void OnMouseMoved(Vector2 pos) { }
+        protected virtual void MouseEnter() { }
+        protected virtual void MouseExit() { }
+        protected virtual void MouseAction(MouseInputCode inputCode) { }
+        protected virtual void MouseMove(Vector2 pos) { }
 
         public void Dispose()
         {
-            OnComponentDestroy();
+            ComponentDestroy();
             renderQuality.onValueUpdated -= OnRenderQualityUpdated;
 
-            Console.WriteLine("DISPOSE ACTIONS INSIDE UICOMPONENT DISPOSE");
+            WindowFeatures.GlobalHooks.onMouseMove -= OnMouseMove;
+            WindowRoot.OnUpdate -= Update;
+            WindowRoot.MouseAction -= OnMouseAction;
 
             if (currentlySelected == this) currentlySelected = null;
-            if (WindowRoot.GetUIComponents().Contains(this)) WindowRoot.GetUIComponents().Remove(this);
+            if (WindowRoot.GetUIComponents().Contains(this)) WindowRoot.RemoveUIComponent(this);
 
             components.ForEach(x => x.Dispose());
 
@@ -283,7 +274,7 @@ namespace FenUISharp
 
         public Vector2 GetSize()
         {
-            var sp = Window.bounds;
+            var sp = parentComponent.WindowRoot.Bounds;
             var ss = parent?.size;
 
             var s = _size;
@@ -331,7 +322,7 @@ namespace FenUISharp
 
         private Vector2 GetGlobalPosition(Vector2 localPosition)
         {
-            var pBounds = (parent != null) ? parent.bounds : Window.bounds;
+            var pBounds = (parent != null) ? parent.bounds : parentComponent.WindowRoot.Bounds;
             var padding = boundsPadding.Value;
 
             return new Vector2(

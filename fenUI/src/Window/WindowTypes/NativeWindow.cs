@@ -1,3 +1,7 @@
+using System.Runtime.InteropServices;
+using Microsoft.Win32;
+using SkiaSharp;
+
 namespace FenUISharp
 {
     public class NativeWindow : Window
@@ -15,62 +19,63 @@ namespace FenUISharp
         {
             _hideTaskbarIcon = hideTaskbarIcon;
             SetTaskbarIconVisibility(_hideTaskbarIcon);
+            SetTaskbarIconVisibility(false);
         }
 
         protected override IntPtr CreateWin32Window(WNDCLASSEX wndClass, Vector2? size, Vector2? position)
         {
-            var hWnd = CreateWindowEx(
-                            (int)WindowStyles.WS_VISIBLE,
-                            this.WindowClass,
-                            this.WindowTitle,
-                            (int)WindowStyles.WS_EX_APPWINDOW,
-                            0, 0, 0, 0,
-                            IntPtr.Zero,
-                            IntPtr.Zero,
-                            wndClass.hInstance,
-                            IntPtr.Zero);
+            bool centerPos = position == null;
+
+            var hWnd = CreateWindowExA(
+                0,
+                this.WindowClass,
+                this.WindowTitle,
+                WS_NATIVE,
+                centerPos ? CW_USEDEFAULT : (int)position?.x,
+                centerPos ? CW_USEDEFAULT : (int)position?.y,
+                (int)size?.x,
+                (int)size?.y,
+                IntPtr.Zero,
+                IntPtr.Zero,
+                wndClass.hInstance,
+                IntPtr.Zero);
 
             return hWnd;
         }
 
-        public bool SetTaskbarIconVisibility(bool visible)
+        protected override void OnRenderFrame()
         {
-            try
+            base.OnRenderFrame();
+
+            RenderContext.Surface.Canvas.Clear(GetTitlebarColor());
+        }
+
+        SKColor GetTitlebarColor()
+        {
+            if(!_sysDarkMode)
+                return new SKColor(243, 243, 243); // Windows default light mode color
+            else
+                return new SKColor(32, 32, 32); // Windows default dark mode color
+        }
+
+        public void SetTaskbarIconVisibility(bool visible)
+        {
+            if (!visible)
             {
-                if (!visible)
-                {
-                    // Create hidden owner window if it doesn't exist
-                    if (hiddenOwnerWindow == IntPtr.Zero)
-                    {
-                        hiddenOwnerWindow = CreateWindowEx(
-                            (int)WindowStyles.WS_EX_TOOLWINDOW,
-                            "STATIC",
-                            "HiddenOwnerWindow",
-                            (int)WindowStyles.WS_OVERLAPPED,
-                            0, 0, 0, 0,
-                            IntPtr.Zero,
-                            IntPtr.Zero,
-                            GetModuleHandle(null),
-                            IntPtr.Zero);
-                    }
+                // Create a dummy window (invisible) to act as the owner
+                IntPtr hiddenOwner = CreateWindowEx((int)WindowStyles.WS_EX_TOOLWINDOW, "STATIC", "",
+                    WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero, GetModuleHandle(null), IntPtr.Zero);
 
-                    // Set the hidden window as the owner of our target window
-                    if (hiddenOwnerWindow != IntPtr.Zero)
-                    {
-                        return SetWindowLong(hWnd, GWL_HWNDPARENT, hiddenOwnerWindow.ToInt32()) == 1;
-                    }
-                }
-                else
-                {
-                    // Remove owner to show taskbar icon
-                    return SetWindowLong(hWnd, GWL_HWNDPARENT, IntPtr.Zero.ToInt32()) == 1;
-                }
+                ShowWindow(hiddenOwner, 0); // Ensure it never appears
 
-                return false;
+                if (hWnd != IntPtr.Zero)
+                {
+                    SetWindowLongPtr(hWnd, GWL_HWNDPARENT, hiddenOwner);
+                }
             }
-            catch
+            else
             {
-                return false;
+                SetWindowLongPtr(hWnd, GWL_HWNDPARENT, IntPtr.Zero);
             }
         }
 
@@ -84,5 +89,10 @@ namespace FenUISharp
                 hiddenOwnerWindow = IntPtr.Zero;
             }
         }
+
+        private const int GWL_HWNDPARENT = -8;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
     }
 }

@@ -6,7 +6,7 @@ namespace FenUISharp
     {
         protected float _cornerRadius;
 
-        public FPanel(Vector2 position, Vector2 size, float cornerRadius, SKColor color) : base(position, size)
+        public FPanel(Window root, Vector2 position, Vector2 size, float cornerRadius, SKColor color) : base(root, position, size)
         {
             skPaint.Color = color;
             skPaint.ImageFilter = SKImageFilter.CreateDropShadow(2, 2, 15, 15, SKColors.Black.WithAlpha(125));

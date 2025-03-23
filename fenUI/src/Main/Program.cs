@@ -54,8 +54,21 @@ namespace FenUISharpTest1
 //             window.CreateSurface();
 //             window.Begin();
         
-                Window window = new NativeWindow("Test 1", "testClass", new Vector2(100, 100), new Vector2(100, 100), true, false);
+                Window window = new NativeWindow("Test 1", "testClass", new Vector2(700, 500), new Vector2(100, 100), true, false);
+                window.SystemDarkMode = true;
+                window.AllowResizing = true;
+                window.SetTrayIcon("icons/TrayIcon.ico", "Test");
+                window.SetWindowIcon("icons/TrayIcon.ico");
                 window.SetWindowVisibility(true);
+
+            FPanel c = new FPanel(window, new Vector2(0, 0), new Vector2(300, 150), 15, SKColors.Black);
+            FPanel c2 = new FPanel(window, new Vector2(0, -25), new Vector2(100, 50), 15, SKColors.DarkGray);
+            c2.transform.stretchHorizontal = true;
+c2.transform.SetParent(c.transform);
+
+                window.AddUIComponent(new FSimpleButton(window, new Vector2(0, 0), "Test Text, click!", () => Console.WriteLine("test")));
+
+                window.BeginWindowLoop();
         }
     }
 }

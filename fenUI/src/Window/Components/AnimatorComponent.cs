@@ -45,9 +45,9 @@ namespace FenUISharp
             isRunning = true;
         }
 
-        public override void OnComponentUpdate()
+        public override void ComponentUpdate()
         {
-            base.OnComponentUpdate();
+            base.ComponentUpdate();
 
             if (autoLowerRenderQuality)
             {
@@ -59,7 +59,7 @@ namespace FenUISharp
             if (!isRunning)
                 return;
 
-            _timePassed += Window.DeltaTime;
+            _timePassed += (float)parent.WindowRoot.DeltaTime;
 
             // Normalize time and clamp between 0 and 1.
             float t = Math.Clamp(_timePassed / duration, 0f, 1f);
@@ -77,9 +77,9 @@ namespace FenUISharp
             }
         }
 
-        public override void OnComponentDestroy()
+        public override void ComponentDestroy()
         {
-            base.OnComponentDestroy();
+            base.ComponentDestroy();
             onValueUpdate = null;
             onComplete = null;
         }

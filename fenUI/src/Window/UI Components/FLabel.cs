@@ -35,7 +35,7 @@ namespace FenUISharp
             Font = new SKFont(Typeface, TextSize);
             Font.Hinting = SKFontHinting.Full;
             Font.Subpixel = true;
-	        Font.Edging = SKFontEdging.SubpixelAntialias;
+            Font.Edging = SKFontEdging.SubpixelAntialias;
 
             Invalidate();
         }
@@ -43,33 +43,36 @@ namespace FenUISharp
         private bool isSettingText = false; // Cancle too fast SetText calls to avoid visual issues
         public void SetText(string text)
         {
-            if(Text == text || isSettingText == true) return;
+            if (Text == text || isSettingText == true) return;
             isSettingText = true;
 
             // renderQuality.SetValue(this, 1f, 35);
 
             changeTextAnim.Start();
-            changeTextAnim.onComplete = () => {
+            changeTextAnim.onComplete = () =>
+            {
                 _text = text;
                 Invalidate();
 
                 changeTextAnim.inverse = true;
                 changeTextAnim.Start();
 
-                changeTextAnim.onComplete = () => {
+                changeTextAnim.onComplete = () =>
+                {
                     changeTextAnim.inverse = false;
                     changeTextAnim.onComplete = null;
                     isSettingText = false;
 
                     skPaint.ImageFilter = dropShadow;
-                    
+
                     renderQuality.DissolveValue(this);
                     Invalidate();
                 };
             };
         }
 
-        public void SilentSetText(string text){
+        public void SilentSetText(string text)
+        {
             _text = text;
             Invalidate();
         }
@@ -80,14 +83,14 @@ namespace FenUISharp
             UpdateFont();
         }
 
-        protected override void OnComponentDestroy()
+        protected override void ComponentDestroy()
         {
-            base.OnComponentDestroy();
+            base.ComponentDestroy();
             dropShadow?.Dispose();
             changeTextAnim?.Dispose();
         }
 
-        public FLabel(string text, Vector2 position, Vector2 size, float fontSize = 14, string? typefaceName = null, TextTruncation truncation = TextTruncation.Elipsis) : base(position, size)
+        public FLabel(Window root, string text, Vector2 position, Vector2 size, float fontSize = 14, string? typefaceName = null, TextTruncation truncation = TextTruncation.Elipsis) : base(root, position, size)
         {
             _text = text;
             _textSize = fontSize;
@@ -103,12 +106,15 @@ namespace FenUISharp
 
             changeTextAnim = new AnimatorComponent(this, Easing.EaseInCubic, Easing.EaseOutCubic);
             changeTextAnim.duration = 0.2f;
-            changeTextAnim.onValueUpdate += (t) => {
+            changeTextAnim.onValueUpdate += (t) =>
+            {
                 float scaleTime = 0.75f + (1f - t) * 0.25f;
 
-                using (var blur = SKImageFilter.CreateBlur(t * 5, t * 5)){
-                    if(blur == null || dropShadow == null) return;
-                    using (var compose = SKImageFilter.CreateCompose(dropShadow, blur)){
+                using (var blur = SKImageFilter.CreateBlur(t * 5, t * 5))
+                {
+                    if (blur == null || dropShadow == null) return;
+                    using (var compose = SKImageFilter.CreateCompose(dropShadow, blur))
+                    {
                         skPaint.ImageFilter = compose;
                     }
                 }
@@ -278,8 +284,8 @@ namespace FenUISharp
                 {
                     float gap = transform.localBounds.Width / 4;
 
-                    _speedMulti = RMath.Lerp(_speedMulti, 1f, Window.DeltaTime);
-                    _scrollOffset -= ScrollSpeed * RMath.Clamp(_speedMulti, 0, 1) * (Window.DeltaTime * 35);
+                    _speedMulti = RMath.Lerp(_speedMulti, 1f, (float)WindowRoot.DeltaTime);
+                    _scrollOffset -= ScrollSpeed * RMath.Clamp(_speedMulti, 0, 1) * ((float)WindowRoot.DeltaTime * 35);
 
                     if (_scrollOffset < -textWidth /* Keep Offset when teleporting */ - gap)
                     {
@@ -302,15 +308,17 @@ namespace FenUISharp
                 DrawScrollingText(canvas, Text, transform.localBounds);
         }
 
-        public string GetTruncatedText(){
-            if(Font.MeasureText(_text, skPaint) <= transform.size.x) return _text;
+        public string GetTruncatedText()
+        {
+            if (Font.MeasureText(_text, skPaint) <= transform.size.x) return _text;
 
             string truncatedText = "";
 
-            for(int c = 0; c < _text.Length; c++){
+            for (int c = 0; c < _text.Length; c++)
+            {
                 string t = _text.Substring(0, c) + "...";
 
-                if(Font.MeasureText(t, skPaint) < transform.size.x)
+                if (Font.MeasureText(t, skPaint) < transform.size.x)
                     truncatedText = t;
                 else break;
             }
@@ -331,7 +339,8 @@ namespace FenUISharp
         }
     }
 
-    public enum TextTruncation {
+    public enum TextTruncation
+    {
         Elipsis,
         Scroll,
         Linebreak
