@@ -100,6 +100,8 @@ namespace FenUISharp
             {
                 animatorComponent.inverse = false;
                 animatorComponent.Start();
+
+                onClick?.Invoke();
             }
         }
 
