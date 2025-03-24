@@ -18,7 +18,7 @@ namespace FenUISharpTest1
 
             //             string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "icons", "TrayIcon.ico");
             //             window.SetWindowIcon(iconPath);
-            //             window.CreateTray(iconPath, "Test tray icon!");
+           //             window.CreateTray(iconPath, "Test tray icon!");
 
             //             Window.instance.onTrayIconRightClicked += () => {
             //                 Console.WriteLine("Tray clicked!");
@@ -54,12 +54,15 @@ namespace FenUISharpTest1
             //             window.CreateSurface();
             //             window.Begin();
 
-            Window window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.Software, new Vector2(700, 500), new Vector2(100, 100), true, false);
+            // Window window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.Software, new Vector2(700, 500), new Vector2(100, 100), true, false);
+            Window window = new OverlayWindow("Test 1", "testClass", Window.RenderContextType.Software);
             window.SystemDarkMode = true;
             window.AllowResizing = true;
             window.SetTrayIcon("icons/TrayIcon.ico", "Test");
             window.SetWindowIcon("icons/TrayIcon.ico");
             window.SetWindowVisibility(true);
+            window.SetAlwaysOnTop(true);
+            window.SetAlwaysOnTop(false);
 
 
             FLabel label = new FLabel(window, "Abcdefghijklmnopqrstuvwxyz 0123456789", new Vector2(0, 0), new Vector2(85, 20), truncation: TextTruncation.Scroll);

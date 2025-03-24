@@ -84,7 +84,7 @@ namespace FenUISharp
         public Window(
             string title, string className, RenderContextType type,
             Vector2? windowSize = null, Vector2? windowPosition = null,
-            bool alwaysOnTop = false
+            bool alwaysOnTop = false, bool hideTaskbarIcon = false
         )
         {
             WindowTitle = title;
@@ -110,6 +110,8 @@ namespace FenUISharp
 
             _alwaysOnTop = alwaysOnTop;
             SetAlwaysOnTop(_alwaysOnTop);
+
+            SetTaskbarIconVisibility(hideTaskbarIcon);
 
             // Initialize FRenderContext
             CreateAndUpdateRenderContext(type);
@@ -297,6 +299,7 @@ namespace FenUISharp
 
         public void SetAlwaysOnTop(bool alwaysOnTop)
         {
+            _alwaysOnTop = alwaysOnTop;
             SetWindowPos(hWnd, alwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, (uint)SetWindowPosFlags.SWP_NOMOVE | (uint)SetWindowPosFlags.SWP_NOSIZE);
         }
 
@@ -368,6 +371,27 @@ namespace FenUISharp
             else
             {
                 throw new Exception("Failed to load icon.");
+            }
+        }
+
+        public void SetTaskbarIconVisibility(bool visible)
+        {
+            if (!visible)
+            {
+                // Create a dummy window (invisible) to act as the owner
+                IntPtr hiddenOwner = CreateWindowEx((int)WindowStyles.WS_EX_TOOLWINDOW, "STATIC", "",
+                    WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero, GetModuleHandle(null), IntPtr.Zero);
+
+                ShowWindow(hiddenOwner, 0); // Ensure it never appears
+
+                if (hWnd != IntPtr.Zero)
+                {
+                    SetWindowLongPtr(hWnd, GWL_HWNDPARENT, hiddenOwner);
+                }
+            }
+            else
+            {
+                SetWindowLongPtr(hWnd, GWL_HWNDPARENT, IntPtr.Zero);
             }
         }
 
@@ -578,6 +602,8 @@ namespace FenUISharp
         const int HTBOTTOMRIGHT = 17;
         const int HTCLIENT = 1;
 
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
         protected static int GET_X_LPARAM(IntPtr lParam) => (int)(lParam.ToInt32() & 0xFFFF);
         protected static int GET_Y_LPARAM(IntPtr lParam) => (int)((lParam.ToInt32() >> 16) & 0xFFFF);
 

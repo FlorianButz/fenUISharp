@@ -453,7 +453,7 @@ namespace FenUISharp
                 (int)Win32Helper.SetWindowPosFlags.SWP_NOMOVE |
                 (int)Win32Helper.SetWindowPosFlags.SWP_SHOWWINDOW);
         }
-
+        
         private void RemoveTaskbarIcon()
         {
             int exStyle = Win32Helper.GetWindowLong(hWnd, (int)Win32Helper.WindowLongs.GWL_EXSTYLE);

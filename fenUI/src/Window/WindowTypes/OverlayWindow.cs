@@ -4,17 +4,24 @@ using SkiaSharp;
 
 namespace FenUISharp
 {
-    public class NativeWindow : Window
+    public class OverlayWindow : Window
     {
+        private bool _hideTaskbarIcon;
+
         // Only needed when taskbar icon is hidden
         private static IntPtr hiddenOwnerWindow = IntPtr.Zero;
 
-        public NativeWindow(
-            string title, string className, RenderContextType type,
-            Vector2? windowSize = null, Vector2? windowPosition = null,
-            bool alwaysOnTop = false, bool hideTaskbarIcon = false) :
-        base(title, className, type, windowSize, windowPosition, alwaysOnTop, hideTaskbarIcon)
+        public OverlayWindow(
+            string title, string className, RenderContextType type) :
+        base(title, className, type, new Vector2(0, 0), null, true, true)
         {
+            AllowResizing = false;
+
+            SetMaximizedFullscreen();
+        }
+
+        void SetMaximizedFullscreen(){
+            throw new NotImplementedException();
         }
 
         protected override IntPtr CreateWin32Window(WNDCLASSEX wndClass, Vector2? size, Vector2? position)
@@ -38,12 +45,12 @@ namespace FenUISharp
             return hWnd;
         }
 
-        protected override void OnRenderFrame()
-        {
-            base.OnRenderFrame();
+        // protected override void OnRenderFrame()
+        // {
+        //     base.OnRenderFrame();
 
-            RenderContext.Surface.Canvas.Clear(GetTitlebarColor());
-        }
+        //     RenderContext.Surface.Canvas.Clear(GetTitlebarColor());
+        // }
 
         SKColor GetTitlebarColor()
         {
@@ -63,5 +70,10 @@ namespace FenUISharp
                 hiddenOwnerWindow = IntPtr.Zero;
             }
         }
+
+        private const int GWL_HWNDPARENT = -8;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
     }
 }

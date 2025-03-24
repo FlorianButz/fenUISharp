@@ -3,16 +3,17 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 
+
 namespace FenUISharp
 {
     // COM interface definition for drop target.
     [ComImport, Guid("00000122-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     public interface IDropTarget
     {
-        void DragEnter([In] IntPtr pDataObj, [In] uint grfKeyState, [In] OLENativeHelper.POINT pt, [In, Out] ref uint pdwEffect);
-        void DragOver([In] uint grfKeyState, [In] OLENativeHelper.POINT pt, [In, Out] ref uint pdwEffect);
+        void DragEnter([In] IntPtr pDataObj, [In] uint grfKeyState, [In] POINT pt, [In, Out] ref uint pdwEffect);
+        void DragOver([In] uint grfKeyState, [In] POINT pt, [In, Out] ref uint pdwEffect);
         void DragLeave();
-        void Drop([In] IntPtr pDataObj, [In] uint grfKeyState, [In] OLENativeHelper.POINT pt, [In, Out] ref uint pdwEffect);
+        void Drop([In] IntPtr pDataObj, [In] uint grfKeyState, [In] POINT pt, [In, Out] ref uint pdwEffect);
     }
 
     [Flags]
@@ -25,6 +26,49 @@ namespace FenUISharp
         Scroll = 0x80000000
     }
 
+
+    public enum DropType : int
+    {
+        FileDrop = 15,
+        UnicodeText = 13,
+        Text = 1,
+        Bitmap = 2,
+        DeviceIndependentBitmap = 8
+    }
+    public class FDropData
+    {
+        public DropType dropType;
+        private string[] stringData;
+
+        public FDropData(DropType dropType, string[] stringData)
+        {
+            this.dropType = dropType;
+            this.stringData = stringData;
+        }
+
+        /// <summary>
+        /// This method returns different types of objects depending on the dropType.
+        /// FileDrop: string[]
+        /// UnicodeText / Text: string
+        /// </summary>
+        /// <returns></returns>
+        public object? GetData()
+        {
+            switch (dropType)
+            {
+                case DropType.FileDrop:
+                    return stringData;
+                case DropType.UnicodeText:
+                case DropType.Text:
+                    return stringData[0];
+                case DropType.Bitmap:
+                    throw new NotImplementedException("Bitmap drop data has not been implemented yet.");
+            }
+
+            return null;
+        }
+    }
+
     [ComVisible(true)]
     [ClassInterface(ClassInterfaceType.None)]
     public class DragDropHandler : IDropTarget
@@ -32,66 +76,71 @@ namespace FenUISharp
         public Action? dragEnter { get; set; }
         public Action? dragOver { get; set; }
         public Action? dragLeave { get; set; }
-        public Action? dragDrop { get; set; }
+        public Action<FDropData>? dragDrop { get; set; }
 
-        public void DragEnter([In] IntPtr pDataObj, [In] uint grfKeyState, [In] OLENativeHelper.POINT pt, [In, Out] ref uint pdwEffect)
-        {            
-            pdwEffect = (uint)DROPEFFECT.None; // Temporarily disallow drag drop operations.
-            // Transfer data to event
+        public DROPEFFECT dropeffect { get; set; } = DROPEFFECT.None;
 
+        public void DragEnter([In] IntPtr pDataObj, [In] uint grfKeyState, [In] POINT pt, [In, Out] ref uint pdwEffect)
+        {
+            pdwEffect = (uint)dropeffect; // Temporarily disallow drag drop operations.
             dragEnter?.Invoke();
         }
 
-        void IDropTarget.DragOver(uint grfKeyState, OLENativeHelper.POINT pt, ref uint pdwEffect)
+        void IDropTarget.DragOver(uint grfKeyState, POINT pt, ref uint pdwEffect)
         {
-            pdwEffect = (uint)DROPEFFECT.None;
+            pdwEffect = (uint)dropeffect;
             dragOver?.Invoke();
         }
 
         void IDropTarget.DragLeave()
-        {            
+        {
             dragLeave?.Invoke();
         }
 
-        public void Drop([In] IntPtr pDataObj, [In] uint grfKeyState, [In] OLENativeHelper.POINT pt, [In, Out] ref uint pdwEffect)
+        public void Drop([In] IntPtr pDataObj, [In] uint grfKeyState, [In] POINT pt, [In, Out] ref uint pdwEffect)
         {
-            // Convert the pointer to an IDataObject.
+            // Add other file drop formats
+
+            // Convert the IntPtr to IDataObject using the built-in COM interface
             IDataObject dataObject = (IDataObject)Marshal.GetObjectForIUnknown(pDataObj);
 
-            // Set up the format.
-            OLENativeHelper.FORMATETC format = new OLENativeHelper.FORMATETC
+            // Set up FORMATETC for CF_HDROP using System.Runtime.InteropServices.ComTypes.FORMATETC
+            FORMATETC formatEtc = new FORMATETC
             {
-                cfFormat = (short)OLENativeHelper.DataFormats.CF_HDROP,
+                cfFormat = (int)DropType.FileDrop,
                 ptd = IntPtr.Zero,
-                dwAspect = OLENativeHelper.DVASPECT.DVASPECT_CONTENT,
+                dwAspect = DVASPECT.DVASPECT_CONTENT,
                 lindex = -1,
-                tymed = OLENativeHelper.TYMED.TYMED_HGLOBAL
+                tymed = TYMED.TYMED_HGLOBAL
             };
 
-            // Get the data using OleGetData.
-            OLENativeHelper.STGMEDIUM stgMedium;
-            int hr = OLENativeHelper.OleGetData(dataObject, ref format, out stgMedium);
-            if (hr == 0) // S_OK
+            // Retrieve the data in a STGMEDIUM structure
+            STGMEDIUM stgMedium;
+            dataObject.GetData(ref formatEtc, out stgMedium);
+
+            try
             {
-                // Retrieve the number of dropped files.
-                uint fileCount = DragDropRegistration.DragQueryFile(stgMedium.hGlobal, 0xFFFFFFFF, null, 0);
+                // Get the number of files dropped
+                uint fileCount = DragDropRegistration.DragQueryFile(stgMedium.unionmember, 0xFFFFFFFF, null, 0);
+                string[] filePathList = new string[fileCount];
+
                 for (uint i = 0; i < fileCount; i++)
                 {
-                    // Get the required length of the file name.
-                    int fileNameLength = (int)DragDropRegistration.DragQueryFile(stgMedium.hGlobal, i, null, 0) + 1;
-                    StringBuilder sb = new StringBuilder(fileNameLength);
-                    DragDropRegistration.DragQueryFile(stgMedium.hGlobal, i, sb, (uint)sb.Capacity);
-                    Console.WriteLine("Dropped File: " + sb.ToString());
+                    StringBuilder fileName = new StringBuilder(260);
+                    if (DragDropRegistration.DragQueryFile(stgMedium.unionmember, i, fileName, (uint)fileName.Capacity) > 0)
+                    {
+                        string filePath = fileName.ToString();
+                        filePathList[i] = filePath;
+                    }
                 }
 
-                OLENativeHelper.ReleaseStgMedium(ref stgMedium);
+                dragDrop?.Invoke(new FDropData(DropType.FileDrop, filePathList));
             }
-            else
+            finally
             {
-                Console.WriteLine("Failed to get drop data. HRESULT: " + hr);
+                // Always release the STGMEDIUM to avoid memory leaks
+                DragDropRegistration.ReleaseStgMedium(ref stgMedium);
             }
-
-            dragDrop?.Invoke();
         }
     }
 
@@ -99,8 +148,9 @@ namespace FenUISharp
     {
         private static bool _hasBeenInitialized = false;
 
-        public static void Initialize(){
-            if(_hasBeenInitialized) return;
+        public static void Initialize()
+        {
+            if (_hasBeenInitialized) return;
             _hasBeenInitialized = true;
 
             OleInitialize(IntPtr.Zero);
@@ -120,69 +170,14 @@ namespace FenUISharp
 
         [DllImport("shell32.dll")]
         public static extern void DragFinish(IntPtr hDrop);
-    }
-
-    public static class OLENativeHelper
-    {
-        [StructLayout(LayoutKind.Sequential)]
-        public struct POINT
-        {
-            public int x;
-            public int y;
-        }
-
-        public static class DataFormats
-        {
-            public const int CF_HDROP = 15;       // File drop format.
-            public const int CF_UNICODETEXT = 13; // Unicode text.
-            public const int CF_TEXT = 1;         // ANSI text.
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct FORMATETC
-        {
-            public short cfFormat;
-            public IntPtr ptd;           // Target device (not used, so set to IntPtr.Zero).
-            public DVASPECT dwAspect;    // Aspect (content, thumbnail, etc.).
-            public int lindex;           // Part of the aspect; -1 for all parts.
-            public TYMED tymed;          // Storage medium type.
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct STGMEDIUM
-        {
-            public TYMED tymed;          // Storage medium type.
-            public IntPtr hGlobal;       // Handle to the data (used when tymed is TYMED_HGLOBAL).
-            public IntPtr pUnkForRelease; // For custom release (typically IntPtr.Zero).
-        }
-
-        public enum DVASPECT : uint
-        {
-            DVASPECT_CONTENT = 1,
-            DVASPECT_THUMBNAIL = 2,
-            DVASPECT_ICON = 4,
-            DVASPECT_DOCPRINT = 8
-        }
-
-        [Flags]
-        public enum TYMED : uint
-        {
-            TYMED_HGLOBAL = 1,
-            TYMED_FILE = 2,
-            TYMED_ISTREAM = 4,
-            TYMED_ISTORAGE = 8,
-            TYMED_GDI = 16,
-            TYMED_MFPICT = 32,
-            TYMED_ENHMF = 64,
-            TYMED_NULL = 0
-        }
 
         // Retrieves the data from an IDataObject.
-        [DllImport("ole32.dll")]
+        [DllImport("ole32.dll", CallingConvention = CallingConvention.StdCall)]
         public static extern int OleGetData(
             [MarshalAs(UnmanagedType.Interface)] IDataObject pDataObj,
             ref FORMATETC pformatetcIn,
             out STGMEDIUM pmedium);
+
 
         // Checks if the requested format is available.
         [DllImport("ole32.dll")]
