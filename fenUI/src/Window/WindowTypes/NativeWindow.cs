@@ -12,10 +12,10 @@ namespace FenUISharp
         private static IntPtr hiddenOwnerWindow = IntPtr.Zero;
 
         public NativeWindow(
-            string title, string className,
+            string title, string className, RenderContextType type,
             Vector2? windowSize = null, Vector2? windowPosition = null,
             bool hideTaskbarIcon = false, bool alwaysOnTop = false) :
-        base(title, className, windowSize, windowPosition, alwaysOnTop)
+        base(title, className, type, windowSize, windowPosition, alwaysOnTop)
         {
             _hideTaskbarIcon = hideTaskbarIcon;
             SetTaskbarIconVisibility(_hideTaskbarIcon);

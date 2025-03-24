@@ -76,8 +76,13 @@ namespace FenUISharp
 
         #region Constructors
 
+        public enum RenderContextType {
+            Software,
+            OpenGL
+        }
+
         public Window(
-            string title, string className,
+            string title, string className, RenderContextType type,
             Vector2? windowSize = null, Vector2? windowPosition = null,
             bool alwaysOnTop = false
         )
@@ -107,12 +112,19 @@ namespace FenUISharp
             SetAlwaysOnTop(_alwaysOnTop);
 
             // Initialize FRenderContext
-            RenderContext = new SoftwareRenderContext(this);
+            CreateAndUpdateRenderContext(type);
 
             RecalcClientBounds();
         }
 
         #endregion
+
+        public virtual void CreateAndUpdateRenderContext(RenderContextType type){
+            switch (type) {
+                case RenderContextType.Software: RenderContext = new SoftwareRenderContext(this); break;
+                case RenderContextType.OpenGL: RenderContext = new GLRenderContext(this); break;
+            }
+        }
 
         private void UpdateSysDarkmode()
         {

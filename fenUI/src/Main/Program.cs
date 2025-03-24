@@ -54,12 +54,17 @@ namespace FenUISharpTest1
             //             window.CreateSurface();
             //             window.Begin();
 
-            Window window = new NativeWindow("Test 1", "testClass", new Vector2(700, 500), new Vector2(100, 100), true, false);
+            Window window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.Software, new Vector2(700, 500), new Vector2(100, 100), true, false);
             window.SystemDarkMode = true;
             window.AllowResizing = true;
             window.SetTrayIcon("icons/TrayIcon.ico", "Test");
             window.SetWindowIcon("icons/TrayIcon.ico");
             window.SetWindowVisibility(true);
+
+
+            FLabel label = new FLabel(window, "Abcdefghijklmnopqrstuvwxyz 0123456789", new Vector2(0, 0), new Vector2(85, 20), truncation: TextTruncation.Scroll);
+            label.transform.boundsPadding.SetValue(label, 15, 25);
+            label.TextAlign = SKTextAlign.Center;
 
             FPanel c = new FPanel(window, new Vector2(0, 0), new Vector2(300, 150), 15, SKColors.Black);
             FPanel c2 = new FPanel(window, new Vector2(0, -25), new Vector2(100, 50), 15, SKColors.DarkGray);
@@ -67,7 +72,10 @@ namespace FenUISharpTest1
             c2.transform.SetParent(c.transform);
 
             window.AddUIComponent(new FSimpleButton(window, new Vector2(0, 0), "Test Text, click!", () => Console.WriteLine("test")));
-            window.AddUIComponent(new FBlurPane(window, new Vector2(25, 25), new Vector2(200, 50), 5, new Vector2(10, 10), true, 1, 1));
+            window.AddUIComponent(new FBlurPane(window, new Vector2(25, 50), new Vector2(75, 50), 5, new Vector2(10, 10), true, 1, 1));
+            window.AddUIComponent(c);
+            window.AddUIComponent(c2);
+            window.AddUIComponent(label);
 
 
             window.BeginWindowLoop();
