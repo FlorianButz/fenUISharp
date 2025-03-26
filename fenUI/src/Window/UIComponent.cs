@@ -42,9 +42,13 @@ namespace FenUISharp
             WindowFeatures.GlobalHooks.onMouseMove += OnMouseMove;
             rootWindow.OnUpdate += Update;
             rootWindow.MouseAction += OnMouseAction;
+
+            WindowRoot.WindowThemeManager.ThemeChanged += Invalidate;
         }
 
         private void OnMouseAction(MouseInputCode inputCode){
+            if(!enabled || !careAboutInteractions) return;
+
             if (RMath.ContainsPoint(transform.bounds, WindowRoot.ClientMousePosition) && GetTopmostComponentAtPosition(WindowRoot.ClientMousePosition) == this)
             {
                 switch(inputCode.button){
@@ -68,18 +72,24 @@ namespace FenUISharp
 
         private void OnMouseMove(Vector2 pos)
         {
+            if(!enabled || !careAboutInteractions) return;
+
             Vector2 mousePos = WindowRoot.GlobalPointToClient(pos);
 
             if (RMath.ContainsPoint(transform.bounds, mousePos) && !_isMouseHovering && GetTopmostComponentAtPosition(mousePos) == this)
             {
                 _isMouseHovering = true;
                 MouseEnter();
+
+                components.ForEach(z => z.MouseEnter());
             }
             else if ((RMath.ContainsPoint(transform.bounds, mousePos) && _isMouseHovering && GetTopmostComponentAtPosition(mousePos) != this)
                 || !RMath.ContainsPoint(transform.bounds, mousePos) && _isMouseHovering)
             {
                 _isMouseHovering = false;
                 MouseExit();
+
+                components.ForEach(z => z.MouseExit());
             }
 
             MouseMove(mousePos);
@@ -190,7 +200,7 @@ namespace FenUISharp
             if (enabled)
             {
                 OnUpdate();
-                components.ForEach(x => x.ComponentUpdate());
+                components.ForEach(x => x.CmpUpdate());
             }
         }
 
@@ -208,11 +218,12 @@ namespace FenUISharp
         public void Dispose()
         {
             ComponentDestroy();
+            
             renderQuality.onValueUpdated -= OnRenderQualityUpdated;
-
             WindowFeatures.GlobalHooks.onMouseMove -= OnMouseMove;
             WindowRoot.OnUpdate -= Update;
             WindowRoot.MouseAction -= OnMouseAction;
+            WindowRoot.WindowThemeManager.ThemeChanged -= Invalidate;
 
             if (currentlySelected == this) currentlySelected = null;
             if (WindowRoot.GetUIComponents().Contains(this)) WindowRoot.RemoveUIComponent(this);

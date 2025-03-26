@@ -4,76 +4,100 @@ using SkiaSharp;
 
 namespace FenUISharp
 {
+
     public class OverlayWindow : Window
     {
-        private bool _hideTaskbarIcon;
-
-        // Only needed when taskbar icon is hidden
-        private static IntPtr hiddenOwnerWindow = IntPtr.Zero;
+        private int _activeDisplay = 0;
+        public int ActiveDisplayIndex { get => _activeDisplay; set { _activeDisplay = value; UpdateWindowMetrics(_activeDisplay); } }
 
         public OverlayWindow(
-            string title, string className, RenderContextType type) :
-        base(title, className, type, new Vector2(0, 0), null, true, true)
+            string title, string className, RenderContextType type, int monitorIndex = 0) :
+            base(title, className, type, new Vector2(0, 0), null, true, true)
         {
-            AllowResizing = false;
+            if (type == RenderContextType.OpenGL) throw new ArgumentException("OpenGL render context isnot compatible with overlay window.");
 
-            SetMaximizedFullscreen();
+            AllowResizing = false;
+            UpdateWindowMetrics(monitorIndex);
         }
 
-        void SetMaximizedFullscreen(){
-            throw new NotImplementedException();
+        public void UpdateWindowMetrics(int activeMonitorDisplay = 0)
+        {
+            int x, y, width, height;
+
+            if (activeMonitorDisplay == 0)
+            {
+                // Use primary monitor metrics from system metrics
+                width = GetSystemMetrics(0);  // SM_CXSCREEN
+                height = GetSystemMetrics(1); // SM_CYSCREEN
+                x = 0;
+                y = 0;
+            }
+            else
+            {
+                var monitorRect = GetMonitorRect(activeMonitorDisplay);
+                if (monitorRect == null)
+                    throw new ArgumentException("Invalid monitor index");
+
+                x = monitorRect.Value.left;
+                y = monitorRect.Value.top;
+                width = monitorRect.Value.right - monitorRect.Value.left;
+                height = monitorRect.Value.bottom - monitorRect.Value.top;
+            }
+
+            WindowSize = new Vector2(width, height);
+            WindowPosition = new Vector2(x, y);
+            SetWindowPos(hWnd, IntPtr.Zero, x, y, width, height, (uint)SetWindowPosFlags.SWP_NOZORDER | (uint)SetWindowPosFlags.SWP_NOACTIVATE);
+        }
+
+        public override void UpdateWindowFrame()
+        {
+            base.UpdateWindowFrame();
+
+            POINT ptSrc = new POINT { x = 0, y = 0 };
+            POINT ptDst = new POINT { x = (int)WindowPosition.x, y = (int)WindowPosition.y};
+            SIZE size = new SIZE { cx = (int)WindowSize.x, cy = (int)WindowSize.y };
+
+            BLENDFUNCTION blend = new BLENDFUNCTION
+            {
+                BlendOp = (int)AlphaBlendOptions.AC_SRC_OVER,
+                SourceConstantAlpha = 255,
+                AlphaFormat = (int)AlphaBlendOptions.AC_SRC_ALPHA
+            };
+
+            IntPtr hdcScreen = GetDC(IntPtr.Zero);
+            UpdateLayeredWindow(
+                hWnd,
+                hdcScreen,
+                ref ptDst,
+                ref size,
+                RenderContext._hdcMemory,
+                ref ptSrc,
+                0,
+                ref blend,
+                (int)LayeredWindowFlags.ULW_ALPHA
+            );
+            
+            ReleaseDC(IntPtr.Zero, hdcScreen);
+            DwmFlush();
         }
 
         protected override IntPtr CreateWin32Window(WNDCLASSEX wndClass, Vector2? size, Vector2? position)
         {
             bool centerPos = position == null;
 
+            WindowSize = new Vector2(GetSystemMetrics(0), GetSystemMetrics(1));
+
+            // Create a borderless popup window with the layered style.
             var hWnd = CreateWindowExA(
-                0,
-                this.WindowClass,
-                this.WindowTitle,
-                WS_NATIVE,
-                centerPos ? CW_USEDEFAULT : (int)position?.x,
-                centerPos ? CW_USEDEFAULT : (int)position?.y,
-                (int)size?.x,
-                (int)size?.y,
-                IntPtr.Zero,
-                IntPtr.Zero,
-                wndClass.hInstance,
-                IntPtr.Zero);
+                (int)WindowStyles.WS_EX_LAYERED,
+                WindowClass,
+                WindowTitle,
+                (int)WindowStyles.WS_POPUP,
+                0, 0,
+                (int)WindowSize.x, (int)WindowSize.y,
+                IntPtr.Zero, IntPtr.Zero, wndClass.hInstance, IntPtr.Zero);
 
             return hWnd;
         }
-
-        // protected override void OnRenderFrame()
-        // {
-        //     base.OnRenderFrame();
-
-        //     RenderContext.Surface.Canvas.Clear(GetTitlebarColor());
-        // }
-
-        SKColor GetTitlebarColor()
-        {
-            if(!_sysDarkMode)
-                return new SKColor(243, 243, 243); // Windows default light mode color
-            else
-                return new SKColor(32, 32, 32); // Windows default dark mode color
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-
-            if (hiddenOwnerWindow != IntPtr.Zero)
-            {
-                DestroyWindow(hiddenOwnerWindow);
-                hiddenOwnerWindow = IntPtr.Zero;
-            }
-        }
-
-        private const int GWL_HWNDPARENT = -8;
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
     }
 }

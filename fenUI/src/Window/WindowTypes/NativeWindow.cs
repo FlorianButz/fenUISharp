@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using SkiaSharp;
@@ -9,11 +10,16 @@ namespace FenUISharp
         // Only needed when taskbar icon is hidden
         private static IntPtr hiddenOwnerWindow = IntPtr.Zero;
 
+        private bool _useMica = false;
+        public bool UseMica { get => _useMica; set { _useMica = value; UpdateMica(); } }
+        private bool _useMicaMainWindow = true;
+        public bool IsMicaMainWindow { get => _useMicaMainWindow; set { _useMicaMainWindow = value; UpdateMica(); } }
+
         public NativeWindow(
             string title, string className, RenderContextType type,
             Vector2? windowSize = null, Vector2? windowPosition = null,
             bool alwaysOnTop = false, bool hideTaskbarIcon = false) :
-        base(title, className, type, windowSize, windowPosition, alwaysOnTop, hideTaskbarIcon)
+            base(title, className, type, windowSize, windowPosition, alwaysOnTop, hideTaskbarIcon)
         {
         }
 
@@ -21,19 +27,27 @@ namespace FenUISharp
         {
             bool centerPos = position == null;
 
+            if (centerPos)
+            {
+                var r = GetMonitorRect(0).Value;
+                WindowPosition = new Vector2((r.right - r.left) / 2 - (WindowSize.x / 2), (r.bottom - r.top) / 2 - (WindowSize.y / 2));
+            }
+
             var hWnd = CreateWindowExA(
                 0,
                 this.WindowClass,
                 this.WindowTitle,
                 WS_NATIVE,
-                centerPos ? CW_USEDEFAULT : (int)position?.x,
-                centerPos ? CW_USEDEFAULT : (int)position?.y,
+                centerPos ? (int)WindowPosition.x : (int)position?.x,
+                centerPos ? (int)WindowPosition.y : (int)position?.y,
                 (int)size?.x,
                 (int)size?.y,
                 IntPtr.Zero,
                 IntPtr.Zero,
                 wndClass.hInstance,
                 IntPtr.Zero);
+
+            UpdateMica();
 
             return hWnd;
         }
@@ -42,15 +56,22 @@ namespace FenUISharp
         {
             base.OnRenderFrame();
 
-            RenderContext.Surface.Canvas.Clear(GetTitlebarColor());
+            RenderContext.Surface.Canvas.Clear(_useMica ? SKColors.Transparent : GetTitlebarColor());
         }
 
         SKColor GetTitlebarColor()
         {
-            if(!_sysDarkMode)
+            if (!_sysDarkMode)
                 return new SKColor(243, 243, 243); // Windows default light mode color
             else
                 return new SKColor(32, 32, 32); // Windows default dark mode color
+        }
+
+        protected override void UpdateSysDarkmode()
+        {
+            base.UpdateSysDarkmode();
+
+            UpdateMica();
         }
 
         public override void Dispose()
@@ -62,6 +83,29 @@ namespace FenUISharp
                 DestroyWindow(hiddenOwnerWindow);
                 hiddenOwnerWindow = IntPtr.Zero;
             }
+        }
+
+        public void UpdateMica()
+        {
+            // First, apply the Mica system backdrop
+            int micaEffect = _useMica ? (_useMicaMainWindow ? (int)DWM_SYSTEMBACKDROP_TYPE.DWMSBT_MAINWINDOW : (int)DWM_SYSTEMBACKDROP_TYPE.DWMSBT_TRANSIENTWINDOW) : (int)DWM_SYSTEMBACKDROP_TYPE.DWMSBT_NONE;
+            DwmSetWindowAttribute(
+                hWnd,
+                (uint)DWMWINDOWATTRIBUTE.DWMWA_SYSTEMBACKDROP_TYPE,
+                ref micaEffect,
+                Marshal.SizeOf<int>()
+            );
+
+            // Extend the frame into the client area
+            MARGINS margins = new MARGINS
+            {
+                cxLeftWidth = -1,
+                cxRightWidth = -1,
+                cyTopHeight = -1,
+                cyBottomHeight = -1
+            };
+
+            DwmExtendFrameIntoClientArea(hWnd, ref margins);
         }
     }
 }

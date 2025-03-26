@@ -14,6 +14,10 @@ namespace FenUISharp
 
         public SKSamplingOptions SamplingOptions { get; protected set; } = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
 
+        public IntPtr _hdcMemory { get; protected set; } = IntPtr.Zero;    // Memory DC
+        public IntPtr _hBitmap { get; protected set; } = IntPtr.Zero;      // Handle to our DIB section
+        protected IntPtr _ppvBits = IntPtr.Zero;      // Pointer to pixel bits
+
         public FRenderContext(Window windowRoot)
         {
             WindowRoot = windowRoot;
@@ -21,7 +25,7 @@ namespace FenUISharp
 
         public abstract SKSurface BeginDraw();
         public abstract void EndDraw();
-        public abstract SKSurface CreateAdditional();
+        public abstract SKSurface CreateAdditional(SKImageInfo imageInfo);
         protected abstract SKSurface CreateSurface();
 
         public abstract void OnResize(Vector2 newSize);
@@ -49,11 +53,82 @@ namespace FenUISharp
             Surface?.Dispose();
         }
 
+        public static SKImage HBitmapToSKImage(IntPtr hBitmap)
+        {
+            // Retrieve the BITMAP information from the HBITMAP
+            BITMAP bmp;
+            int result = GetObject(hBitmap, Marshal.SizeOf(typeof(BITMAP)), out bmp);
+            if (result == 0)
+                throw new Exception("Failed to get bitmap info.");
+
+            // Set up the BITMAPINFO header for a top-down DIB (negative height)
+            BITMAPINFO bmi = new BITMAPINFO();
+            bmi.bmiHeader.biSize = (uint)Marshal.SizeOf(typeof(BITMAPINFOHEADER));
+            bmi.bmiHeader.biWidth = bmp.bmWidth;
+            bmi.bmiHeader.biHeight = -bmp.bmHeight; // Negative for top-down
+            bmi.bmiHeader.biPlanes = 1;
+            bmi.bmiHeader.biBitCount = (ushort)bmp.bmBitsPixel;
+            bmi.bmiHeader.biCompression = 0; // BI_RGB (no compression)
+            bmi.bmiHeader.biSizeImage = (uint)(bmp.bmWidthBytes * bmp.bmHeight);
+
+            // Allocate a buffer for the pixel data.
+            int imageSize = bmp.bmWidthBytes * bmp.bmHeight;
+            byte[] pixelData = new byte[imageSize];
+
+            // Get a device context to use with GetDIBits.
+            IntPtr hdc = GetDC(IntPtr.Zero);
+            try
+            {
+                // Retrieve the pixel data from the HBITMAP
+                int scanLines = GetDIBits(hdc, hBitmap, 0, (uint)bmp.bmHeight, pixelData, ref bmi, 0);
+                if (scanLines == 0)
+                    throw new Exception("GetDIBits failed.");
+            }
+            finally
+            {
+                ReleaseDC(IntPtr.Zero, hdc);
+            }
+
+            // Create a SkiaSharp image info.
+            // Adjust SKColorType as needed; here we assume 32bpp BGRA.
+            var imageInfo = new SKImageInfo(bmp.bmWidth, bmp.bmHeight, SKColorType.Bgra8888, SKAlphaType.Premul);
+
+            // Create an SKImage from the pixel data.
+            unsafe
+            {
+                fixed (byte* p = pixelData)
+                {
+                    // Note: bmp.bmWidthBytes is used as the row bytes parameter.
+                    var image = SKImage.FromPixels(imageInfo, (IntPtr)p, bmp.bmWidthBytes);
+                    return image;
+                }
+            }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct BITMAP
+        {
+            public int bmType;
+            public int bmWidth;
+            public int bmHeight;
+            public int bmWidthBytes;
+            public ushort bmPlanes;
+            public ushort bmBitsPixel;
+            public IntPtr bmBits;
+        }
+
         protected const uint PFD_DRAW_TO_WINDOW = 0x00000004;
         protected const uint PFD_SUPPORT_OPENGL = 0x00000020;
         protected const uint PFD_DOUBLEBUFFER = 0x00000001;
         protected const byte PFD_TYPE_RGBA = 0;
         protected const int SRCCOPY = 0x00CC0020;
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        static extern int GetObject(IntPtr h, int nCount, out BITMAP lpObject);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        static extern int GetDIBits(IntPtr hdc, IntPtr hbmp, uint start, uint cLines,
+            [Out] byte[] lpvBits, ref BITMAPINFO lpbi, uint usage);
 
         [DllImport("gdi32.dll", SetLastError = true)]
         protected static extern IntPtr CreateCompatibleDC(IntPtr hdc);

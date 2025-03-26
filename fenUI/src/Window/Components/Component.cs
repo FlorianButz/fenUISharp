@@ -2,13 +2,23 @@ namespace FenUISharp {
     public class Component : IDisposable
     {
         public UIComponent parent { get; private set; }
+        private bool _isSetup = false;
 
         public Component(UIComponent parent){
             this.parent = parent;
         }
 
-        public virtual void ComponentUpdate() { }
+        public void CmpUpdate() {
+            if(!_isSetup) {
+                _isSetup = true;
+                ComponentSetup();
+            }
 
+            ComponentUpdate();
+        }
+
+        public virtual void ComponentSetup() { }
+        public virtual void ComponentUpdate() { }
         public virtual void ComponentDestroy() { }
 
         public virtual void Selected() { }

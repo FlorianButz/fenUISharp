@@ -8,10 +8,6 @@ namespace FenUISharp
 {
     public class SoftwareRenderContext : FRenderContext
     {
-        private IntPtr _hdcMemory = IntPtr.Zero;    // Memory DC
-        private IntPtr _hBitmap = IntPtr.Zero;      // Handle to our DIB section
-        private IntPtr _ppvBits = IntPtr.Zero;      // Pointer to pixel bits
-
         public SoftwareRenderContext(Window windowRoot) : base(windowRoot)
         {
             Surface = CreateSurface();
@@ -20,18 +16,7 @@ namespace FenUISharp
         protected override SKSurface CreateSurface()
         {
             Surface?.Dispose();
-
-            if (_hdcMemory != IntPtr.Zero)
-            {
-                DeleteDC(_hdcMemory);
-                _hdcMemory = IntPtr.Zero;
-            }
-
-            if (_hBitmap != IntPtr.Zero)
-            {
-                DeleteObject(_hBitmap);
-                _hBitmap = IntPtr.Zero;
-            }
+            DisposeHDC();
 
             // Get a screen DC to create a compatible memory DC and DIB.
             IntPtr hdcScreen = GetDC(IntPtr.Zero);
@@ -73,10 +58,9 @@ namespace FenUISharp
             return Surface;
         }
 
-        public override SKSurface CreateAdditional()
+        public override SKSurface CreateAdditional(SKImageInfo info)
         {
-            return SKSurface.Create(new SKImageInfo((int)WindowRoot.WindowSize.x, (int)WindowRoot.WindowSize.y,
-                                                      SKColorType.Bgra8888));
+            return SKSurface.Create(info);
         }
 
         public override void EndDraw()
@@ -104,7 +88,10 @@ namespace FenUISharp
         public override void Dispose()
         {
             base.Dispose();
+            DisposeHDC();
+        }
 
+        void DisposeHDC(){
             if (_hdcMemory != IntPtr.Zero)
             {
                 DeleteDC(_hdcMemory);

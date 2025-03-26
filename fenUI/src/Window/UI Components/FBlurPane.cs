@@ -18,7 +18,7 @@ namespace FenUISharp
         private bool _useDropShadow;
 
         public FBlurPane(Window root, Vector2 position, Vector2 size, float cornerRadius, Vector2 blurAmount, bool useDropShadow = false, float brightness = 0.4f, float contrast = 0.77f)
-            : base(root, position, size, cornerRadius, SKColors.Black)
+            : base(root, position, size, cornerRadius, null)
         {
             _blurAmount = blurAmount;
             transform.boundsPadding.SetValue(this, 60, 35);

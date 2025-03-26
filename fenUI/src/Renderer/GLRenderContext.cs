@@ -114,7 +114,7 @@ namespace FenUISharp
             return Surface;
         }
 
-        public override SKSurface CreateAdditional()
+        public override SKSurface CreateAdditional(SKImageInfo info)
         {
             return SKSurface.Create(grContext, renderTarget, GRSurfaceOrigin.TopLeft, SKColorType.Rgba8888);
         }

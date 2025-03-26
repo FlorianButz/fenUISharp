@@ -1,3 +1,4 @@
+using FenUISharp.Themes;
 using SkiaSharp;
 
 namespace FenUISharp
@@ -11,23 +12,44 @@ namespace FenUISharp
         SKColor currenthighlight;
         SKColor currentcolor;
 
-        SKColor basecolor = new SKColor(100, 90, 100);
-        SKColor hovercolor = new SKColor(115, 105, 115);
+        private ThemeColor _color;
+        public ThemeColor BaseColor
+        {
+            get => _color;
+            set
+            {
+                _color = value;
+                Invalidate();
+            }
+        }
 
-        SKColor highlight = new SKColor(112, 102, 107, 210);
-        SKColor hoverhighlight = new SKColor(135, 125, 125, 255);
+        public ThemeColor TextColor
+        {
+            get => label.TextColor;
+            set
+            {
+                label.TextColor = value;
+            }
+        }
 
-        float padding = 5f;
+        ThemeColor highlight;
+
+        float padding = 7.5f;
         float minWidth = 0;
         float maxWidth = 0;
-        float cornerRadius = 5.5f;
+        float cornerRadius = 6f;
 
         public Action? onClick { get; set; }
 
-        public FSimpleButton(Window root, Vector2 position, string text, Action? onClick = null, float minWidth = 25, float maxWidth = 175) : base(root, position, new Vector2(0, 0))
+        public FSimpleButton(Window root, Vector2 position, string text, Action? onClick = null, float minWidth = 25, float maxWidth = 175,
+            ThemeColor? color = null, ThemeColor? textColor = null) : base(root, position, new Vector2(0, 0))
         {
             this.onClick = onClick;
             label = new FLabel(root, text, new Vector2(0, 0), new Vector2(0, 0), 12);
+
+            highlight = new ThemeColor(new SKColor(112, 102, 107, 100));
+            BaseColor = color ?? WindowRoot.WindowThemeManager.GetColor(t => t.Secondary);
+            TextColor = textColor ?? WindowRoot.WindowThemeManager.GetColor(t => t.OnSecondary);
 
             this.maxWidth = RMath.Clamp(maxWidth, minWidth, float.MaxValue);
             this.minWidth = RMath.Clamp(minWidth, 0, this.maxWidth);
@@ -38,18 +60,21 @@ namespace FenUISharp
             label.careAboutInteractions = false;
             WindowRoot.AddUIComponent(label);
 
-            currentcolor = basecolor;
-            currenthighlight = highlight;
+            currentcolor = BaseColor.Value;
+            currenthighlight = highlight.Value;
 
             animatorComponent = new AnimatorComponent(this, Easing.EaseOutCubic);
             animatorComponent.duration = 0.2f;
 
             animatorComponent.onValueUpdate += (t) =>
             {
-                currentcolor = RMath.Lerp(basecolor, hovercolor, t);
-                currenthighlight = RMath.Lerp(highlight, hoverhighlight, t);
+                var hoveredMix = RMath.Lerp(BaseColor.Value, WindowRoot.WindowThemeManager.GetColor(t => t.HoveredMix).Value, 0.2f);
+                var hoveredHigh = RMath.Lerp(highlight.Value, WindowRoot.WindowThemeManager.GetColor(t => t.HoveredMix).Value, 0.2f);
 
-                float pixelsAdd = 1f;
+                currentcolor = RMath.Lerp(BaseColor.Value, hoveredMix, t);
+                currenthighlight = RMath.Lerp(highlight.Value, hoveredHigh, t);
+
+                float pixelsAdd = 0.75f;
                 float sx = (transform.size.x + pixelsAdd) / transform.size.x;
                 float sy = (transform.size.y + pixelsAdd / 2) / transform.size.y;
 
@@ -57,7 +82,7 @@ namespace FenUISharp
                 Invalidate();
             };
 
-            transform.boundsPadding.SetValue(this, 5, 100);
+            transform.boundsPadding.SetValue(this, 10, 100);
 
             components.Add(animatorComponent);
         }
@@ -121,6 +146,9 @@ namespace FenUISharp
                 paint.IsAntialias = true;
                 paint.Style = SKPaintStyle.Fill;
                 paint.Color = currentcolor;
+
+                using(var shadow = SKImageFilter.CreateDropShadow(0, 2, 2, 2, WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value))
+                    paint.ImageFilter = shadow;
                 canvas.DrawRoundRect(roundRect, paint);
             }
 
@@ -145,7 +173,7 @@ namespace FenUISharp
                 paint.Shader = SKShader.CreateLinearGradient(
                     new SKPoint(transform.localBounds.Left, transform.localBounds.Bottom),
                     new SKPoint(transform.localBounds.Left, transform.localBounds.Top + 4f),
-                    new SKColor[] { SKColors.Black.WithAlpha(35), SKColors.Transparent },
+                    new SKColor[] { WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value, SKColors.Transparent },
                     new float[] { 0f, 0.5f },
                     SKShaderTileMode.Clamp
                 );

@@ -12,6 +12,8 @@ namespace FenUISharp {
             if(_hasBeenInitialized) return false;
             _hasBeenInitialized = true;
 
+            Resources.LoadDefault();
+
             GlobalHooks = new GlobalHooks();
             GlobalHooks.RegisterHooks();
 

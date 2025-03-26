@@ -1,3 +1,4 @@
+using FenUISharp.Themes;
 using SkiaSharp;
 
 namespace FenUISharp
@@ -8,11 +9,24 @@ namespace FenUISharp
         public string Text { get => _text; set { SetText(value); } }
         private SKFont Font { get; set; }
 
+        private ThemeColor _textColor;
+        public ThemeColor TextColor
+        {
+            get => _textColor;
+            set
+            {
+                _textColor = value;
+                Invalidate();
+            }
+        }
+
         public TextTruncation Truncation { get; set; }
+        public bool RenderDoubleSize { get; set; } = false;
 
         private float _scrollOffset = 0;
-        private float _speedMulti = -10;
-        private float ScrollSpeed { get; set; } = 0.75f;
+        private float _speedMulti = 0;
+        private float _speedMultiAdd = -10;
+        private float ScrollSpeed { get; set; } = 1;
         private float FadeLength { get; set; } = 0.075f;
 
         public SKTypeface? Typeface { get; private set; }
@@ -28,15 +42,63 @@ namespace FenUISharp
 
         private AnimatorComponent changeTextAnim;
 
-        void UpdateFont()
+        public FLabel(Window root, string text, Vector2 position, Vector2 size, float fontSize = 14, string? typefaceName = null, TextTruncation truncation = TextTruncation.Elipsis, ThemeColor? textColor = null) : base(root, position, size)
+        {
+            _text = text;
+            _textSize = fontSize;
+            Truncation = truncation;
+
+            _textColor = textColor ?? WindowRoot.WindowThemeManager.GetColor(t => t.OnSurface);
+
+            if (typefaceName == null)
+                Typeface = Resources.GetTypeface("inter-regular");
+            else
+                Typeface = Resources.GetTypeface(typefaceName);
+
+            dropShadow = SKImageFilter.CreateDropShadow(0, 0, 3, 3, WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value);
+            skPaint.ImageFilter = dropShadow;
+
+            changeTextAnim = new AnimatorComponent(this, Easing.EaseInCubic, Easing.EaseOutCubic);
+            changeTextAnim.duration = 0.2f;
+            changeTextAnim.onValueUpdate += (t) =>
+            {
+                float scaleTime = 0.75f + (1f - t) * 0.25f;
+
+                using (var blur = SKImageFilter.CreateBlur(t * 5, t * 5))
+                {
+                    if (blur == null || dropShadow == null) return;
+                    using (var compose = SKImageFilter.CreateCompose(dropShadow, blur))
+                    {
+                        skPaint.ImageFilter = compose;
+                    }
+                }
+
+                transform.scale = new Vector2(1, 1) * scaleTime;
+                Invalidate();
+            };
+            components.Add(changeTextAnim);
+
+            UpdateFont();
+            Invalidate();
+        }
+
+        void SilentUpdateFont()
         {
             if (Font != null) Font.Dispose();
 
             Font = new SKFont(Typeface, TextSize);
+            // Font = new SKFont(SKTypeface.FromFamilyName("Segoe UI", SKFontStyleWeight.Normal, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright), _textSize);
+
             Font.Hinting = SKFontHinting.Full;
             Font.Subpixel = true;
             Font.Edging = SKFontEdging.SubpixelAntialias;
 
+            // Invalidate();
+        }
+
+        void UpdateFont()
+        {
+            SilentUpdateFont();
             Invalidate();
         }
 
@@ -88,44 +150,6 @@ namespace FenUISharp
             base.ComponentDestroy();
             dropShadow?.Dispose();
             changeTextAnim?.Dispose();
-        }
-
-        public FLabel(Window root, string text, Vector2 position, Vector2 size, float fontSize = 14, string? typefaceName = null, TextTruncation truncation = TextTruncation.Elipsis) : base(root, position, size)
-        {
-            _text = text;
-            _textSize = fontSize;
-            Truncation = truncation;
-
-            if (typefaceName == null)
-                Typeface = Resources.GetTypeface("inter-regular");
-            else
-                Typeface = Resources.GetTypeface(typefaceName);
-
-            dropShadow = SKImageFilter.CreateDropShadow(0, 0, 3, 3, SKColors.Black.WithAlpha(100));
-            skPaint.ImageFilter = dropShadow;
-
-            changeTextAnim = new AnimatorComponent(this, Easing.EaseInCubic, Easing.EaseOutCubic);
-            changeTextAnim.duration = 0.2f;
-            changeTextAnim.onValueUpdate += (t) =>
-            {
-                float scaleTime = 0.75f + (1f - t) * 0.25f;
-
-                using (var blur = SKImageFilter.CreateBlur(t * 5, t * 5))
-                {
-                    if (blur == null || dropShadow == null) return;
-                    using (var compose = SKImageFilter.CreateCompose(dropShadow, blur))
-                    {
-                        skPaint.ImageFilter = compose;
-                    }
-                }
-
-                transform.scale = new Vector2(1, 1) * scaleTime;
-                Invalidate();
-            };
-            components.Add(changeTextAnim);
-
-            UpdateFont();
-            Invalidate();
         }
 
         void DrawTextInRect(SKCanvas canvas, string text, SKRect bounds, SKTextAlign align)
@@ -216,7 +240,32 @@ namespace FenUISharp
                     x = bounds.Right - textWidth;
                 }
 
-                canvas.DrawText(line, x, y, Font, skPaint);
+                if (RenderDoubleSize)
+                {
+                    const float scaleFactor = 2f;
+                    using (var s = WindowRoot.RenderContext.CreateAdditional(new SKImageInfo((int)(GetSingleLineTextWidth() * scaleFactor), (int)(GetSingleLineTextHeight() * scaleFactor))))
+                    {
+                        _textSize = _textSize * scaleFactor;
+                        SilentUpdateFont();
+
+                        s.Canvas.Clear(SKColors.Transparent);
+                        skPaint.Color = _textColor.Value;
+                        s.Canvas.DrawText(line, (float)Math.Round(x * scaleFactor, 0), (float)Math.Round(y * scaleFactor, 0), Font, skPaint);
+
+                        var snapshot = s.Snapshot();
+                        canvas.Scale(1 / scaleFactor);
+                        canvas.DrawImage(snapshot, new SKPoint(0, 0), new SKSamplingOptions(SKFilterMode.Nearest));
+                        canvas.Scale(scaleFactor);
+
+                        _textSize = _textSize / scaleFactor;
+                        SilentUpdateFont();
+                    }
+                }
+                else
+                {
+                    canvas.DrawText(line, (float)Math.Round(x, 0), (float)Math.Round(y, 0), Font, skPaint);
+                }
+
                 y += lineHeight;
                 if (y - fm.Descent > bounds.Bottom)
                     break;
@@ -252,10 +301,11 @@ namespace FenUISharp
             float gap = transform.localBounds.Width / 4;
             float startX = bounds.Left + _scrollOffset;
 
+            skPaint.Color = _textColor.Value;
             canvas.DrawText(text, startX, y, Font, skPaint);
             canvas.DrawText(text, startX + textWidth /* Add Offset */ + gap, y, Font, skPaint);
 
-            var leftAlpha = 1f - RMath.Clamp(Math.Abs(startX) / 2, 0, 1) + RMath.Clamp(1 - (startX + (textWidth + gap) - 30), 0, 1);
+            var leftAlpha = Math.Round(SmoothTransition(Math.Abs(startX - bounds.Left) / textWidth, 0, (textWidth + gap) / textWidth, 100f), 1);
 
             using (var maskPaint = new SKPaint())
             {
@@ -263,7 +313,7 @@ namespace FenUISharp
                 maskPaint.Shader = SKShader.CreateLinearGradient(
                     new SKPoint(bounds.Left, 0),
                     new SKPoint(bounds.Right, 0),
-                    new SKColor[] { SKColors.Black.WithAlpha((byte)(leftAlpha * 255)), SKColors.Black, SKColors.Black, SKColors.Transparent },
+                    new SKColor[] { SKColors.Black.WithAlpha((byte)(255 * (1f - leftAlpha))), SKColors.Black, SKColors.Black, SKColors.Transparent },
                     new float[] { 0f, FadeLength, 1 - FadeLength, 1f },
                     SKShaderTileMode.Clamp
                 );
@@ -272,6 +322,12 @@ namespace FenUISharp
 
             canvas.Restore();
         }
+
+        float SmoothTransition(float t, float a, float b, float power = 15f)
+        {
+            return (float)(1 - Math.Pow((t - a) / (b - a), 2 * power) - Math.Pow((t - b) / (b - a), 2 * power));
+        }
+
 
         protected override void OnUpdate()
         {
@@ -284,16 +340,23 @@ namespace FenUISharp
                 {
                     float gap = transform.localBounds.Width / 4;
 
-                    _speedMulti = RMath.Lerp(_speedMulti, 1f, (float)WindowRoot.DeltaTime);
+                    float startX = transform.localBounds.Left + _scrollOffset;
+                    _speedMulti =
+                        Math.Clamp(_speedMultiAdd, 0, 1) +
+                        (float)Math.Round(SmoothTransition(Math.Abs(startX - transform.localBounds.Left) / textWidth, 0, (textWidth + gap) / textWidth, 15f), 1);
+
+                    // _speedMulti = RMath.Lerp(_speedMulti, 1f, (float)WindowRoot.DeltaTime);
+                    _speedMultiAdd = RMath.Lerp(_speedMultiAdd, 0.1f, (float)WindowRoot.DeltaTime * 2);
                     _scrollOffset -= ScrollSpeed * RMath.Clamp(_speedMulti, 0, 1) * ((float)WindowRoot.DeltaTime * 35);
 
                     if (_scrollOffset < -textWidth /* Keep Offset when teleporting */ - gap)
                     {
                         _scrollOffset += textWidth /* Add the offset */ + gap;
-                        _speedMulti = -10;
+                        _speedMultiAdd = -15;
                     }
 
-                    Invalidate();
+                    if (_speedMulti >= 0.05f)
+                        Invalidate();
                 }
             }
         }

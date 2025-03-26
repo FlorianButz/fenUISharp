@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using FenUISharp.Themes;
 using FenUISharpTest1;
 using SkiaSharp;
 
@@ -10,14 +11,14 @@ namespace FenUISharp
 
         #region Window Properties
 
-        public string WindowTitle { get; private set; }
-        public string WindowClass { get; private set; }
+        public string WindowTitle { get; protected set; }
+        public string WindowClass { get; protected set; }
 
-        public Vector2 WindowPosition { get; private set; }
-        public Vector2 WindowSize { get; private set; }
+        public Vector2 WindowPosition { get; protected set; }
+        public Vector2 WindowSize { get; protected set; }
 
-        public Vector2 WindowMinSize { get; private set; } = new Vector2(400, 300);
-        public Vector2 WindowMaxSize { get; private set; } = new Vector2(float.MaxValue, float.MaxValue);
+        public Vector2 WindowMinSize { get; protected set; } = new Vector2(400, 300);
+        public Vector2 WindowMaxSize { get; protected set; } = new Vector2(float.MaxValue, float.MaxValue);
 
         protected bool _allowResize = true;
         public bool AllowResizing { get => _allowResize; set => UpdateAllowResize(value); }
@@ -38,6 +39,8 @@ namespace FenUISharp
 
         protected bool _sysDarkMode = false;
         public bool SystemDarkMode { get => _sysDarkMode; set { _sysDarkMode = value; UpdateSysDarkmode(); } }
+
+        public ThemeManager WindowThemeManager { get; private set; }
 
         public SKRect Bounds { get; private set; }
 
@@ -76,7 +79,8 @@ namespace FenUISharp
 
         #region Constructors
 
-        public enum RenderContextType {
+        public enum RenderContextType
+        {
             Software,
             OpenGL
         }
@@ -104,6 +108,7 @@ namespace FenUISharp
             }
 
             WindowFeatures.TryInitialize(); // Initialize all window features
+            WindowThemeManager = new ThemeManager(Resources.GetTheme("default-dark"));
 
             // Pre initialize OLE DragDrop
             DragDropRegistration.Initialize();
@@ -121,14 +126,16 @@ namespace FenUISharp
 
         #endregion
 
-        public virtual void CreateAndUpdateRenderContext(RenderContextType type){
-            switch (type) {
+        public virtual void CreateAndUpdateRenderContext(RenderContextType type)
+        {
+            switch (type)
+            {
                 case RenderContextType.Software: RenderContext = new SoftwareRenderContext(this); break;
                 case RenderContextType.OpenGL: RenderContext = new GLRenderContext(this); break;
             }
         }
 
-        private void UpdateSysDarkmode()
+        protected virtual void UpdateSysDarkmode()
         {
             const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
             const int DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19; // Windows 10 1809+
@@ -374,6 +381,8 @@ namespace FenUISharp
             }
         }
 
+        private IntPtr hiddenOwnerWindowHandle;
+
         public void SetTaskbarIconVisibility(bool visible)
         {
             if (!visible)
@@ -381,6 +390,8 @@ namespace FenUISharp
                 // Create a dummy window (invisible) to act as the owner
                 IntPtr hiddenOwner = CreateWindowEx((int)WindowStyles.WS_EX_TOOLWINDOW, "STATIC", "",
                     WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero, GetModuleHandle(null), IntPtr.Zero);
+
+                hiddenOwnerWindowHandle = hiddenOwner;
 
                 ShowWindow(hiddenOwner, 0); // Ensure it never appears
 
@@ -395,22 +406,27 @@ namespace FenUISharp
             }
         }
 
+        void DisposeHiddenWindow()
+        {
+            if (hiddenOwnerWindowHandle != IntPtr.Zero)
+            {
+                DestroyWindow(hiddenOwnerWindowHandle);
+                hiddenOwnerWindowHandle = IntPtr.Zero;
+            }
+        }
+
         public virtual void Dispose()
         {
             _isRunning = false;
             DestroyWindow(hWnd);
+            DisposeHiddenWindow();
         }
 
         public virtual void UpdateWindowFrame()
         {
         }
 
-        private Cursor _activeCursor = Cursor.ARROW;
-
-        public void SetCursor(Cursor cursor)
-        {
-            _activeCursor = cursor;
-        }
+        public MultiAccess<Cursor> ActiveCursor = new MultiAccess<Cursor>(Cursor.ARROW);
 
         protected void UpdateAllowResize(bool allow)
         {
@@ -511,12 +527,12 @@ namespace FenUISharp
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_ENTERSIZEMOVE:
-                        _isResizing = true;
+                    _isResizing = true;
                     break;
 
                 case (int)WindowMessages.WM_EXITSIZEMOVE:
-                        _isDirty = true;
-                        _isResizing = false;
+                    _isDirty = true;
+                    _isResizing = false;
                     break;
 
                 case (int)WindowMessages.WM_MOVING:
@@ -546,7 +562,7 @@ namespace FenUISharp
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_SETCURSOR:
-                    SetCursor(LoadCursor(IntPtr.Zero, (int)_activeCursor));
+                    SetCursor(LoadCursor(IntPtr.Zero, (int)ActiveCursor.Value));
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_CLOSE:
@@ -559,6 +575,26 @@ namespace FenUISharp
                     return IntPtr.Zero;
             }
             return DefWindowProcW(hWnd, msg, wParam, lParam);
+        }
+
+        public RECT? GetMonitorRect(int monitorIndex)
+        {
+            RECT rect = new RECT();
+            int count = 0;
+
+            MonitorEnumDelegate callback = (IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData) =>
+            {
+                if (count == monitorIndex)
+                {
+                    rect = lprcMonitor;
+                    return false; // stop enumeration once we've got our monitor
+                }
+                count++;
+                return true;
+            };
+
+            EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, callback, IntPtr.Zero);
+            return rect;
         }
 
         #region Windows
@@ -601,6 +637,9 @@ namespace FenUISharp
         const int HTTOPRIGHT = 16;
         const int HTBOTTOMRIGHT = 17;
         const int HTCLIENT = 1;
+
+        [DllImport("dwmapi.dll")]
+        public static extern void DwmFlush();
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
@@ -675,6 +714,64 @@ namespace FenUISharp
         [DllImport("user32.dll")]
         protected static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
 
+        [DllImport("gdi32.dll", SetLastError = true)]
+        protected static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        protected static extern bool DeleteDC(IntPtr hdc);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        protected static extern bool DeleteObject(IntPtr hObject);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool UpdateLayeredWindow(IntPtr hwnd, IntPtr hdcDst,
+             ref POINT pptDst, ref SIZE psize, IntPtr hdcSrc,
+             ref POINT pptSrc, uint crKey, ref BLENDFUNCTION pblend, uint dwFlags);
+
+        [DllImport("user32.dll")]
+        protected static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        protected static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        protected static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        protected static extern IntPtr CreateDIBSection(IntPtr hdc, [In] ref BITMAPINFO pbmi,
+             uint iUsage, out IntPtr ppvBits, IntPtr hSection, uint dwOffset);
+
+        [DllImport("user32.dll")]
+        protected static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip,
+    MonitorEnumDelegate lpfnEnum, IntPtr dwData);
+
+        protected delegate bool MonitorEnumDelegate(IntPtr hMonitor, IntPtr hdcMonitor,
+            ref RECT lprcMonitor, IntPtr dwData);
+
+
+        [DllImport("user32.dll")]
+        protected static extern int GetSystemMetrics(int nIndex);
+
+        [DllImport("dwmapi.dll")]
+        protected static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS pMarInset);
+
+        [DllImport("dwmapi.dll")]
+        protected static extern int DwmSetWindowAttribute(
+            IntPtr hwnd,
+            uint attr,
+            ref int attrValue,
+            int attrSize);
+
+        public enum DWMWINDOWATTRIBUTE
+        {
+            DWMWA_SYSTEMBACKDROP_TYPE = 38,
+            DWMWA_MICA_EFFECT = 1029,      // Dark mode Mica
+            DWMWA_CAPTION_COLOR = 35,      // Title bar color
+            DWMWA_TEXT_COLOR_SYSTEM = 36,   // System text color adaptation
+            DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+        }
+
+
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         protected static extern IntPtr CreateWindowEx(
             int dwExStyle,
@@ -706,6 +803,24 @@ namespace FenUISharp
             IntPtr lpParam);
 
         #endregion
+    }
+
+    public enum DWM_SYSTEMBACKDROP_TYPE
+    {
+        DWMSBT_AUTO = 1,
+        DWMSBT_NONE = 2,
+        DWMSBT_MAINWINDOW = 3,
+        DWMSBT_TRANSIENTWINDOW = 4,
+        DWMSBT_TABBEDWINDOW = 5
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MARGINS
+    {
+        public int cxLeftWidth;
+        public int cxRightWidth;
+        public int cyTopHeight;
+        public int cyBottomHeight;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -743,7 +858,9 @@ namespace FenUISharp
     {
         SWP_NOMOVE = 0x0002,
         SWP_NOSIZE = 0x0001,
-        SWP_SHOWWINDOW = 0x0040
+        SWP_SHOWWINDOW = 0x0040,
+        SWP_NOZORDER = 0x0004,
+        SWP_NOACTIVATE = 0x0010
     }
 
     public enum WindowStyles : long
