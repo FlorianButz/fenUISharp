@@ -259,6 +259,9 @@ namespace FenUISharp
                 {
                     if (component.enabled && component.transform.parent == null)
                         component.DrawToScreen(_canvas);
+
+
+                    // _canvas.DrawRect(component.transform.bounds, new SKPaint() { IsStroke = true, Color = SKColors.Red });
                 }
 
                 RenderContext.EndDraw();
@@ -563,6 +566,7 @@ namespace FenUISharp
 
                 case (int)WindowMessages.WM_SETCURSOR:
                     SetCursor(LoadCursor(IntPtr.Zero, (int)ActiveCursor.Value));
+                    // FIX RESETTING CURSOR ON RESIZE TO DEFAULT ARROW
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_CLOSE:

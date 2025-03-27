@@ -10,28 +10,35 @@ namespace FenUISharpTest1
         [STAThread]
         static void Main()
         {
-            NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.Software);
+            NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.Software, windowSize: new Vector2(800, 400));
             window.SystemDarkMode = true;
             window.AllowResizing = true;
-            // window.UseMica = true;
+            window.UseMica = true;
             // window.SetTrayIcon("icons/TrayIcon.ico", "Test");
             window.SetWindowIcon("icons/TrayIcon.ico");
             window.SetWindowVisibility(true);
             window.SetAlwaysOnTop(true);
 
-            var panel = new FPanel(window, new Vector2(0, 0), new Vector2(225, 75), 5, new ThemeColor(SKColors.Transparent));
+            var panel = new FPanel(window, new Vector2(0, 0), new Vector2(200, 500), 5, new ThemeColor(SKColors.Transparent));
             panel.BorderColor = window.WindowThemeManager.GetColor(t => t.Surface);
-            panel.BorderSize = 1;
+            panel.BorderSize = 2.5f;
             panel.CornerRadius = 10;
+            var layout = new StackContentComponent(panel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.SizeToFitAll);
+            panel.components.Add(layout);
             window.AddUIComponent(panel);
 
-            var label = new FLabel(window, "AWODJAWPODJPAOWIDJWPOJDPOAJDPOWAIJDPOJAWPODJWOPAWJDP", new Vector2(0, 0), new Vector2(150, 20), truncation: TextTruncation.Scroll);
-            label.transform.boundsPadding.SetValue(label, 15, 25);
-            label.TextAlign = SKTextAlign.Center;
-            window.AddUIComponent(label);
+            for (int i = 0; i < 8; i++)
+            {
+                var label = new FLabel(window, "abcdefghijklmnopqrstuvwxyz", new Vector2(0, 0), new Vector2(100, 10));
+                label.transform.SetParent(panel.transform);
+                window.AddUIComponent(label);
+            }
 
-            var btn = new FSimpleButton(window, new Vector2(0, -100), "Test Text, click!", () => Console.WriteLine("test"),
+            panel.transform.UpdateLayout();
+
+            var btn = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!", () => Console.WriteLine("test"),
                 color: window.WindowThemeManager.GetColor(t => t.Primary), textColor: window.WindowThemeManager.GetColor(t => t.OnPrimary));
+            btn.transform.alignment = new Vector2(0.5f, 0f);
             window.AddUIComponent(btn);
 
             window.BeginWindowLoop();

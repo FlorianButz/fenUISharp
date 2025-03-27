@@ -26,11 +26,21 @@ namespace FenUISharp
         protected SKSurface? cachedSurface = null;
 
         private bool _isMouseHovering = false;
-        public bool _isGloballyInvalidated { get; set; }
+        private bool _isThisGloballyInvalidated;
+        public bool _isGloballyInvalidated
+        {
+            get
+            {
+                if (_isThisGloballyInvalidated) return true;
+                if (transform.childs.Any(x => x.parentComponent._isThisGloballyInvalidated)) return true;
+                return false;
+            }
+            set { _isThisGloballyInvalidated = value; }
+        }
 
         public UIComponent(Window rootWindow, Vector2 position, Vector2 size)
         {
-            if(rootWindow == null) throw new Exception("Root window cannot be null."); 
+            if (rootWindow == null) throw new Exception("Root window cannot be null.");
             WindowRoot = rootWindow;
 
             transform = new Transform(this);
@@ -46,23 +56,27 @@ namespace FenUISharp
             WindowRoot.WindowThemeManager.ThemeChanged += Invalidate;
         }
 
-        private void OnMouseAction(MouseInputCode inputCode){
-            if(!enabled || !careAboutInteractions) return;
+        private void OnMouseAction(MouseInputCode inputCode)
+        {
+            if (!enabled || !careAboutInteractions) return;
 
             if (RMath.ContainsPoint(transform.bounds, WindowRoot.ClientMousePosition) && GetTopmostComponentAtPosition(WindowRoot.ClientMousePosition) == this)
             {
-                switch(inputCode.button){
-                    case 0: {
+                switch (inputCode.button)
+                {
+                    case 0:
+                        {
 
-                        if(inputCode.state == 1){
-                            if (currentlySelected != this) currentlySelected?.SelectedLost();
+                            if (inputCode.state == 1)
+                            {
+                                if (currentlySelected != this) currentlySelected?.SelectedLost();
 
-                            currentlySelected = this;
-                            currentlySelected?.Selected();
+                                currentlySelected = this;
+                                currentlySelected?.Selected();
+                            }
+
+                            break;
                         }
-
-                        break;
-                    }
                 }
 
                 MouseAction(inputCode);
@@ -72,7 +86,7 @@ namespace FenUISharp
 
         private void OnMouseMove(Vector2 pos)
         {
-            if(!enabled || !careAboutInteractions) return;
+            if (!enabled || !careAboutInteractions) return;
 
             Vector2 mousePos = WindowRoot.GlobalPointToClient(pos);
 
@@ -107,7 +121,8 @@ namespace FenUISharp
             CreateSurfacePaint();
         }
 
-        protected virtual void CreateSurfacePaint(){
+        protected virtual void CreateSurfacePaint()
+        {
             skPaint = new SKPaint()
             {
                 Color = SKColors.White,
@@ -117,7 +132,7 @@ namespace FenUISharp
 
         public void DrawToScreen(SKCanvas canvas)
         {
-            if(!visible) return;
+            if (!visible || !enabled) return;
 
             // Render quality
             float quality = RMath.Clamp(renderQuality.Value * ((transform.parent != null) ? transform.parent.parentComponent.renderQuality.Value : 1), 0.05f, 1);
@@ -218,7 +233,7 @@ namespace FenUISharp
         public void Dispose()
         {
             ComponentDestroy();
-            
+
             renderQuality.onValueUpdated -= OnRenderQualityUpdated;
             WindowFeatures.GlobalHooks.onMouseMove -= OnMouseMove;
             WindowRoot.OnUpdate -= Update;
@@ -255,6 +270,7 @@ namespace FenUISharp
     {
         public UIComponent parentComponent { get; private set; }
 
+        public Transform? root { get; private set; }
         public Transform? parent { get; private set; }
         public List<Transform> childs { get; private set; } = new List<Transform>();
 
@@ -302,9 +318,16 @@ namespace FenUISharp
         public void SetParent(Transform transform)
         {
             parent = transform;
-            parent.SetChild(this);
 
+            if (parent.parent == null)
+                root = parent;
+            else
+                root = parent.root;
+
+            parent.AddChild(this);
             parent.parentComponent.renderQuality.onValueUpdated += parentComponent.OnRenderQualityUpdated;
+
+            UpdateLayout();
         }
 
         public void ClearParent()
@@ -312,18 +335,48 @@ namespace FenUISharp
             if (parent != null)
                 parent.parentComponent.renderQuality.onValueUpdated -= parentComponent.OnRenderQualityUpdated;
 
+            root = null;
+
             parent?.RemoveChild(this);
             parent = null;
+
+            UpdateLayout();
         }
 
-        public void SetChild(Transform transform)
+        public void AddChild(Transform transform)
         {
             childs.Add(transform);
+            UpdateLayout();
         }
 
         public void RemoveChild(Transform transform)
         {
             childs.Remove(transform);
+        }
+
+        public void UpdateLayout()
+        {
+            List<StackContentComponent> layoutComponents = new List<StackContentComponent>();
+
+            if (root != null)
+                layoutComponents = SearchForLayoutComponentsRecursive(root);
+            else  layoutComponents = SearchForLayoutComponentsRecursive(this);
+        
+            layoutComponents.Reverse();
+
+            layoutComponents.ForEach(x => x.FullUpdateLayout());
+        }
+
+        private List<StackContentComponent> SearchForLayoutComponentsRecursive(Transform transform)
+        {
+            List<StackContentComponent> returnList = new();
+
+            transform.parentComponent.components.ForEach((x) => { if (x is StackContentComponent) returnList.Add((StackContentComponent)x); });
+            transform.childs.ForEach((x) => x.SearchForLayoutComponentsRecursive(x).ForEach((y) => {
+                returnList.Add((StackContentComponent)y);
+            }));
+
+            return returnList;
         }
 
         public Transform(UIComponent component)
@@ -421,9 +474,8 @@ namespace FenUISharp
 
         public void Dispose()
         {
-            if(parent != null)
+            if (parent != null)
                 parent.parentComponent.renderQuality.onValueUpdated -= parentComponent.OnRenderQualityUpdated;
-
         }
     }
 
