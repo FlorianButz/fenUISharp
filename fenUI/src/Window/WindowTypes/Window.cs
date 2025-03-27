@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using FenUISharp.Themes;
 using FenUISharpTest1;
@@ -116,7 +117,7 @@ namespace FenUISharp
             _alwaysOnTop = alwaysOnTop;
             SetAlwaysOnTop(_alwaysOnTop);
 
-            SetTaskbarIconVisibility(hideTaskbarIcon);
+            SetTaskbarIconVisibility(!hideTaskbarIcon);
 
             // Initialize FRenderContext
             CreateAndUpdateRenderContext(type);
@@ -230,6 +231,7 @@ namespace FenUISharp
                         OnBeginRender?.Invoke();
                         RenderFrame();
                         OnEndRender?.Invoke();
+                        Console.WriteLine("Rendered Frame");
 
                         _isDirty = false;
                     }
@@ -259,7 +261,6 @@ namespace FenUISharp
                 {
                     if (component.enabled && component.transform.parent == null)
                         component.DrawToScreen(_canvas);
-
 
                     // _canvas.DrawRect(component.transform.bounds, new SKPaint() { IsStroke = true, Color = SKColors.Red });
                 }
@@ -480,6 +481,8 @@ namespace FenUISharp
             return new Vector2(point.x, point.y);
         }
 
+        private bool _wasCursorNotSetToPointer = true;
+
         protected IntPtr WindowsProcedure(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
             switch (msg)
@@ -565,8 +568,16 @@ namespace FenUISharp
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_SETCURSOR:
-                    SetCursor(LoadCursor(IntPtr.Zero, (int)ActiveCursor.Value));
-                    // FIX RESETTING CURSOR ON RESIZE TO DEFAULT ARROW
+                    int hitTest = lParam.ToInt32() & 0xFFFF;
+                    if (hitTest == HTLEFT || hitTest == HTRIGHT ||
+                        hitTest == HTTOP || hitTest == HTTOPLEFT ||
+                        hitTest == HTTOPRIGHT || hitTest == HTBOTTOM ||
+                        hitTest == HTBOTTOMLEFT || hitTest == HTBOTTOMRIGHT)
+                    {
+                        return DefWindowProcW(hWnd, msg, wParam, lParam);
+                    }
+                    else
+                        SetCursor(LoadCursor(IntPtr.Zero, (int)ActiveCursor.Value));
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_CLOSE:
@@ -617,6 +628,17 @@ namespace FenUISharp
         public const int HWND_TOPMOST = -1;
         public const int HWND_NOTOPMOST = -2;
 
+        const int WM_SETCURSOR = 0x0020;
+        const int HTLEFT = 10;
+        const int HTRIGHT = 11;
+        const int HTTOP = 12;
+        const int HTTOPLEFT = 13;
+        const int HTTOPRIGHT = 14;
+        const int HTBOTTOM = 15;
+        const int HTBOTTOMLEFT = 16;
+        const int HTBOTTOMRIGHT = 17;
+        const int HTCLIENT = 1;
+
         public const int WS_OVERLAPPEDWINDOW =
             (int)WindowStyles.WS_OVERLAPPED |
             (int)WindowStyles.WS_CAPTION |
@@ -631,16 +653,6 @@ namespace FenUISharp
             (int)WindowStyles.WS_SYSMENU |
             (int)WindowStyles.WS_MINIMIZEBOX;
 
-
-        const int HTLEFT = 10;
-        const int HTRIGHT = 11;
-        const int HTTOP = 12;
-        const int HTBOTTOM = 15;
-        const int HTTOPLEFT = 13;
-        const int HTBOTTOMLEFT = 14;
-        const int HTTOPRIGHT = 16;
-        const int HTBOTTOMRIGHT = 17;
-        const int HTCLIENT = 1;
 
         [DllImport("dwmapi.dll")]
         public static extern void DwmFlush();
@@ -940,6 +952,12 @@ namespace FenUISharp
         {
             this.button = btn;
             this.state = state;
+        }
+
+        public override bool Equals([NotNullWhen(true)] object? obj)
+        {
+            // if(!(obj is MouseInputCode)) return false;
+            return button == ((MouseInputCode)obj).button && state == ((MouseInputCode)obj).state;
         }
     }
 

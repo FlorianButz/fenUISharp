@@ -5,43 +5,39 @@ namespace FenUISharp
 {
     public class FPanel : UIComponent
     {
-        protected float _cornerRadius;
-        public float CornerRadius { get => _cornerRadius; set { _cornerRadius = value; Invalidate(); } }
+        public float CornerRadius { get; set; }
 
-        private ThemeColor _panelColor;
-        public ThemeColor PanelColor { get => _panelColor; set { _panelColor = value; Invalidate(); } }
+        public ThemeColor PanelColor { get; set; }
 
-        private ThemeColor _borderColor;
-        public ThemeColor BorderColor { get => _borderColor; set { _borderColor = value; Invalidate(); } }
+        public ThemeColor BorderColor { get; set; }
 
-        private float _borderSize = 2;
-        public float BorderSize { get => _borderSize; set { _borderSize = value; Invalidate(); } }
+        public float BorderSize { get; set; } = 2;
 
         public FPanel(Window root, Vector2 position, Vector2 size, float cornerRadius, ThemeColor? color = null) : base(root, position, size)
         {
-            _borderColor = new ThemeColor(SKColors.Transparent);
-            _panelColor = color ?? WindowRoot.WindowThemeManager.GetColor(t => t.Surface);
+            BorderColor = new ThemeColor(SKColors.Transparent);
+            PanelColor = color ?? WindowRoot.WindowThemeManager.GetColor(t => t.Surface);
 
             skPaint.ImageFilter = SKImageFilter.CreateDropShadow(0, 2, 5, 5, WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value);
-            this._cornerRadius = cornerRadius;
+            this.CornerRadius = cornerRadius;
 
             transform.boundsPadding.SetValue(this, 35, 35);
         }
 
         protected override void DrawToSurface(SKCanvas canvas)
         {
-            skPaint.Color = _panelColor.Value;
-            canvas.DrawRoundRect(transform.localBounds, _cornerRadius, _cornerRadius, skPaint);
+            skPaint.Color = PanelColor.Value;
+            canvas.DrawRoundRect(transform.localBounds, CornerRadius, CornerRadius, skPaint);
 
             using(var strokePaint = skPaint.Clone()){
                 strokePaint.IsStroke = true;
-                strokePaint.Color = _borderColor.Value;
-                strokePaint.StrokeWidth = _borderSize;
+                strokePaint.Color = BorderColor.Value;
+                strokePaint.StrokeWidth = BorderSize;
 
                 strokePaint.StrokeCap = SKStrokeCap.Round;
                 strokePaint.StrokeJoin = SKStrokeJoin.Round;
 
-                canvas.DrawRoundRect(transform.localBounds, _cornerRadius, _cornerRadius, strokePaint);
+                canvas.DrawRoundRect(transform.localBounds, CornerRadius, CornerRadius, strokePaint);
             }
         }
     }

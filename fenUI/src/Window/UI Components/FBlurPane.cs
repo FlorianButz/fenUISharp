@@ -90,7 +90,7 @@ namespace FenUISharp
         {
             var bounds = transform.fullBounds;
             var pad = 60;
-            var rect = new SKRoundRect(transform.localBounds, _cornerRadius);
+            var rect = new SKRoundRect(transform.localBounds, CornerRadius);
             var captureArea = new SKRect(bounds.Left - pad, bounds.Top - pad, bounds.Right + pad, bounds.Bottom + pad);
 
             float scaleFactor = 0.5f;

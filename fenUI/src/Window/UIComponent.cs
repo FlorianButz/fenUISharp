@@ -25,7 +25,14 @@ namespace FenUISharp
         protected SKImageInfo? cachedImageInfo = null;
         protected SKSurface? cachedSurface = null;
 
-        private bool _isMouseHovering = false;
+        public SKRect interactionBounds { get {
+                var interactionBounds = transform.bounds;
+                interactionBounds.Inflate(transform.interactionPadding, transform.interactionPadding);
+                return interactionBounds;
+            }
+        }
+
+        protected bool _isMouseHovering { get; private set; } = false;
         private bool _isThisGloballyInvalidated;
         public bool _isGloballyInvalidated
         {
@@ -60,13 +67,12 @@ namespace FenUISharp
         {
             if (!enabled || !careAboutInteractions) return;
 
-            if (RMath.ContainsPoint(transform.bounds, WindowRoot.ClientMousePosition) && GetTopmostComponentAtPosition(WindowRoot.ClientMousePosition) == this)
+            if ((RMath.ContainsPoint(interactionBounds, WindowRoot.ClientMousePosition) && GetTopmostComponentAtPosition(WindowRoot.ClientMousePosition) == this) || inputCode.state == 1)
             {
                 switch (inputCode.button)
                 {
                     case 0:
                         {
-
                             if (inputCode.state == 1)
                             {
                                 if (currentlySelected != this) currentlySelected?.SelectedLost();
@@ -90,15 +96,15 @@ namespace FenUISharp
 
             Vector2 mousePos = WindowRoot.GlobalPointToClient(pos);
 
-            if (RMath.ContainsPoint(transform.bounds, mousePos) && !_isMouseHovering && GetTopmostComponentAtPosition(mousePos) == this)
+            if (RMath.ContainsPoint(interactionBounds, mousePos) && !_isMouseHovering && GetTopmostComponentAtPosition(mousePos) == this)
             {
                 _isMouseHovering = true;
                 MouseEnter();
 
                 components.ForEach(z => z.MouseEnter());
             }
-            else if ((RMath.ContainsPoint(transform.bounds, mousePos) && _isMouseHovering && GetTopmostComponentAtPosition(mousePos) != this)
-                || !RMath.ContainsPoint(transform.bounds, mousePos) && _isMouseHovering)
+            else if ((RMath.ContainsPoint(interactionBounds, mousePos) && _isMouseHovering && GetTopmostComponentAtPosition(mousePos) != this)
+                || !RMath.ContainsPoint(interactionBounds, mousePos) && _isMouseHovering)
             {
                 _isMouseHovering = false;
                 MouseExit();
@@ -133,6 +139,7 @@ namespace FenUISharp
         public void DrawToScreen(SKCanvas canvas)
         {
             if (!visible || !enabled) return;
+            if (transform.parent != null && transform.clipWhenFullyOutsideParent && !RMath.IsRectPartiallyInside(transform.parent.bounds, transform.bounds)) return;
 
             // Render quality
             float quality = RMath.Clamp(renderQuality.Value * ((transform.parent != null) ? transform.parent.parentComponent.renderQuality.Value : 1), 0.05f, 1);
@@ -161,7 +168,9 @@ namespace FenUISharp
                 if (cachedSurface != null)
                 {
                     cachedSurface.Canvas.Scale(quality, quality);
+                    components.ForEach(x => x.OnBeforeRender(cachedSurface.Canvas));
                     DrawToSurface(cachedSurface.Canvas);
+                    components.ForEach(x => x.OnAfterRender(cachedSurface.Canvas));
 
                     cachedSurface.Flush();
                     cachedSurface.Context?.Dispose();
@@ -189,7 +198,10 @@ namespace FenUISharp
                 }
             }
 
+            components.ForEach(x => x.OnBeforeRenderChildren(canvas));
             transform.childs.ForEach(c => c.parentComponent.DrawToScreen(canvas));
+            components.ForEach(x => x.OnAfterRenderChildren(canvas));
+
             canvas.RestoreToCount(c);
             _isGloballyInvalidated = false;
         }
@@ -250,8 +262,14 @@ namespace FenUISharp
 
         public UIComponent? GetTopmostComponentAtPosition(Vector2 pos)
         {
-            if (!WindowRoot.GetUIComponents().Any(x => x.enabled && x.careAboutInteractions && RMath.ContainsPoint(x.transform.bounds, pos))) return null;
-            return WindowRoot.GetUIComponents().Last(x => x.enabled && x.careAboutInteractions && RMath.ContainsPoint(x.transform.bounds, pos));
+            if (!WindowRoot.GetUIComponents().Any(x => x.enabled && x.careAboutInteractions && RMath.ContainsPoint(x.interactionBounds, pos))) return null;
+            return WindowRoot.GetUIComponents().Last(x => x.enabled && x.careAboutInteractions && RMath.ContainsPoint(x.interactionBounds, pos));
+        }
+
+        public UIComponent? GetTopmostComponentAtPositionWithComponent<T>(Vector2 pos)
+        {
+            if (!WindowRoot.GetUIComponents().Any(x => x.enabled && x.careAboutInteractions && RMath.ContainsPoint(x.interactionBounds, pos) && x.components.Any(x => x is T))) return null;
+            return WindowRoot.GetUIComponents().Last(x => x.enabled && x.careAboutInteractions && RMath.ContainsPoint(x.interactionBounds, pos) && x.components.Any(x => x is T));
         }
 
         public void SetColor(SKColor color)
@@ -276,9 +294,11 @@ namespace FenUISharp
 
         public SKMatrix? matrix { get; set; }
 
-        public Vector2 position { get => GetGlobalPosition(_localPosition); }
+        public Vector2 position { get { var pos = _localPosition; if(parent != null && !ignoreParentOffset) pos += parent.childOffset; return GetGlobalPosition(pos); } }
         public Vector2 localPosition { get => _localPosition + boundsPadding.Value; set => _localPosition = value; }
         private Vector2 _localPosition { get; set; }
+        public Vector2 childOffset { get => _childOffset; set => _childOffset = value; }
+        private Vector2 _childOffset { get; set; }
         public Vector2 anchor { get; set; } = new Vector2(0.5f, 0.5f);
         private Vector2 _size { get; set; }
         public Vector2 size { get => GetSize(); set => _size = value; }
@@ -286,10 +306,17 @@ namespace FenUISharp
         public Vector2 scale { get; set; } = new Vector2(1, 1);
         public float rotation { get; set; } = 0;
 
+        public float interactionPadding { get; set; } = 0;
+
         public float marginHorizontal { get; set; } = 15;
         public float marginVertical { get; set; } = 15;
         public bool stretchHorizontal { get; set; } = false;
         public bool stretchVertical { get; set; } = false;
+
+        public bool parentIgnoreLayout { get; set; } = false;
+        public bool ignoreParentOffset { get; set; } = false;
+        
+        public bool clipWhenFullyOutsideParent { get; set; } = true;
 
         public SKRect fullBounds { get => GetBounds(0); }
         public SKRect bounds { get => GetBounds(1); }
@@ -327,7 +354,7 @@ namespace FenUISharp
             parent.AddChild(this);
             parent.parentComponent.renderQuality.onValueUpdated += parentComponent.OnRenderQualityUpdated;
 
-            UpdateLayout();
+            // UpdateLayout();
         }
 
         public void ClearParent()
@@ -340,13 +367,13 @@ namespace FenUISharp
             parent?.RemoveChild(this);
             parent = null;
 
-            UpdateLayout();
+            // UpdateLayout();
         }
 
         public void AddChild(Transform transform)
         {
             childs.Add(transform);
-            UpdateLayout();
+            // UpdateLayout();
         }
 
         public void RemoveChild(Transform transform)
@@ -354,13 +381,13 @@ namespace FenUISharp
             childs.Remove(transform);
         }
 
-        public void UpdateLayout()
+        public void UpdateLayout(string test)
         {
             List<StackContentComponent> layoutComponents = new List<StackContentComponent>();
 
             if (root != null)
                 layoutComponents = SearchForLayoutComponentsRecursive(root);
-            else  layoutComponents = SearchForLayoutComponentsRecursive(this);
+            else layoutComponents = SearchForLayoutComponentsRecursive(this);
         
             layoutComponents.Reverse();
 
@@ -373,7 +400,7 @@ namespace FenUISharp
 
             transform.parentComponent.components.ForEach((x) => { if (x is StackContentComponent) returnList.Add((StackContentComponent)x); });
             transform.childs.ForEach((x) => x.SearchForLayoutComponentsRecursive(x).ForEach((y) => {
-                returnList.Add((StackContentComponent)y);
+                if(!returnList.Contains((StackContentComponent)y)) returnList.Add((StackContentComponent)y);
             }));
 
             return returnList;
@@ -561,6 +588,16 @@ namespace FenUISharp
                 return x == ((Vector2)obj).x && y == ((Vector2)obj).y;
 
             return false;
+        }
+
+        public static bool operator ==(Vector2 c1, Vector2 c2)
+        {
+            return c1.x == c2.x && c1.y == c2.y;
+        }
+
+        public static bool operator !=(Vector2 c1, Vector2 c2)
+        {
+            return c1.x != c2.x || c1.y != c2.y;
         }
     }
 }

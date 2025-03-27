@@ -100,5 +100,23 @@ namespace FenUISharp
                 return surface.Snapshot();
             }
         }
+
+        public static bool IsRectFullyInside(SKRect outer, SKRect inner)
+        {
+            return inner.Left >= outer.Left &&
+                   inner.Top >= outer.Top &&
+                   inner.Right <= outer.Right &&
+                   inner.Bottom <= outer.Bottom;
+        }
+
+        public static bool IsRectPartiallyInside(SKRect outer, SKRect inner)
+        {
+            float intersectLeft = Math.Max(outer.Left, inner.Left);
+            float intersectTop = Math.Max(outer.Top, inner.Top);
+            float intersectRight = Math.Min(outer.Right, inner.Right);
+            float intersectBottom = Math.Min(outer.Bottom, inner.Bottom);
+
+            return intersectLeft < intersectRight && intersectTop < intersectBottom;
+        }
     }
 }

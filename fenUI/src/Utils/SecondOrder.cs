@@ -1,19 +1,19 @@
 ﻿namespace FenUISharp
 {
-    public class SecondOrder
+    public class Spring
     {
         private Vector2 xp;
         private Vector2 y, yd;
         private float k1, k2, k3;
 
-        public SecondOrder(Vector2 x0, float f = 2f, float z = 0.4f, float r = 0.1f)
+        public Spring(Vector2 startValue, float speed = 2f, float springy = 0.4f, float r = 0.1f)
         {
-            k1 = (float)(z / (Math.PI * f));
-            k2 = (float)(1 / ((2 * Math.PI * f) * (2 * Math.PI * f)));
-            k3 = (float)(r * z / (2 * Math.PI * f));
+            k1 = (float)(springy / (Math.PI * speed));
+            k2 = (float)(1 / ((2 * Math.PI * speed) * (2 * Math.PI * speed)));
+            k3 = (float)(r * springy / (2 * Math.PI * speed));
 
-            xp = x0;
-            y = x0;
+            xp = startValue;
+            y = startValue;
             yd = new Vector2(0, 0);
         }
 

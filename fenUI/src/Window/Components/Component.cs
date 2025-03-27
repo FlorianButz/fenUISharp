@@ -1,3 +1,5 @@
+using SkiaSharp;
+
 namespace FenUISharp {
     public class Component : IDisposable
     {
@@ -16,6 +18,11 @@ namespace FenUISharp {
 
             ComponentUpdate();
         }
+
+        public virtual void OnBeforeRender(SKCanvas canvas) { }
+        public virtual void OnAfterRender(SKCanvas canvas) { }
+        public virtual void OnBeforeRenderChildren(SKCanvas canvas) { }
+        public virtual void OnAfterRenderChildren(SKCanvas canvas) { }
 
         public virtual void ComponentSetup() { }
         public virtual void ComponentUpdate() { }
