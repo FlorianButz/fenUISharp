@@ -231,9 +231,11 @@ namespace FenUISharp
                         OnBeginRender?.Invoke();
                         RenderFrame();
                         OnEndRender?.Invoke();
-                        Console.WriteLine("Rendered Frame");
 
                         _isDirty = false;
+                        uiComponents.ForEach(x => x._isGloballyInvalidated = false);
+                        
+                        // Console.WriteLine("Rendered Frame");
                     }
 
                     nextFrameTime = currentTime + frameInterval;
@@ -263,6 +265,7 @@ namespace FenUISharp
                         component.DrawToScreen(_canvas);
 
                     // _canvas.DrawRect(component.transform.bounds, new SKPaint() { IsStroke = true, Color = SKColors.Red });
+                    // _canvas.DrawRect(component.interactionBounds, new SKPaint() { IsStroke = true, Color = SKColors.Green });
                 }
 
                 RenderContext.EndDraw();
@@ -295,7 +298,7 @@ namespace FenUISharp
 
         public bool IsNextFrameRendering()
         {
-            return uiComponents.Any(x => x._isGloballyInvalidated && x.enabled && x.visible);
+            return uiComponents.Any(x => x._isGloballyInvalidated && x.enabled && x.visible && x.transform.parent == null);
         }
 
         public List<UIComponent> GetUIComponents()

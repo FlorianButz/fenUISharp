@@ -34,6 +34,7 @@ namespace FenUISharp {
         public virtual void MouseEnter() { }
         public virtual void MouseExit() { }
         public virtual void MouseAction(MouseInputCode inputCode) { }
+        public virtual void GlobalMouseAction(MouseInputCode inputCode) { }
         public virtual void MouseMove(Vector2 pos) { }
 
         public void Dispose()

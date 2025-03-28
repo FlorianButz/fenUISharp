@@ -37,7 +37,7 @@ namespace FenUISharpTest1
                 window.AddUIComponent(label);
             }
 
-            var btn2 = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!", () => Console.WriteLine("test"),
+            var btn2 = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!", () => Console.WriteLine("test2"),
                 color: window.WindowThemeManager.GetColor(t => t.Primary), textColor: window.WindowThemeManager.GetColor(t => t.OnPrimary));
             btn2.transform.alignment = new Vector2(0.5f, 0f);
             btn2.transform.SetParent(panel.transform);
@@ -46,7 +46,7 @@ namespace FenUISharpTest1
             // panel.transform.UpdateLayout("");
             layout.FullUpdateLayout();
 
-            var btn = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!", () => Console.WriteLine("test"),
+            var btn = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!", () => Console.WriteLine("test3"),
                 color: window.WindowThemeManager.GetColor(t => t.Primary), textColor: window.WindowThemeManager.GetColor(t => t.OnPrimary));
             btn.transform.alignment = new Vector2(0.5f, 0f);
             window.AddUIComponent(btn);

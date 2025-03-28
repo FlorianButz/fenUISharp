@@ -27,8 +27,8 @@ namespace FenUISharp
         public float AlphaFadeSpeed { get; set; } = 0.75f;
         public float AlphaFadeTime { get; set; } = 2f;
 
-        private Vector2 normalSize;
-        private Vector2 hoverSize;
+        // private Vector2 normalSize;
+        // private Vector2 hoverSize;
         private bool _isDragging;
         private SKRect lastThumbInteractionRect;
 
@@ -44,8 +44,6 @@ namespace FenUISharp
             _scrollAreaColor = areaColor ?? WindowRoot.WindowThemeManager.GetColor(t => t.SurfaceVariant);
             _scrollPositionColor = positionColor ?? WindowRoot.WindowThemeManager.GetColor(t => t.OnSurface);
 
-            normalSize = transform.size;
-            hoverSize = normalSize * 2f;
             transform.interactionPadding = 5;
         }
 
@@ -55,15 +53,12 @@ namespace FenUISharp
 
             lastThumbInteractionRect = GetThumbRect(transform.bounds);
 
-            transform.size = RMath.Lerp(transform.size, (_isMouseHovering || _isDragging) ? hoverSize : normalSize, (float)WindowRoot.DeltaTime * 7.5f);
-            if (Math.Round(transform.size.x) != Math.Round(normalSize.x) && Math.Round(transform.size.x) != Math.Round(hoverSize.x)) Invalidate();
-
             Alpha -= AlphaFadeSpeed * (float)WindowRoot.DeltaTime;
             if (Alpha < 0f) Alpha = 0;
 
             if (_isMouseHovering) Alpha = AlphaFadeTime;
 
-            if (Alpha != _lastAlpha) Invalidate();
+            if (RMath.Clamp(Alpha, 0, 1) != RMath.Clamp(_lastAlpha, 0, 1)) Invalidate();
             _lastAlpha = Alpha;
 
             if (_isDragging)
@@ -99,6 +94,8 @@ namespace FenUISharp
         {
             base.MouseAction(inputCode);
 
+            Invalidate();
+
             if (inputCode.button == 0 && inputCode.state == 0)
             {
                 if (RMath.ContainsPoint(lastThumbInteractionRect, WindowRoot.ClientMousePosition))
@@ -110,11 +107,18 @@ namespace FenUISharp
                 else
                     _isDragging = false;
             }
-            else if (inputCode.button == 0 && inputCode.state == 1)
+        }
+
+        protected override void GlobalMouseAction(MouseInputCode inputCode)
+        {
+            base.GlobalMouseAction(inputCode);
+
+            if (inputCode.button == 0 && inputCode.state == 1)
             {
                 _isDragging = false;
             }
         }
+
 
         protected override void DrawToSurface(SKCanvas canvas)
         {

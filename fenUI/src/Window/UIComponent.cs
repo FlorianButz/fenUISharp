@@ -25,7 +25,10 @@ namespace FenUISharp
         protected SKImageInfo? cachedImageInfo = null;
         protected SKSurface? cachedSurface = null;
 
-        public SKRect interactionBounds { get {
+        public SKRect interactionBounds
+        {
+            get
+            {
                 var interactionBounds = transform.bounds;
                 interactionBounds.Inflate(transform.interactionPadding, transform.interactionPadding);
                 return interactionBounds;
@@ -38,6 +41,7 @@ namespace FenUISharp
         {
             get
             {
+                if (!enabled || !visible) return false;
                 if (_isThisGloballyInvalidated) return true;
                 if (transform.childs.Any(x => x.parentComponent._isThisGloballyInvalidated)) return true;
                 return false;
@@ -67,7 +71,7 @@ namespace FenUISharp
         {
             if (!enabled || !careAboutInteractions) return;
 
-            if ((RMath.ContainsPoint(interactionBounds, WindowRoot.ClientMousePosition) && GetTopmostComponentAtPosition(WindowRoot.ClientMousePosition) == this) || inputCode.state == 1)
+            if (RMath.ContainsPoint(interactionBounds, WindowRoot.ClientMousePosition) && GetTopmostComponentAtPosition(WindowRoot.ClientMousePosition) == this)
             {
                 switch (inputCode.button)
                 {
@@ -88,6 +92,9 @@ namespace FenUISharp
                 MouseAction(inputCode);
                 components.ForEach(x => x.MouseAction(inputCode));
             }
+
+            GlobalMouseAction(inputCode);
+            components.ForEach(x => x.GlobalMouseAction(inputCode));
         }
 
         private void OnMouseMove(Vector2 pos)
@@ -203,7 +210,6 @@ namespace FenUISharp
             components.ForEach(x => x.OnAfterRenderChildren(canvas));
 
             canvas.RestoreToCount(c);
-            _isGloballyInvalidated = false;
         }
 
         public void Invalidate()
@@ -240,6 +246,7 @@ namespace FenUISharp
         protected virtual void MouseEnter() { }
         protected virtual void MouseExit() { }
         protected virtual void MouseAction(MouseInputCode inputCode) { }
+        protected virtual void GlobalMouseAction(MouseInputCode inputCode) { }
         protected virtual void MouseMove(Vector2 pos) { }
 
         public void Dispose()
@@ -294,7 +301,7 @@ namespace FenUISharp
 
         public SKMatrix? matrix { get; set; }
 
-        public Vector2 position { get { var pos = _localPosition; if(parent != null && !ignoreParentOffset) pos += parent.childOffset; return GetGlobalPosition(pos); } }
+        public Vector2 position { get { var pos = _localPosition; if (parent != null && !ignoreParentOffset) pos += parent.childOffset; return GetGlobalPosition(pos); } }
         public Vector2 localPosition { get => _localPosition + boundsPadding.Value; set => _localPosition = value; }
         private Vector2 _localPosition { get; set; }
         public Vector2 childOffset { get => _childOffset; set => _childOffset = value; }
@@ -315,7 +322,7 @@ namespace FenUISharp
 
         public bool parentIgnoreLayout { get; set; } = false;
         public bool ignoreParentOffset { get; set; } = false;
-        
+
         public bool clipWhenFullyOutsideParent { get; set; } = true;
 
         public SKRect fullBounds { get => GetBounds(0); }
@@ -388,7 +395,7 @@ namespace FenUISharp
             if (root != null)
                 layoutComponents = SearchForLayoutComponentsRecursive(root);
             else layoutComponents = SearchForLayoutComponentsRecursive(this);
-        
+
             layoutComponents.Reverse();
 
             layoutComponents.ForEach(x => x.FullUpdateLayout());
@@ -399,8 +406,9 @@ namespace FenUISharp
             List<StackContentComponent> returnList = new();
 
             transform.parentComponent.components.ForEach((x) => { if (x is StackContentComponent) returnList.Add((StackContentComponent)x); });
-            transform.childs.ForEach((x) => x.SearchForLayoutComponentsRecursive(x).ForEach((y) => {
-                if(!returnList.Contains((StackContentComponent)y)) returnList.Add((StackContentComponent)y);
+            transform.childs.ForEach((x) => x.SearchForLayoutComponentsRecursive(x).ForEach((y) =>
+            {
+                if (!returnList.Contains((StackContentComponent)y)) returnList.Add((StackContentComponent)y);
             }));
 
             return returnList;
