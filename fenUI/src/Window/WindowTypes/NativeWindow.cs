@@ -52,11 +52,11 @@ namespace FenUISharp
             return hWnd;
         }
 
-        protected override void OnRenderFrame()
+        protected override void OnRenderFrame(SKSurface surface)
         {
-            base.OnRenderFrame();
+            base.OnRenderFrame(surface);
 
-            RenderContext.Surface.Canvas.Clear(_useMica ? SKColors.Transparent : GetTitlebarColor());
+            surface.Canvas.Clear(_useMica ? SKColors.Transparent : GetTitlebarColor());
         }
 
         SKColor GetTitlebarColor()

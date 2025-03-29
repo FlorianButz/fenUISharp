@@ -107,10 +107,15 @@ namespace FenUISharp
 
         public override void OnResize(Vector2 newSize)
         {
-            CreateSurface();
+            // CreateSurface();
         }
 
         public override void OnWindowPropertyChanged()
+        {
+            CreateSurface();
+        }
+
+        public override void OnEndResize()
         {
             CreateSurface();
         }

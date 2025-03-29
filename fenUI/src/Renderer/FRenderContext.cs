@@ -29,6 +29,7 @@ namespace FenUISharp
         protected abstract SKSurface CreateSurface();
 
         public abstract void OnResize(Vector2 newSize);
+        public abstract void OnEndResize();
         public abstract void OnWindowPropertyChanged(); // Used for refreshrate change, etc..
 
         public virtual void UpdateWindow()

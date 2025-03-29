@@ -171,7 +171,8 @@ namespace FenUISharp
                     cachedImageInfo = new SKImageInfo(scaledWidth, scaledHeight);
 
                 // Create an offscreen surface for this component
-                cachedSurface = SKSurface.Create(cachedImageInfo.Value);
+                cachedSurface = WindowRoot.RenderContext.CreateAdditional(cachedImageInfo.Value);
+                
                 if (cachedSurface != null)
                 {
                     cachedSurface.Canvas.Scale(quality, quality);
@@ -388,7 +389,7 @@ namespace FenUISharp
             childs.Remove(transform);
         }
 
-        public void UpdateLayout(string test)
+        public void UpdateLayout()
         {
             List<StackContentComponent> layoutComponents = new List<StackContentComponent>();
 
@@ -432,15 +433,8 @@ namespace FenUISharp
 
         private SKRect GetBounds(int id)
         {
-            // var pad = (parent == null || id == 0) ? boundsPadding.Value : 0;
             var pad = boundsPadding.Value;
             var pos = position;
-
-            // if (id == 0){
-            //     return new SKRect(pos.x, pos.y, pos.x + size.x + pad * 2, pos.y + size.y + pad * 2);
-            // }
-            // else
-            //     return new SKRect(pos.x + pad, pos.y + pad, pos.x + size.x + pad, pos.y + size.y + pad);
 
             switch (id)
             {

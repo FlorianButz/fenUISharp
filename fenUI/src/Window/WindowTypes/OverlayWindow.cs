@@ -14,7 +14,7 @@ namespace FenUISharp
             string title, string className, RenderContextType type, int monitorIndex = 0) :
             base(title, className, type, new Vector2(0, 0), null, true, true)
         {
-            if (type == RenderContextType.OpenGL) throw new ArgumentException("OpenGL render context isnot compatible with overlay window.");
+            if(type == RenderContextType.DirectX) throw new ArgumentException("DirectX is currently not supported with transparent overlays.");
 
             AllowResizing = false;
             UpdateWindowMetrics(monitorIndex);
@@ -54,7 +54,7 @@ namespace FenUISharp
             base.UpdateWindowFrame();
 
             POINT ptSrc = new POINT { x = 0, y = 0 };
-            POINT ptDst = new POINT { x = (int)WindowPosition.x, y = (int)WindowPosition.y};
+            POINT ptDst = new POINT { x = (int)WindowPosition.x, y = (int)WindowPosition.y };
             SIZE size = new SIZE { cx = (int)WindowSize.x, cy = (int)WindowSize.y };
 
             BLENDFUNCTION blend = new BLENDFUNCTION
@@ -76,15 +76,13 @@ namespace FenUISharp
                 ref blend,
                 (int)LayeredWindowFlags.ULW_ALPHA
             );
-            
+
             ReleaseDC(IntPtr.Zero, hdcScreen);
             DwmFlush();
         }
 
         protected override IntPtr CreateWin32Window(WNDCLASSEX wndClass, Vector2? size, Vector2? position)
         {
-            bool centerPos = position == null;
-
             WindowSize = new Vector2(GetSystemMetrics(0), GetSystemMetrics(1));
 
             // Create a borderless popup window with the layered style.

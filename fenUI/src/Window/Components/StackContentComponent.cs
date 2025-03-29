@@ -28,7 +28,7 @@ namespace FenUISharp
         private float _pageSize = 0;
         private float _contentSize = 0;
 
-        private Spring? scrollOrder;
+        public Spring? ScrollSpring { get; set; }
         private UserScrollComponent? scrollComponent;
         private FScrollBar scrollBar;
 
@@ -41,7 +41,7 @@ namespace FenUISharp
             scrollComponent.MouseScroll += OnScroll;
             parent.components.Add(scrollComponent);
 
-            scrollOrder = new Spring(new Vector2(0, 0), 2, 0.75f, 0.1f);
+            ScrollSpring = new Spring(new Vector2(0, 0), 2, 0.85f, 0.1f);
 
             if (startAlign == null)
             {
@@ -117,7 +117,7 @@ namespace FenUISharp
                 if (!AllowScrollOverflow)
                     _scrollPosition = RMath.Clamp(_scrollPosition, -_scrollMax, _scrollMin);
 
-                _scrollDisplayPosition = scrollOrder.Update((float)parent.WindowRoot.DeltaTime, new Vector2(_scrollPosition, 0)).x;
+                _scrollDisplayPosition = ScrollSpring.Update((float)parent.WindowRoot.DeltaTime, new Vector2(_scrollPosition, 0)).x;
 
                 if (AllowScrollOverflow)
                     _scrollPosition = RMath.Clamp(_scrollPosition, -_scrollMax, _scrollMin);
@@ -172,35 +172,35 @@ namespace FenUISharp
             {
                 if (childList[c].parentIgnoreLayout) continue; // Make sure to ignore some transforms
 
+                lastItemSize = StackType == ContentStackType.Horizontal ? childList[c].localBounds.Width : childList[c].localBounds.Height;
+
+                currentPos += lastItemSize / 2;
+                contentSize += lastItemSize / 2;
+
+                if (c == 0)
+                {
+                    currentPos += Pad;
+                    contentSize += Pad;
+                }
+                else
+                {
+                    currentPos += Gap;
+                    contentSize += Gap;
+                }
+
+                contentSizePerpendicular = Math.Max(StackType == ContentStackType.Horizontal ? childList[c].localBounds.Height : childList[c].localBounds.Width, contentSizePerpendicular);
+
+                childList[c].alignment = StartAlignment;
                 if (StackType == ContentStackType.Horizontal)
-                {
-                    lastItemSize = childList[c].localBounds.Width;
-                    currentPos += lastItemSize * (c == 0 ? 0.5f : 1);
-
-                    if (c == 0) currentPos += Pad + 1;
-                    else currentPos += Gap;
-
-                    contentSizePerpendicular = Math.Max(childList[c].localBounds.Height, contentSizePerpendicular);
-
-                    childList[c].alignment = StartAlignment;
                     childList[c].localPosition = new Vector2(currentPos, 0);
-                }
-                else if (StackType == ContentStackType.Vertical)
-                {
-                    lastItemSize = childList[c].localBounds.Height;
-                    currentPos += lastItemSize * (c == 0 ? 0.5f : 1);
-
-                    if (c == 0) currentPos += Pad;
-                    else currentPos += Gap;
-
-                    contentSizePerpendicular = Math.Max(childList[c].localBounds.Width, contentSizePerpendicular);
-
-                    childList[c].alignment = StartAlignment;
+                else
                     childList[c].localPosition = new Vector2(0, currentPos);
-                }
+
+                currentPos += lastItemSize / 2;
+                contentSize += lastItemSize / 2;
             }
 
-            contentSize = Math.Abs(currentPos + (lastItemSize / 2) + Pad);
+            contentSize = Math.Abs(contentSize + Pad);
             contentSizePerpendicular += Pad * 2;
 
             switch (StackBehavior)
@@ -215,8 +215,8 @@ namespace FenUISharp
                     break;
             }
 
-            _scrollMax = contentSize - parent.transform.bounds.Height;
-            _pageSize = parent.transform.bounds.Height;
+            _pageSize = StackType == ContentStackType.Horizontal ? parent.transform.bounds.Width : parent.transform.bounds.Height;
+            _scrollMax = contentSize - _pageSize;
             _contentSize = contentSize;
         }
 

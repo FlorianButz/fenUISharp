@@ -41,6 +41,8 @@ namespace FenUISharp
         protected bool _sysDarkMode = false;
         public bool SystemDarkMode { get => _sysDarkMode; set { _sysDarkMode = value; UpdateSysDarkmode(); } }
 
+        public bool DebugDisplayBounds { get; set; } = false;
+
         public ThemeManager WindowThemeManager { get; private set; }
 
         public SKRect Bounds { get; private set; }
@@ -75,6 +77,7 @@ namespace FenUISharp
         protected bool _isResizing = false;
 
         private Thread _renderThread;
+        private RenderContextType _startWithType;
 
         #endregion
 
@@ -83,7 +86,7 @@ namespace FenUISharp
         public enum RenderContextType
         {
             Software,
-            OpenGL
+            DirectX
         }
 
         public Window(
@@ -117,11 +120,9 @@ namespace FenUISharp
             _alwaysOnTop = alwaysOnTop;
             SetAlwaysOnTop(_alwaysOnTop);
 
+            _startWithType = type;
+
             SetTaskbarIconVisibility(!hideTaskbarIcon);
-
-            // Initialize FRenderContext
-            CreateAndUpdateRenderContext(type);
-
             RecalcClientBounds();
         }
 
@@ -132,7 +133,7 @@ namespace FenUISharp
             switch (type)
             {
                 case RenderContextType.Software: RenderContext = new SoftwareRenderContext(this); break;
-                case RenderContextType.OpenGL: RenderContext = new GLRenderContext(this); break;
+                case RenderContextType.DirectX: RenderContext = new DirectRenderContext(this); break;
             }
         }
 
@@ -182,6 +183,10 @@ namespace FenUISharp
             _renderThread = new Thread(() =>
             {
                 Thread.CurrentThread.Priority = ThreadPriority.Highest;
+
+                // Initialize FRenderContext
+                CreateAndUpdateRenderContext(_startWithType);
+
                 RenderLoop();
             });
             _renderThread.Start();
@@ -200,6 +205,7 @@ namespace FenUISharp
         }
 
         volatile bool _isRunning = false;
+        bool _wasResizing = false;
 
         private async void RenderLoop()
         {
@@ -225,6 +231,12 @@ namespace FenUISharp
                     previousFrameTime = currentTime;
 
                     OnUpdate?.Invoke();
+                    // Console.WriteLine("Update Frame");
+
+                    if(_wasResizing != _isResizing && !_isResizing && RenderContext != null)
+                        RenderContext.OnEndResize();
+
+                    _wasResizing = _isResizing;
 
                     if (IsNextFrameRendering() || _isDirty)
                     {
@@ -234,7 +246,7 @@ namespace FenUISharp
 
                         _isDirty = false;
                         uiComponents.ForEach(x => x._isGloballyInvalidated = false);
-                        
+
                         // Console.WriteLine("Rendered Frame");
                     }
 
@@ -246,7 +258,7 @@ namespace FenUISharp
             }
         }
 
-        protected virtual void OnRenderFrame() { }
+        protected virtual void OnRenderFrame(SKSurface surface) { }
 
         private readonly object _renderLock = new object();
 
@@ -257,15 +269,20 @@ namespace FenUISharp
             lock (_renderLock)
             {
                 var _canvas = RenderContext.BeginDraw().Canvas;
-                OnRenderFrame();
+                if (_canvas == null) return;
+
+                OnRenderFrame(RenderContext.Surface);
 
                 foreach (var component in uiComponents)
                 {
                     if (component.enabled && component.transform.parent == null)
                         component.DrawToScreen(_canvas);
 
-                    // _canvas.DrawRect(component.transform.bounds, new SKPaint() { IsStroke = true, Color = SKColors.Red });
-                    // _canvas.DrawRect(component.interactionBounds, new SKPaint() { IsStroke = true, Color = SKColors.Green });
+                    if (DebugDisplayBounds)
+                    {
+                        _canvas.DrawRect(component.transform.bounds, new SKPaint() { IsStroke = true, Color = SKColors.Red });
+                        _canvas.DrawRect(component.interactionBounds, new SKPaint() { IsStroke = true, Color = SKColors.Green });
+                    }
                 }
 
                 RenderContext.EndDraw();
@@ -455,6 +472,9 @@ namespace FenUISharp
             OnWindowResize?.Invoke(size);
             _isDirty = true;
 
+            if (RenderContext != null)
+                RenderContext.OnResize(size);
+
             RecalcClientBounds();
         }
 
@@ -483,8 +503,6 @@ namespace FenUISharp
             ScreenToClient(hWnd, ref point);
             return new Vector2(point.x, point.y);
         }
-
-        private bool _wasCursorNotSetToPointer = true;
 
         protected IntPtr WindowsProcedure(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
@@ -642,6 +660,9 @@ namespace FenUISharp
         const int HTBOTTOMRIGHT = 17;
         const int HTCLIENT = 1;
 
+        public const uint LWA_COLORKEY = 0x00000001;
+        public const uint LWA_ALPHA = 0x00000002;
+
         public const int WS_OVERLAPPEDWINDOW =
             (int)WindowStyles.WS_OVERLAPPED |
             (int)WindowStyles.WS_CAPTION |
@@ -767,6 +788,8 @@ namespace FenUISharp
         protected delegate bool MonitorEnumDelegate(IntPtr hMonitor, IntPtr hdcMonitor,
             ref RECT lprcMonitor, IntPtr dwData);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint crKey, byte bAlpha, uint dwFlags);
 
         [DllImport("user32.dll")]
         protected static extern int GetSystemMetrics(int nIndex);

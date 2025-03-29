@@ -82,6 +82,7 @@ namespace FenUISharp
                 _lastScrollPos = _scrollDragPosition;
             }
 
+            visible = ContentSize > PageSize;
         }
 
         public void UpdateScrollbar()
@@ -93,12 +94,14 @@ namespace FenUISharp
         protected override void MouseAction(MouseInputCode inputCode)
         {
             base.MouseAction(inputCode);
-
             Invalidate();
 
             if (inputCode.button == 0 && inputCode.state == 0)
             {
-                if (RMath.ContainsPoint(lastThumbInteractionRect, WindowRoot.ClientMousePosition))
+                var interactionRect = lastThumbInteractionRect;
+                interactionRect.Inflate(transform.interactionPadding, transform.interactionPadding);
+
+                if (RMath.ContainsPoint(interactionRect, WindowRoot.ClientMousePosition))
                 {
                     _mouseStartDragPos = WindowRoot.ClientMousePosition;
                     _mouseStartScrollPos = ScrollPosition;
