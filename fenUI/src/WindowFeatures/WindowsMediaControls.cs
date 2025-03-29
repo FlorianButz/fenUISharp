@@ -164,7 +164,7 @@ namespace FenUISharp
                 var originalBitmap = SKBitmap.Decode(skStream);
                 if (originalBitmap == null) return null;
 
-                var resizedBitmap = originalBitmap.Resize(new SKImageInfo(128, 128), Window.samplingOptions);
+                var resizedBitmap = originalBitmap.Resize(new SKImageInfo(128, 128), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
                 originalBitmap.Dispose();
 
                 using (resizedBitmap) { return SKImage.FromBitmap(resizedBitmap); }

@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using FenUISharp;
+using FenUISharp.Themes;
 using SkiaSharp;
 
 namespace FenUISharpTest1
@@ -9,50 +10,56 @@ namespace FenUISharpTest1
         [STAThread]
         static void Main()
         {
-            Resources.LoadDefault();
-            new WindowsMediaControls();
-
-            Window window = new Window("fenUISharp Test", "fenUISharpTest");
-            window.Show();
-            // FWindow.showBounds = true;
-
-            string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "icons", "TrayIcon.ico");
-            window.SetWindowIcon(iconPath);
-            window.CreateTray(iconPath, "Test tray icon!");
+            NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(800, 400));
+            // OverlayWindow window = new OverlayWindow("Test 1", "testClass", Window.RenderContextType.Software);
             
-            Window.instance.onTrayIconRightClicked += () => {
-                Console.WriteLine("Tray clicked!");
-            };
+            window.RefreshRate = 60;
+            window.SystemDarkMode = true;
+            window.AllowResizing = true;
+            
+            // window.SetTrayIcon("icons/TrayIcon.ico", "Test");
+            window.SetWindowIcon("icons/TrayIcon.ico");
+            window.SetWindowVisibility(true);
+            // window.SetAlwaysOnTop(true);
 
-            FPanel c = new FPanel(new Vector2(0, 0), new Vector2(300, 150), 15, SKColors.Black);
-            FPanel c2 = new FPanel(new Vector2(0, -25), new Vector2(100, 50), 15, SKColors.DarkGray);
-            c2.transform.stretchHorizontal = true;
-c2.transform.SetParent(c.transform);
+            var panel = new FPanel(window, new Vector2(0, 0), new Vector2(500, 200), 5, new ThemeColor(SKColors.Transparent));
+            panel.BorderColor = window.WindowThemeManager.GetColor(t => t.Surface);
+            panel.BorderSize = 1.5f;
+            panel.CornerRadius = 10;
+            panel.Invalidate();
+            var layout = new StackContentComponent(panel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
+            layout.Pad = 15;
+            panel.components.Add(layout);
+            window.AddUIComponent(panel);
 
-            FLabel label = new FLabel("Abcdefghijklmnopqrstuvwxyz 0123456789", new Vector2(0, 0), new Vector2(100, 20), truncation: TextTruncation.Linebreak);
-            label.transform.boundsPadding.SetValue(label, 15, 25);
-            label.TextAlign = SKTextAlign.Center;
-            label.transform.SetParent(c2.transform);
-            label.transform.stretchHorizontal = true;
-            label.transform.stretchVertical = true;
-            label.transform.marginHorizontal = 0;
-            label.transform.marginVertical = 0;
+            for (int i = 0; i < 2; i++)
+            {
+                var label = new FLabel(window, "Lorem ipsum dolor sit amet, consetetur sadipscing elitr,\n sed diam nonumy\n\n\n\n eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.",
+                    new Vector2(0, 0), new Vector2(400, 0), truncation: TextTruncation.Linebreak);
+                label.FitVerticalToContent = true;
+                // label.transform.stretchHorizontal = true;
 
-            FSimpleButton simpleButton = new FSimpleButton(new Vector2(0, 50), "Test Button!", () => {Console.WriteLine("Test Button Clicked!"); label.Text = Random.Shared.NextInt64().ToString(); });
-            simpleButton.transform.SetParent(c.transform);
-            FSimpleButton simpleButton2 = new FSimpleButton(new Vector2(0, 25), "Longer Test Button Here! waddawdawdadwawd", () => Console.WriteLine("Test Button Clicked!"));
-            simpleButton2.transform.SetParent(c.transform);
+                label.transform.SetParent(panel.transform);
+                window.AddUIComponent(label);
 
-            Window.AddUIComponent(c);
-            Window.AddUIComponent(simpleButton);
-            Window.AddUIComponent(simpleButton2);
-            Window.AddUIComponent(label);
-Window.AddUIComponent(c2);
+                var btn2 = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!", () => label.SetText("Test awdpojawpdjawdpojawdpojawpdojawpd awpdjawpodpa apod apwkodpaowdkpoawdk " + Random.Shared.Next()),
+                    color: window.WindowThemeManager.GetColor(t => t.Primary), textColor: window.WindowThemeManager.GetColor(t => t.OnPrimary));
+                btn2.transform.alignment = new Vector2(0.5f, 0f);
+                btn2.transform.SetParent(panel.transform);
+                window.AddUIComponent(btn2);
+            }
 
-Window.AddUIComponent(new FBlurPane(new Vector2(150, 0), new Vector2(100, 50), 15, new Vector2(10, 10), true));
+            panel.transform.UpdateLayout();
+            // layout.FullUpdateLayout();
 
-            window.CreateSurface();
-            window.Begin();
+            // label.SetText("taowd");
+
+            var btn = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!", () => Console.WriteLine("test3"),
+                color: window.WindowThemeManager.GetColor(t => t.Primary), textColor: window.WindowThemeManager.GetColor(t => t.OnPrimary));
+            btn.transform.alignment = new Vector2(0.5f, 0f);
+            window.AddUIComponent(btn);
+
+            window.BeginWindowLoop();
         }
     }
 }

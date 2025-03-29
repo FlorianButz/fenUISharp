@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="OpenTK" Version="4.9.4" />
     <PackageReference Include="SharpDX" Version="4.2.0" />
     <PackageReference Include="SharpDX.Direct3D11" Version="4.2.0" />
     <PackageReference Include="SharpDX.DirectComposition" Version="4.2.0" />
@@ -17,8 +18,6 @@
     <PackageReference Include="SkiaSharp" Version="3.116.1" />
     <PackageReference Include="SkiaSharp.Views" Version="3.116.1" />
     <PackageReference Include="SkiaSharp.Views.Desktop.Common" Version="1.68.1" />
-    <PackageReference Include="Vortice.Direct3D11" Version="3.2.0" />
-    <PackageReference Include="Vortice.DXGI" Version="3.2.0" />
     <PackageReference Include="SkiaSharp" Version="2.88.6" /> 
     <None Include="icons\TrayIcon.ico">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

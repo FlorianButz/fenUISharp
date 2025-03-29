@@ -81,7 +81,7 @@ namespace FenUISharp
             return (float)Math.Round(x, 2);
         }
 
-        public static SKImage CreateLowResImage(SKImage sourceImage, float scaleFactor)
+        public static SKImage CreateLowResImage(SKImage sourceImage, float scaleFactor, SKSamplingOptions samplingOptions)
         {
             int newWidth = (int)(sourceImage.Width * scaleFactor);
             int newHeight = (int)(sourceImage.Height * scaleFactor);
@@ -95,10 +95,28 @@ namespace FenUISharp
                 canvas.DrawImage(sourceImage,
                     SKRect.Create(0, 0, sourceImage.Width, sourceImage.Height),
                     SKRect.Create(0, 0, newWidth, newHeight),
-                    Window.samplingOptions);
+                    samplingOptions);
 
                 return surface.Snapshot();
             }
+        }
+
+        public static bool IsRectFullyInside(SKRect outer, SKRect inner)
+        {
+            return inner.Left >= outer.Left &&
+                   inner.Top >= outer.Top &&
+                   inner.Right <= outer.Right &&
+                   inner.Bottom <= outer.Bottom;
+        }
+
+        public static bool IsRectPartiallyInside(SKRect outer, SKRect inner)
+        {
+            float intersectLeft = Math.Max(outer.Left, inner.Left);
+            float intersectTop = Math.Max(outer.Top, inner.Top);
+            float intersectRight = Math.Min(outer.Right, inner.Right);
+            float intersectBottom = Math.Min(outer.Bottom, inner.Bottom);
+
+            return intersectLeft < intersectRight && intersectTop < intersectBottom;
         }
     }
 }
