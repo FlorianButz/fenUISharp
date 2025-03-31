@@ -39,7 +39,7 @@ namespace FenUISharp
 
             scrollComponent = new UserScrollComponent(parent);
             scrollComponent.MouseScroll += OnScroll;
-            parent.components.Add(scrollComponent);
+            parent.Components.Add(scrollComponent);
 
             ScrollSpring = new Spring(new Vector2(0, 0), 2, 0.85f, 0.1f);
 
@@ -59,14 +59,14 @@ namespace FenUISharp
             base.ComponentSetup();
 
             scrollBar = new FScrollBar(parent.WindowRoot, new Vector2(0, 0), new Vector2(4f, 4f));
-            scrollBar.transform.marginHorizontal = 8;
-            scrollBar.transform.marginVertical = 8;
+            scrollBar.Transform.MarginHorizontal = 8;
+            scrollBar.Transform.MarginVertical = 8;
 
-            scrollBar.transform.parentIgnoreLayout = true;
-            scrollBar.transform.ignoreParentOffset = true;
-            scrollBar.visible = false;
+            scrollBar.Transform.ParentIgnoreLayout = true;
+            scrollBar.Transform.IgnoreParentOffset = true;
+            scrollBar.Visible = false;
             scrollBar.onPositionChanged += OnScrollbarUpdate;
-            scrollBar.transform.SetParent(parent.transform);
+            scrollBar.Transform.SetParent(parent.Transform);
             parent.WindowRoot.AddUIComponent(scrollBar);
 
             UpdateScrollbar();
@@ -86,23 +86,23 @@ namespace FenUISharp
 
         public void UpdateScrollbar()
         {
-            scrollBar.visible = StackBehavior == ContentStackBehavior.Scroll;
+            scrollBar.Visible = StackBehavior == ContentStackBehavior.Scroll;
             if (StackBehavior == ContentStackBehavior.Scroll)
             {
                 if (StackType == ContentStackType.Vertical)
                 {
-                    scrollBar.transform.localPosition = new Vector2(-8, 0);
-                    scrollBar.transform.alignment = new Vector2(1, 0.5f);
-                    scrollBar.transform.stretchHorizontal = false;
-                    scrollBar.transform.stretchVertical = true;
+                    scrollBar.Transform.LocalPosition = new Vector2(-8, 0);
+                    scrollBar.Transform.Alignment = new Vector2(1, 0.5f);
+                    scrollBar.Transform.StretchHorizontal = false;
+                    scrollBar.Transform.StretchVertical = true;
                     scrollBar.HorizontalOrientation = false;
                 }
                 else if (StackType == ContentStackType.Horizontal)
                 {
-                    scrollBar.transform.localPosition = new Vector2(0, -8);
-                    scrollBar.transform.alignment = new Vector2(0.5f, 1);
-                    scrollBar.transform.stretchVertical = false;
-                    scrollBar.transform.stretchHorizontal = true;
+                    scrollBar.Transform.LocalPosition = new Vector2(0, -8);
+                    scrollBar.Transform.Alignment = new Vector2(0.5f, 1);
+                    scrollBar.Transform.StretchVertical = false;
+                    scrollBar.Transform.StretchHorizontal = true;
                     scrollBar.HorizontalOrientation = true;
                 }
             }
@@ -112,40 +112,41 @@ namespace FenUISharp
         {
             base.ComponentUpdate();
 
-            if (true)
-            {
-                if (!AllowScrollOverflow)
-                    _scrollPosition = RMath.Clamp(_scrollPosition, -_scrollMax, _scrollMin);
 
+            if (!AllowScrollOverflow)
+                _scrollPosition = RMath.Clamp(_scrollPosition, -_scrollMax, _scrollMin);
+
+            if(_contentSize > _pageSize)
                 _scrollDisplayPosition = ScrollSpring.Update((float)parent.WindowRoot.DeltaTime, new Vector2(_scrollPosition, 0)).x;
+            else
+                _scrollDisplayPosition = _pageSize / 2 - _contentSize / 2;
 
-                if (AllowScrollOverflow)
-                    _scrollPosition = RMath.Clamp(_scrollPosition, -_scrollMax, _scrollMin);
+            if (AllowScrollOverflow)
+                _scrollPosition = RMath.Clamp(_scrollPosition, -_scrollMax, _scrollMin);
 
-                if (StackBehavior == ContentStackBehavior.Scroll)
-                {
-                    if (StackType == ContentStackType.Horizontal)
-                        parent.transform.childOffset = new Vector2(_scrollDisplayPosition, 0);
-                    else if (StackType == ContentStackType.Vertical)
-                        parent.transform.childOffset = new Vector2(0, _scrollDisplayPosition);
-                }
-
-                scrollBar.ScrollMin = -_scrollMax;
-                scrollBar.ScrollMax = _scrollMin;
-
-                scrollBar.PageSize = _pageSize;
-                scrollBar.ContentSize = _contentSize;
-
-                scrollBar.ScrollPosition = _scrollDisplayPosition;
-
-                if (Math.Round(_lastScrollDisplayPosition) != Math.Round(_scrollDisplayPosition))
-                {
-                    scrollBar.UpdateScrollbar();
-                    parent.Invalidate();
-                }
-
-                _lastScrollDisplayPosition = _scrollDisplayPosition;
+            if (StackBehavior == ContentStackBehavior.Scroll)
+            {
+                if (StackType == ContentStackType.Horizontal)
+                    parent.Transform.ChildOffset = new Vector2(_scrollDisplayPosition, 0);
+                else if (StackType == ContentStackType.Vertical)
+                    parent.Transform.ChildOffset = new Vector2(0, _scrollDisplayPosition);
             }
+
+            if (Math.Round(_lastScrollDisplayPosition) != Math.Round(_scrollDisplayPosition))
+            {
+                scrollBar.UpdateScrollbar();
+                parent.Invalidate();
+            }
+
+            _lastScrollDisplayPosition = _scrollDisplayPosition;
+
+            scrollBar.ScrollMin = -_scrollMax;
+            scrollBar.ScrollMax = _scrollMin;
+
+            scrollBar.PageSize = _pageSize;
+            scrollBar.ContentSize = _contentSize;
+
+            scrollBar.ScrollPosition = _scrollDisplayPosition;
         }
 
         public override void OnBeforeRenderChildren(SKCanvas canvas)
@@ -154,13 +155,13 @@ namespace FenUISharp
 
             if (StackBehavior == ContentStackBehavior.Scroll)
             {
-                canvas.ClipRect(parent.transform.bounds);
+                canvas.ClipRect(parent.Transform.Bounds);
             }
         }
 
         public void UpdatePosition()
         {
-            var childList = parent.transform.childs;
+            var childList = parent.Transform.Children;
 
             float currentPos = 0;
             float contentSize = 0;
@@ -170,9 +171,9 @@ namespace FenUISharp
 
             for (int c = 0; c < childList.Count; c++)
             {
-                if (childList[c].parentIgnoreLayout) continue; // Make sure to ignore some transforms
+                if (childList[c].ParentIgnoreLayout) continue; // Make sure to ignore some transforms
 
-                lastItemSize = StackType == ContentStackType.Horizontal ? childList[c].localBounds.Width : childList[c].localBounds.Height;
+                lastItemSize = StackType == ContentStackType.Horizontal ? childList[c].LocalBounds.Width : childList[c].LocalBounds.Height;
 
                 currentPos += lastItemSize / 2;
                 contentSize += lastItemSize / 2;
@@ -188,13 +189,13 @@ namespace FenUISharp
                     contentSize += Gap;
                 }
 
-                contentSizePerpendicular = Math.Max(StackType == ContentStackType.Horizontal ? childList[c].localBounds.Height : childList[c].localBounds.Width, contentSizePerpendicular);
+                contentSizePerpendicular = Math.Max(StackType == ContentStackType.Horizontal ? childList[c].LocalBounds.Height : childList[c].LocalBounds.Width, contentSizePerpendicular);
 
-                childList[c].alignment = StartAlignment;
+                childList[c].Alignment = StartAlignment;
                 if (StackType == ContentStackType.Horizontal)
-                    childList[c].localPosition = new Vector2(currentPos, 0);
+                    childList[c].LocalPosition = new Vector2(currentPos, 0);
                 else
-                    childList[c].localPosition = new Vector2(0, currentPos);
+                    childList[c].LocalPosition = new Vector2(0, currentPos);
 
                 currentPos += lastItemSize / 2;
                 contentSize += lastItemSize / 2;
@@ -206,16 +207,16 @@ namespace FenUISharp
             switch (StackBehavior)
             {
                 case ContentStackBehavior.SizeToFitAll:
-                    if (StackType == ContentStackType.Horizontal) parent.transform.size = new Vector2(contentSize, contentSizePerpendicular);
-                    if (StackType == ContentStackType.Vertical) parent.transform.size = new Vector2(contentSizePerpendicular, contentSize);
+                    if (StackType == ContentStackType.Horizontal) parent.Transform.Size = new Vector2(contentSize, contentSizePerpendicular);
+                    if (StackType == ContentStackType.Vertical) parent.Transform.Size = new Vector2(contentSizePerpendicular, contentSize);
                     break;
                 case ContentStackBehavior.SizeToFit:
-                    if (StackType == ContentStackType.Horizontal) parent.transform.size = new Vector2(contentSize, parent.transform.size.y);
-                    if (StackType == ContentStackType.Vertical) parent.transform.size = new Vector2(parent.transform.size.x, contentSize);
+                    if (StackType == ContentStackType.Horizontal) parent.Transform.Size = new Vector2(contentSize, parent.Transform.Size.y);
+                    if (StackType == ContentStackType.Vertical) parent.Transform.Size = new Vector2(parent.Transform.Size.x, contentSize);
                     break;
             }
 
-            _pageSize = StackType == ContentStackType.Horizontal ? parent.transform.bounds.Width : parent.transform.bounds.Height;
+            _pageSize = StackType == ContentStackType.Horizontal ? parent.Transform.Bounds.Width : parent.Transform.Bounds.Height;
             _scrollMax = contentSize - _pageSize;
             _contentSize = contentSize;
         }

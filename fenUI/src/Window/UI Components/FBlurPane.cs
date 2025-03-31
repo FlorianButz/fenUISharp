@@ -21,7 +21,7 @@ namespace FenUISharp
             : base(root, position, size, cornerRadius, null)
         {
             _blurAmount = blurAmount;
-            transform.boundsPadding.SetValue(this, 60, 35);
+            Transform.BoundsPadding.SetValue(this, 60, 35);
 
             var useBrightContrast = !(brightness == contrast && brightness == 1);
 
@@ -50,19 +50,19 @@ namespace FenUISharp
                         (byte)(25 * RMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * RMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * RMath.Clamp((int)_brightContrast.x, 0, 1)))),
                         SKColorFilter.CreateColorMatrix(contrastMatrix))))
                     {
-                        blurPaint = skPaint.Clone();
+                        blurPaint = SkPaint.Clone();
                         blurPaint.ImageFilter = SKImageFilter.CreateCompose(blur, colorFilter);
                     }
                 }
                 else
                 {
-                    blurPaint = skPaint.Clone();
+                    blurPaint = SkPaint.Clone();
                     blurPaint.ImageFilter = blur;
                 }
             }
             using (var drop = SKImageFilter.CreateDropShadowOnly(2, 2, 15, 15, SKColors.Black.WithAlpha(165)))
             {
-                dropShadowPaint = skPaint.Clone();
+                dropShadowPaint = SkPaint.Clone();
                 dropShadowPaint.ImageFilter = drop;
             }
         }
@@ -79,7 +79,7 @@ namespace FenUISharp
         {
             base.OnUpdate();
 
-            _isGloballyInvalidated = false;
+            GloballyInvalidated = false;
             if (WindowRoot.IsNextFrameRendering())
             {
                 Invalidate();
@@ -88,9 +88,9 @@ namespace FenUISharp
 
         protected override void DrawToSurface(SKCanvas canvas)
         {
-            var bounds = transform.fullBounds;
+            var bounds = Transform.FullBounds;
             var pad = 60;
-            var rect = new SKRoundRect(transform.localBounds, CornerRadius);
+            var rect = new SKRoundRect(Transform.LocalBounds, CornerRadius);
             var captureArea = new SKRect(bounds.Left - pad, bounds.Top - pad, bounds.Right + pad, bounds.Bottom + pad);
 
             float scaleFactor = 0.5f;

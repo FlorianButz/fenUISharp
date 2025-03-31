@@ -18,11 +18,26 @@ namespace FenUISharp
         public Vector2 WindowPosition { get; protected set; }
         public Vector2 WindowSize { get; protected set; }
 
-        public Vector2 WindowMinSize { get; protected set; } = new Vector2(400, 300);
-        public Vector2 WindowMaxSize { get; protected set; } = new Vector2(float.MaxValue, float.MaxValue);
+        public Vector2 WindowMinSize { get; set; } = new Vector2(100, 100);
+        public Vector2 WindowMaxSize { get; set; } = new Vector2(float.MaxValue, float.MaxValue);
 
         protected bool _allowResize = true;
-        public bool AllowResizing { get => _allowResize; set => UpdateAllowResize(value); }
+        public bool AllowResizing { get => _allowResize; set { _allowResize = value;  /* UpdateAllowResize(_allowResize); */ } }
+
+        private bool _hasSystemMenu = true;
+        public bool HasSystemMenu { get => _hasSystemMenu; set { _hasSystemMenu = value; UpdateHasSysMenu(_hasSystemMenu); } }
+
+        private bool _hasMaximizeButton = true;
+        public bool CanMinimize { get => _hasMaximizeButton; set { _hasMaximizeButton = value; UpdateHasMaximizeButton(_hasMaximizeButton); } }
+
+        private bool _hasMinimizeButton = true;
+        public bool CanMaximize { get => _hasMinimizeButton; set { _hasMinimizeButton = value; UpdateHasMinimizeButton(_hasMinimizeButton); } }
+
+        protected bool _hasTitlebar = false;
+
+        public bool HideWindowOnClose { get; set; } = false;
+        public bool PauseUpdateLoopWhenLoseFocus { get; set; } = false;
+        public bool PauseUpdateLoopWhenHidden { get; set; } = false;
 
         protected int _refreshRate = 60;
         public int RefreshRate { get => _refreshRate; set { _refreshRate = value; RenderContext?.OnWindowPropertyChanged(); } }
@@ -57,13 +72,18 @@ namespace FenUISharp
         #region Actions
 
         public Action<MouseInputCode> MouseAction { get; set; }
-        public Action<MouseInputCode> MouseMove { get; set; }
-        public Action<Vector2> OnWindowResize { get; set; }
-        public Action<MouseInputCode> OnTrayIconClick { get; set; }
+        public Action<MouseInputCode> TrayMouseAction { get; set; }
 
         public Action OnBeginRender { get; set; }
         public Action OnEndRender { get; set; }
         public Action OnUpdate { get; set; }
+
+        public Action OnFocusLost { get; set; }
+        public Action OnFocusGained { get; set; }
+        public Action<Vector2> OnWindowResize { get; set; }
+        public Action<Vector2> OnWindowMoved { get; set; }
+        public Action OnWindowClose { get; set; }
+        public Action OnWindowDestroy { get; set; }
 
         #endregion
 
@@ -73,11 +93,22 @@ namespace FenUISharp
 
         private readonly WndProcDelegate _wndProcDelegate;
         protected bool _alwaysOnTop;
-        protected bool _isDirty = false;
-        protected bool _isResizing = false;
+        volatile bool _isDirty = false;
+        volatile bool _isResizing = false;
+
+        volatile bool _stopRunningFlag = false;
+        volatile bool _isRunning = false;
+        volatile bool _windowCloseFlag = false;
+
+        protected bool _lastIsWindowFocused = false;
+        public bool IsWindowFocused { get; protected set; } = false;
+        public bool IsWindowShown { get; protected set; } = false;
 
         private Thread _renderThread;
         private RenderContextType _startWithType;
+
+        private MouseInputCode? mouseInputActionFlag = null;
+        private MouseInputCode? trayMouseActionFlag = null;
 
         #endregion
 
@@ -92,9 +123,11 @@ namespace FenUISharp
         public Window(
             string title, string className, RenderContextType type,
             Vector2? windowSize = null, Vector2? windowPosition = null,
-            bool alwaysOnTop = false, bool hideTaskbarIcon = false
+            bool alwaysOnTop = false, bool hideTaskbarIcon = false, bool hasTitlebar = true
         )
         {
+            if(!FenUI.HasBeenInitialized) throw new Exception("FenUI has to be initialized before creating a window.");
+
             WindowTitle = title;
             WindowClass = className;
 
@@ -102,6 +135,7 @@ namespace FenUISharp
             WindowPosition = (windowPosition == null) ? new Vector2(0, 0) : windowPosition.Value;
 
             _wndProcDelegate = WindowsProcedure;
+            _hasTitlebar = hasTitlebar;
 
             // Create window and handle
             hWnd = CreateWin32Window(RegisterClass(), WindowSize, windowPosition);
@@ -111,7 +145,6 @@ namespace FenUISharp
                 throw new Exception($"Window creation failed: error {error}");
             }
 
-            WindowFeatures.TryInitialize(); // Initialize all window features
             WindowThemeManager = new ThemeManager(Resources.GetTheme("default-dark"));
 
             // Pre initialize OLE DragDrop
@@ -199,13 +232,14 @@ namespace FenUISharp
                     TranslateMessage(ref msg);
                     DispatchMessage(ref msg);
 
+                    Console.WriteLine(_stopRunningFlag);
+
+                    if(_stopRunningFlag) _isRunning = false;
+
                     Thread.Sleep(1); // Prevent too high cpu usage
                 }
             }
         }
-
-        volatile bool _isRunning = false;
-        bool _wasResizing = false;
 
         private async void RenderLoop()
         {
@@ -215,28 +249,25 @@ namespace FenUISharp
             double nextFrameTime = 0;
             double previousFrameTime = 0;
 
-            while (true) // temporary
+            while (_isRunning)
             {
-                if (!_isRunning)
-                {
-                    new List<UIComponent>(uiComponents).ForEach(x => x?.Dispose());
-                    return;
-                }
-
                 double currentTime = stopwatch.Elapsed.TotalMilliseconds;
+                IsWindowShown = IsWindowVisible(hWnd);
+
+                if (!IsWindowFocused && PauseUpdateLoopWhenLoseFocus || !IsWindowShown && PauseUpdateLoopWhenHidden)
+                {
+                    previousFrameTime = currentTime; // Make sure delta time doesn't go too crazy when updates are resumed
+                    OnWindowUpdateCall(true);
+
+                    await Task.Delay(100); continue;
+                }
 
                 if (currentTime >= nextFrameTime)
                 {
                     DeltaTime = (float)(currentTime - previousFrameTime) / 1000.0f;
                     previousFrameTime = currentTime;
 
-                    OnUpdate?.Invoke();
-                    // Console.WriteLine("Update Frame");
-
-                    if(_wasResizing != _isResizing && !_isResizing && RenderContext != null)
-                        RenderContext.OnEndResize();
-
-                    _wasResizing = _isResizing;
+                    OnWindowUpdateCall();
 
                     if (IsNextFrameRendering() || _isDirty)
                     {
@@ -245,9 +276,7 @@ namespace FenUISharp
                         OnEndRender?.Invoke();
 
                         _isDirty = false;
-                        uiComponents.ForEach(x => x._isGloballyInvalidated = false);
-
-                        // Console.WriteLine("Rendered Frame");
+                        uiComponents.ForEach(x => x.GloballyInvalidated = false);
                     }
 
                     nextFrameTime = currentTime + frameInterval;
@@ -256,6 +285,8 @@ namespace FenUISharp
                 // await Task.Delay(needsRender ? 1 : 16); // If not rendering, sleep longer (saves CPU); Edit: Not good, since the Update method inside the FUIComponents gets skipped then
                 await Task.Delay(1);
             }
+
+            new List<UIComponent>(uiComponents).ForEach(x => x?.Dispose());
         }
 
         protected virtual void OnRenderFrame(SKSurface surface) { }
@@ -275,13 +306,13 @@ namespace FenUISharp
 
                 foreach (var component in uiComponents)
                 {
-                    if (component.enabled && component.transform.parent == null)
+                    if (component.Enabled && component.Transform.Parent == null)
                         component.DrawToScreen(_canvas);
 
                     if (DebugDisplayBounds)
                     {
-                        _canvas.DrawRect(component.transform.bounds, new SKPaint() { IsStroke = true, Color = SKColors.Red });
-                        _canvas.DrawRect(component.interactionBounds, new SKPaint() { IsStroke = true, Color = SKColors.Green });
+                        _canvas.DrawRect(component.Transform.Bounds, new SKPaint() { IsStroke = true, Color = SKColors.Red });
+                        _canvas.DrawRect(component.InteractionBounds, new SKPaint() { IsStroke = true, Color = SKColors.Green });
                     }
                 }
 
@@ -289,9 +320,55 @@ namespace FenUISharp
             }
         }
 
+        private void OnWindowUpdateCall(bool isPaused = false)
+        {
+            if(!isPaused)
+                OnUpdate?.Invoke();
+
+            if (_onEndResizeFlag)
+            {
+                _onEndResizeFlag = false;
+                OnEndResize();
+            }
+
+            if(_lastIsWindowFocused != IsWindowFocused){
+                _lastIsWindowFocused = IsWindowFocused;
+                if(IsWindowFocused) OnFocusGained?.Invoke();
+                else OnFocusLost?.Invoke();
+            }
+
+            if (_onWindowMovedFlag)
+            {
+                _onWindowMovedFlag = false;
+                WindowMoved();
+                OnWindowMoved?.Invoke(WindowPosition);
+            }
+
+            if (_isResizing)
+                OnWindowResize?.Invoke(WindowSize);
+
+            if (_windowCloseFlag)
+            {
+                _windowCloseFlag = false;
+                OnWindowClose?.Invoke();
+            }
+
+            if (mouseInputActionFlag != null)
+            {
+                MouseAction?.Invoke(mouseInputActionFlag.Value);
+                mouseInputActionFlag = null;
+            }
+            if (trayMouseActionFlag != null)
+            {
+                TrayMouseAction?.Invoke(trayMouseActionFlag.Value);
+                trayMouseActionFlag = null;
+            }
+        }
+
         public void AddUIComponent(UIComponent component)
         {
             if (component == null) return;
+            if (uiComponents.Contains(component)) return;
 
             component.WindowRoot = this;
             uiComponents.Add(component);
@@ -315,13 +392,10 @@ namespace FenUISharp
 
         public bool IsNextFrameRendering()
         {
-            return uiComponents.Any(x => x._isGloballyInvalidated && x.enabled && x.visible && x.transform.parent == null);
+            return uiComponents.Any(x => x.GloballyInvalidated && x.Enabled && x.Visible && x.Transform.Parent == null);
         }
 
-        public List<UIComponent> GetUIComponents()
-        {
-            return uiComponents;
-        }
+        public List<UIComponent> GetUIComponents() => uiComponents;
 
         public void SetWindowVisibility(bool visible)
         {
@@ -441,8 +515,8 @@ namespace FenUISharp
 
         public virtual void Dispose()
         {
-            _isRunning = false;
             DestroyWindow(hWnd);
+            _stopRunningFlag = false;
             DisposeHiddenWindow();
         }
 
@@ -451,25 +525,62 @@ namespace FenUISharp
         }
 
         public MultiAccess<Cursor> ActiveCursor = new MultiAccess<Cursor>(Cursor.ARROW);
-
-        protected void UpdateAllowResize(bool allow)
+        
+        protected void UpdateHasSysMenu(bool allow)
         {
-            int toggle = (int)WindowStyles.WS_THICKFRAME | (int)WindowStyles.WS_MAXIMIZEBOX;
-            int style = GetWindowLong(hWnd, (int)WindowLongs.GWL_STYLE);
+            int toggle = (int)WindowStyles.WS_SYSMENU;
+            SetWindowStyle(toggle, allow);
+        }
+        
+        protected void UpdateHasMaximizeButton(bool allow)
+        {
+            int toggle = (int)WindowStyles.WS_MAXIMIZEBOX;
+            SetWindowStyle(toggle, allow);
+        }
+        
+        protected void UpdateHasMinimizeButton(bool allow)
+        {
+            int toggle = (int)WindowStyles.WS_MINIMIZEBOX;
+            SetWindowStyle(toggle, allow);
+        }
 
-            if (allow)
-                style |= toggle;  // Add the styles to allow resizing
+        protected void SetWindowStyle(int style, bool enabled){
+            int styl = GetWindowLong(hWnd, (int)WindowLongs.GWL_STYLE);
+            if (enabled)
+                styl |= style;
             else
-                style &= ~toggle; // Remove the styles to prevent resizing
+                styl &= ~style;
+            SetWindowLong(hWnd, (int)WindowLongs.GWL_STYLE, styl);
+        }
 
-            SetWindowLong(hWnd, (int)WindowLongs.GWL_STYLE, style);
-            // SetWindowPos(hWnd, IntPtr.Zero, (int)WindowPosition.x, (int)WindowPosition.y, (int)WindowPosition.x + (int)WindowSize.x, (int)WindowPosition.y + (int)WindowSize.y, 0x0040 | 0x0010); // SWP_FRAMECHANGED | SWP_NOMOVE
+        // UI Thread methods
+        protected virtual void WindowMoved() { }
+
+        protected virtual void OnEndResize()
+        {
+            RenderContext?.OnEndResize();
+            new List<UIComponent>(uiComponents).ForEach(x => {
+                x?.Transform.UpdateLayout();
+                x?.Invalidate();
+            });
+        }
+
+        // Main thread methods
+
+        bool _onEndResizeFlag = false;
+        Vector2 oldSize;
+        private void OnEndRsz()
+        {
+            _onEndResizeFlag = true;
         }
 
 
-        public virtual void OnWindowResized(Vector2 size)
+        public virtual void WindowRzd(Vector2 size)
         {
-            OnWindowResize?.Invoke(size);
+            if (!_isResizing && size != oldSize)
+                OnEndRsz();
+            oldSize = size;
+
             _isDirty = true;
 
             if (RenderContext != null)
@@ -478,8 +589,10 @@ namespace FenUISharp
             RecalcClientBounds();
         }
 
-        public virtual void OnWindowMoved()
+        private bool _onWindowMovedFlag = false;
+        private void OnWindowMvd()
         {
+            _onWindowMovedFlag = true;
             GetWindowRect(hWnd, out var rect);
             WindowPosition = new Vector2(rect.left, rect.top);
 
@@ -520,18 +633,10 @@ namespace FenUISharp
                     }
 
                 case (int)WindowMessages.WM_USER + 1:
-                    if ((int)lParam == (int)WindowMessages.WM_RBUTTONDOWN)
-                        OnTrayIconClick?.Invoke(new MouseInputCode(1, 0));
-                    if ((int)lParam == (int)WindowMessages.WM_LBUTTONDOWN)
-                        OnTrayIconClick?.Invoke(new MouseInputCode(0, 0));
-                    if ((int)lParam == (int)WindowMessages.WM_MBUTTONDOWN)
-                        OnTrayIconClick?.Invoke(new MouseInputCode(2, 0));
                     if ((int)lParam == (int)WindowMessages.WM_RBUTTONUP)
-                        OnTrayIconClick?.Invoke(new MouseInputCode(1, 1));
+                        trayMouseActionFlag = new MouseInputCode(1, 1);
                     if ((int)lParam == (int)WindowMessages.WM_LBUTTONUP)
-                        OnTrayIconClick?.Invoke(new MouseInputCode(0, 1));
-                    if ((int)lParam == (int)WindowMessages.WM_MBUTTONUP)
-                        OnTrayIconClick?.Invoke(new MouseInputCode(2, 1));
+                        trayMouseActionFlag = new MouseInputCode(0, 1);
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_INITMENUPOPUP:
@@ -539,18 +644,9 @@ namespace FenUISharp
                     UpdateSysDarkmode();
                     break;
 
-                // case (uint)WindowMessages.WM_RENDER:
-                //     RenderContext.UpdateWindow();
-                //     return IntPtr.Zero;
-
-                // Later move to overlay wnd sub class
-                // case (int)Win32Helper.WindowMessages.WM_ACTIVATE:
-                //     SetAlwaysOnTop();
-                //     return IntPtr.Zero;
-
                 case (int)WindowMessages.WM_SIZING:
                 case (int)WindowMessages.WM_SIZE:
-                    OnWindowResized(new Vector2(wParam, lParam));
+                    WindowRzd(new Vector2(wParam, lParam));
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_ENTERSIZEMOVE:
@@ -560,32 +656,40 @@ namespace FenUISharp
                 case (int)WindowMessages.WM_EXITSIZEMOVE:
                     _isDirty = true;
                     _isResizing = false;
+                    OnEndRsz();
                     break;
+
+                case (int)WindowMessages.WM_KILLFOCUS:
+                    IsWindowFocused = false;
+                    return IntPtr.Zero;
+                case (int)WindowMessages.WM_SETFOCUS:
+                    IsWindowFocused = true;
+                    return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_MOVING:
                 case (int)WindowMessages.WM_MOVE:
-                    OnWindowMoved();
+                    OnWindowMvd();
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_KEYDOWN:
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_LBUTTONDOWN:
-                    MouseAction?.Invoke(new MouseInputCode(0, 0));
+                    mouseInputActionFlag = new MouseInputCode(0, 0);
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_RBUTTONDOWN:
-                    MouseAction?.Invoke(new MouseInputCode(1, 0));
+                    mouseInputActionFlag = new MouseInputCode(1, 0);
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_MBUTTONDOWN:
-                    MouseAction?.Invoke(new MouseInputCode(2, 0));
+                    mouseInputActionFlag = new MouseInputCode(2, 0);
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_LBUTTONUP:
-                    MouseAction?.Invoke(new MouseInputCode(0, 1));
+                    mouseInputActionFlag = new MouseInputCode(0, 1);
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_RBUTTONUP:
-                    MouseAction?.Invoke(new MouseInputCode(1, 1));
+                    mouseInputActionFlag = new MouseInputCode(1, 1);
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_MBUTTONUP:
-                    MouseAction?.Invoke(new MouseInputCode(2, 1));
+                    mouseInputActionFlag = new MouseInputCode(2, 1);
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_SETCURSOR:
@@ -594,19 +698,29 @@ namespace FenUISharp
                         hitTest == HTTOP || hitTest == HTTOPLEFT ||
                         hitTest == HTTOPRIGHT || hitTest == HTBOTTOM ||
                         hitTest == HTBOTTOMLEFT || hitTest == HTBOTTOMRIGHT)
-                    {
                         return DefWindowProcW(hWnd, msg, wParam, lParam);
-                    }
                     else
                         SetCursor(LoadCursor(IntPtr.Zero, (int)ActiveCursor.Value));
                     return IntPtr.Zero;
+                
+                case (int)WindowMessages.WM_NCHITTEST:
+                    if(_allowResize) DefWindowProcW(hWnd, msg, wParam, lParam);
+                    return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_CLOSE:
-                    _isRunning = false;
-                    Dispose();
+                    if (!HideWindowOnClose)
+                    {
+                        Dispose();
+                    }
+                    else
+                    {
+                        _windowCloseFlag = true;
+                        SetWindowVisibility(false);
+                    }
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_DESTROY:
+                    OnWindowDestroy?.Invoke();
                     PostQuitMessage(0);
                     return IntPtr.Zero;
             }
@@ -676,6 +790,11 @@ namespace FenUISharp
             (int)WindowStyles.WS_CAPTION |
             (int)WindowStyles.WS_SYSMENU |
             (int)WindowStyles.WS_MINIMIZEBOX;
+            
+        public const int WS_NOTITLEBAR =
+            (int)WindowStyles.WS_OVERLAPPED |
+            (int)WindowStyles.WS_POPUP |
+            (int)WindowStyles.WS_THICKFRAME;
 
 
         [DllImport("dwmapi.dll")]
@@ -724,6 +843,9 @@ namespace FenUISharp
 
         [DllImport("user32.dll", SetLastError = true)]
         protected static extern bool DestroyWindow(IntPtr hWnd);
+        
+        [DllImport("user32.dll")]
+        protected static extern bool IsWindowVisible(IntPtr hWnd);
 
         [DllImport("user32.dll")]
         protected static extern IntPtr SetCursor(IntPtr hCursor);
@@ -971,8 +1093,8 @@ namespace FenUISharp
 
     public struct MouseInputCode
     {
-        public int button; // 0: left, 1: right, 2: middle
-        public int state; // 0: down, 1: up
+        public int button { get; init; } // 0: left, 1: right, 2: middle
+        public int state { get; init; } // 0: down, 1: up
 
         public MouseInputCode(int btn, int state)
         {
@@ -982,10 +1104,12 @@ namespace FenUISharp
 
         public override bool Equals([NotNullWhen(true)] object? obj)
         {
-            // if(!(obj is MouseInputCode)) return false;
             return button == ((MouseInputCode)obj).button && state == ((MouseInputCode)obj).state;
         }
     }
+
+    public enum MouseInputState : int { Down = 0, Up = 1 }
+    public enum MouseInputButton : int { Left = 0, Right = 1, Middle = 2 }
 
     public enum Cursor : int
     {
@@ -1001,6 +1125,9 @@ namespace FenUISharp
         WM_SETTINGCHANGE = 0x001A,
         WM_INITMENUPOPUP = 0x0117,
         WM_NCHITTEST = 0x0084,
+
+        WM_SETFOCUS = 0x0007,
+        WM_KILLFOCUS = 0x0008,
 
         WM_GETMINMAXINFO = 0x24,
 

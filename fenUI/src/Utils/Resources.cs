@@ -19,29 +19,29 @@ namespace FenUISharp
 
             var darkTheme = new Theme
             {
-                Primary             = new SKColor(54, 89, 174),
-                PrimaryVariant      = new SKColor(38, 62, 123),
-                Secondary           = new SKColor(82, 82, 82),
-                SecondaryVariant    = new SKColor(65, 65, 65),
-                Background          = new SKColor(32, 32, 32),
-                Surface             = new SKColor(50, 50, 50),
-                SurfaceVariant      = new SKColor(40, 40, 40),
-                
-                OnPrimary           = new SKColor(255, 255, 255),
-                OnSecondary         = new SKColor(225, 225, 225),
-                OnBackground        = new SKColor(200, 200, 200),
-                OnSurface           = new SKColor(215, 215, 215),
+                Primary = new SKColor(54, 89, 174),
+                PrimaryVariant = new SKColor(38, 62, 123),
+                Secondary = new SKColor(82, 82, 82),
+                SecondaryVariant = new SKColor(65, 65, 65),
+                Background = new SKColor(32, 32, 32),
+                Surface = new SKColor(50, 50, 50),
+                SurfaceVariant = new SKColor(40, 40, 40),
 
-                Shadow              = new SKColor(0, 0, 0, 45),
+                OnPrimary = new SKColor(255, 255, 255),
+                OnSecondary = new SKColor(225, 225, 225),
+                OnBackground = new SKColor(200, 200, 200),
+                OnSurface = new SKColor(215, 215, 215),
 
-                DisabledMix         = new SKColor(255, 255, 255),
-                HoveredMix          = new SKColor(150, 150, 150),
-                PressedMix          = new SKColor(230, 230, 230),
-                SelectedMix         = new SKColor(230, 230, 230),
+                Shadow = new SKColor(0, 0, 0, 45),
 
-                Error               = new SKColor(254, 64, 56),
-                Success             = new SKColor(56, 254, 116),
-                Warning             = new SKColor(254, 238, 56)
+                DisabledMix = new SKColor(255, 255, 255),
+                HoveredMix = new SKColor(150, 150, 150),
+                PressedMix = new SKColor(230, 230, 230),
+                SelectedMix = new SKColor(230, 230, 230),
+
+                Error = new SKColor(254, 64, 56),
+                Success = new SKColor(56, 254, 116),
+                Warning = new SKColor(254, 238, 56)
             };
 
             RegisterTheme(darkTheme, "default-dark");
@@ -77,6 +77,23 @@ namespace FenUISharp
         public static Theme? GetTheme(string id)
         {
             return themes.ContainsKey(id) ? themes[id] : null;
+        }
+
+        public static Uri ConvertMsAppxToUri(string msAppX)
+        {
+            if (msAppX.StartsWith("ms-appx:///"))
+            {
+                string relativePath = msAppX.Substring("ms-appx:///".Length);
+                string basePath = AppDomain.CurrentDomain.BaseDirectory; // Your EXE directory
+                return new Uri(Path.Combine(basePath, relativePath));
+            }
+            return new Uri(msAppX);
+        }
+
+        public static Uri GetUriFromPath(string path)
+        {
+            string basePath = AppDomain.CurrentDomain.BaseDirectory; // Your EXE directory
+            return new Uri(Path.Combine(basePath, path));
         }
     }
 }

@@ -18,18 +18,18 @@ namespace FenUISharp
             BorderColor = new ThemeColor(SKColors.Transparent);
             PanelColor = color ?? WindowRoot.WindowThemeManager.GetColor(t => t.Surface);
 
-            skPaint.ImageFilter = SKImageFilter.CreateDropShadow(0, 2, 5, 5, WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value);
+            SkPaint.ImageFilter = SKImageFilter.CreateDropShadow(0, 2, 5, 5, WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value);
             this.CornerRadius = cornerRadius;
 
-            transform.boundsPadding.SetValue(this, 35, 35);
+            Transform.BoundsPadding.SetValue(this, 35, 35);
         }
 
         protected override void DrawToSurface(SKCanvas canvas)
         {
-            skPaint.Color = PanelColor.Value;
-            canvas.DrawRoundRect(transform.localBounds, CornerRadius, CornerRadius, skPaint);
+            SkPaint.Color = PanelColor.Value;
+            canvas.DrawRoundRect(Transform.LocalBounds, CornerRadius, CornerRadius, SkPaint);
 
-            using(var strokePaint = skPaint.Clone()){
+            using(var strokePaint = SkPaint.Clone()){
                 strokePaint.IsStroke = true;
                 strokePaint.Color = BorderColor.Value;
                 strokePaint.StrokeWidth = BorderSize;
@@ -37,7 +37,7 @@ namespace FenUISharp
                 strokePaint.StrokeCap = SKStrokeCap.Round;
                 strokePaint.StrokeJoin = SKStrokeJoin.Round;
 
-                canvas.DrawRoundRect(transform.localBounds, CornerRadius, CornerRadius, strokePaint);
+                canvas.DrawRoundRect(Transform.LocalBounds, CornerRadius, CornerRadius, strokePaint);
             }
         }
     }

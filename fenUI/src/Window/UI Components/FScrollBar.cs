@@ -44,14 +44,14 @@ namespace FenUISharp
             _scrollAreaColor = areaColor ?? WindowRoot.WindowThemeManager.GetColor(t => t.SurfaceVariant);
             _scrollPositionColor = positionColor ?? WindowRoot.WindowThemeManager.GetColor(t => t.OnSurface);
 
-            transform.interactionPadding = 5;
+            Transform.InteractionPadding = 5;
         }
 
         protected override void OnUpdate()
         {
             base.OnUpdate();
 
-            lastThumbInteractionRect = GetThumbRect(transform.bounds);
+            lastThumbInteractionRect = GetThumbRect(Transform.Bounds);
 
             Alpha -= AlphaFadeSpeed * (float)WindowRoot.DeltaTime;
             if (Alpha < 0f) Alpha = 0;
@@ -63,8 +63,8 @@ namespace FenUISharp
 
             if (_isDragging)
             {
-                var thumbSize = GetThumbRect(transform.localBounds);
-                float availableTrackSize = HorizontalOrientation ? transform.size.x - thumbSize.Width : transform.size.y - thumbSize.Height;
+                var thumbSize = GetThumbRect(Transform.LocalBounds);
+                float availableTrackSize = HorizontalOrientation ? Transform.Size.x - thumbSize.Width : Transform.Size.y - thumbSize.Height;
                 float mouseDelta = HorizontalOrientation
                     ? (WindowRoot.ClientMousePosition.x - _mouseStartDragPos.x)
                     : (WindowRoot.ClientMousePosition.y - _mouseStartDragPos.y);
@@ -82,7 +82,7 @@ namespace FenUISharp
                 _lastScrollPos = _scrollDragPosition;
             }
 
-            visible = ContentSize > PageSize;
+            Visible = ContentSize > PageSize;
         }
 
         public void UpdateScrollbar()
@@ -99,7 +99,7 @@ namespace FenUISharp
             if (inputCode.button == 0 && inputCode.state == 0)
             {
                 var interactionRect = lastThumbInteractionRect;
-                interactionRect.Inflate(transform.interactionPadding, transform.interactionPadding);
+                interactionRect.Inflate(Transform.InteractionPadding, Transform.InteractionPadding);
 
                 if (RMath.ContainsPoint(interactionRect, WindowRoot.ClientMousePosition))
                 {
@@ -115,6 +115,7 @@ namespace FenUISharp
         protected override void GlobalMouseAction(MouseInputCode inputCode)
         {
             base.GlobalMouseAction(inputCode);
+            Invalidate();
 
             if (inputCode.button == 0 && inputCode.state == 1)
             {
@@ -122,22 +123,33 @@ namespace FenUISharp
             }
         }
 
+        protected override void MouseEnter()
+        {
+            base.MouseEnter();
+            Invalidate();
+        }
+
+        protected override void MouseExit()
+        {
+            base.MouseExit();
+            Invalidate();
+        }
 
         protected override void DrawToSurface(SKCanvas canvas)
         {
-            var scrollArea = transform.localBounds;
+            var scrollArea = Transform.LocalBounds;
 
             // Draw the scroll track
-            skPaint.Color = _scrollAreaColor.Value.WithAlpha((byte)(255 * RMath.Clamp(Alpha, 0, (_isMouseHovering || _isDragging) ? 1f : 0.4f)));
-            canvas.DrawRoundRect(scrollArea, 5, 5, skPaint);
+            SkPaint.Color = _scrollAreaColor.Value.WithAlpha((byte)(255 * RMath.Clamp(Alpha, 0, (_isMouseHovering || _isDragging) ? 1f : 0.4f)));
+            canvas.DrawRoundRect(scrollArea, 5, 5, SkPaint);
 
             canvas.ClipRoundRect(new SKRoundRect(scrollArea, 5, 5), antialias: true);
 
             SKRect thumbRect = GetThumbRect(scrollArea);
 
             // Draw the scroll thumb
-            skPaint.Color = _scrollPositionColor.Value.WithAlpha((byte)(255 * RMath.Clamp(Alpha, 0, (_isMouseHovering || _isDragging) ? 1f : 0.4f)));
-            canvas.DrawRoundRect(thumbRect, 5, 5, skPaint);
+            SkPaint.Color = _scrollPositionColor.Value.WithAlpha((byte)(255 * RMath.Clamp(Alpha, 0, (_isMouseHovering || _isDragging) ? 1f : 0.4f)));
+            canvas.DrawRoundRect(thumbRect, 5, 5, SkPaint);
         }
 
         private SKRect GetThumbRect(SKRect scrollArea)

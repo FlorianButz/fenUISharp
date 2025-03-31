@@ -238,6 +238,7 @@ namespace FenUISharp
 
         private Vector2 GetSize()
         {
+            if(WindowRoot.Bounds.Width <= 0 || WindowRoot.Bounds.Height <= 0) return new Vector2(1, 1);
             return new Vector2(WindowRoot.Bounds.Width, WindowRoot.Bounds.Height);
         }
 

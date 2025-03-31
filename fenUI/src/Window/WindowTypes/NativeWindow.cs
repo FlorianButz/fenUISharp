@@ -7,9 +7,6 @@ namespace FenUISharp
 {
     public class NativeWindow : Window
     {
-        // Only needed when taskbar icon is hidden
-        private static IntPtr hiddenOwnerWindow = IntPtr.Zero;
-
         private bool _useMica = false;
         public bool UseMica { get => _useMica; set { _useMica = value; UpdateMica(); } }
         private bool _useMicaMainWindow = true;
@@ -18,8 +15,8 @@ namespace FenUISharp
         public NativeWindow(
             string title, string className, RenderContextType type,
             Vector2? windowSize = null, Vector2? windowPosition = null,
-            bool alwaysOnTop = false, bool hideTaskbarIcon = false) :
-            base(title, className, type, windowSize, windowPosition, alwaysOnTop, hideTaskbarIcon)
+            bool alwaysOnTop = false, bool hideTaskbarIcon = false, bool hasTitlebar = true) :
+            base(title, className, type, windowSize, windowPosition, alwaysOnTop, hideTaskbarIcon, hasTitlebar)
         {
         }
 
@@ -37,7 +34,7 @@ namespace FenUISharp
                 0,
                 this.WindowClass,
                 this.WindowTitle,
-                WS_NATIVE,
+                _hasTitlebar ? WS_NATIVE : WS_NOTITLEBAR,
                 centerPos ? (int)WindowPosition.x : (int)position?.x,
                 centerPos ? (int)WindowPosition.y : (int)position?.y,
                 (int)size?.x,
@@ -72,17 +69,6 @@ namespace FenUISharp
             base.UpdateSysDarkmode();
 
             UpdateMica();
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-
-            if (hiddenOwnerWindow != IntPtr.Zero)
-            {
-                DestroyWindow(hiddenOwnerWindow);
-                hiddenOwnerWindow = IntPtr.Zero;
-            }
         }
 
         public void UpdateMica()
