@@ -13,12 +13,7 @@ namespace FenUISharpTest1
             FenUI.Init();
             FenUI.SetupAppModel("FlorianButz.fenUI");
 
-            NativeWindow popup = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(150, 200), hasTitlebar: false);
-            popup.CanMinimize = false;
-            popup.CanMaximize = false;
-            popup.WindowMinSize = new Vector2(100, 100);
-            popup.AllowResizing = false;
-
+            TransparentWindow popup = new TransparentWindow("Test 1", "testClass", Window.RenderContextType.Software, new Vector2(100, 150), null);
             popup.SystemDarkMode = true;
             popup.SetWindowVisibility(true);
 
@@ -40,13 +35,13 @@ namespace FenUISharpTest1
             }
 
             popup.OnFocusLost += () => {
-                popup.Dispose();
+                popup.DisposeAndDestroyWindow();
             };
 
             popup.BeginWindowLoop();
 
             // NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(800, 400));
-            // // OverlayWindow window = new OverlayWindow("Test 1", "testClass", Window.RenderContextType.Software);
+            // TransparentWindow window = new TransparentWindow("Test 1", "testClass", Window.RenderContextType.Software, new Vector2(250, 250), null);
 
             // window.RefreshRate = 60;
             // window.SystemDarkMode = true;
@@ -57,12 +52,9 @@ namespace FenUISharpTest1
             //     c.button == (int)MouseInputButton.Left) {
             //         window.SetWindowVisibility(true);
             //     }
-
-            //     Console.WriteLine(c.state + " : " + c.button);
             // };
 
             // window.MouseAction += (MouseInputCode c) => {
-            //     Console.WriteLine(c.state + " : " + c.button); 
             // };
 
             // window.SetTrayIcon("icons/TrayIcon.ico", "Test");

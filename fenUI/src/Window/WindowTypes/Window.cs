@@ -131,7 +131,7 @@ namespace FenUISharp
             WindowTitle = title;
             WindowClass = className;
 
-            WindowSize = (windowSize == null) ? new Vector2(400, 300) : windowSize.Value;
+            WindowSize = (windowSize == null || windowSize.Value.Magnitude() < 1) ? new Vector2(400, 300) : windowSize.Value;
             WindowPosition = (windowPosition == null) ? new Vector2(0, 0) : windowPosition.Value;
 
             _wndProcDelegate = WindowsProcedure;
@@ -232,10 +232,9 @@ namespace FenUISharp
                     TranslateMessage(ref msg);
                     DispatchMessage(ref msg);
 
-                    Console.WriteLine(_stopRunningFlag);
+                    if(!_isRunning) break;
 
                     if(_stopRunningFlag) _isRunning = false;
-
                     Thread.Sleep(1); // Prevent too high cpu usage
                 }
             }
@@ -332,10 +331,10 @@ namespace FenUISharp
             }
 
             if(_lastIsWindowFocused != IsWindowFocused){
-                _lastIsWindowFocused = IsWindowFocused;
                 if(IsWindowFocused) OnFocusGained?.Invoke();
                 else OnFocusLost?.Invoke();
             }
+            _lastIsWindowFocused = IsWindowFocused;
 
             if (_onWindowMovedFlag)
             {
@@ -350,7 +349,9 @@ namespace FenUISharp
             if (_windowCloseFlag)
             {
                 _windowCloseFlag = false;
+                _isRunning = false;
                 OnWindowClose?.Invoke();
+                Dispose();
             }
 
             if (mouseInputActionFlag != null)
@@ -518,6 +519,14 @@ namespace FenUISharp
             DestroyWindow(hWnd);
             _stopRunningFlag = false;
             DisposeHiddenWindow();
+        }
+
+        public void DisposeAndDestroyWindow()
+        {
+            SetWindowVisibility(false); // To make sure the window disappears instantly (or as fast as possible) hide it first
+
+            Dispose();
+            _stopRunningFlag = true;
         }
 
         public virtual void UpdateWindowFrame()
@@ -703,20 +712,15 @@ namespace FenUISharp
                         SetCursor(LoadCursor(IntPtr.Zero, (int)ActiveCursor.Value));
                     return IntPtr.Zero;
                 
-                case (int)WindowMessages.WM_NCHITTEST:
-                    if(_allowResize) DefWindowProcW(hWnd, msg, wParam, lParam);
-                    return IntPtr.Zero;
+                // case (int)WindowMessages.WM_NCHITTEST:
+                //     if(_allowResize) DefWindowProcW(hWnd, msg, wParam, lParam);
+                //     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_CLOSE:
                     if (!HideWindowOnClose)
-                    {
-                        Dispose();
-                    }
-                    else
-                    {
                         _windowCloseFlag = true;
+                    else
                         SetWindowVisibility(false);
-                    }
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_DESTROY:

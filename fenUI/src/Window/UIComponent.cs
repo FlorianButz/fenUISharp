@@ -179,6 +179,7 @@ namespace FenUISharp
                     cachedSurface.Canvas.Scale(quality, quality);
                     Components.ForEach(x => x.OnBeforeRender(cachedSurface.Canvas));
                     DrawToSurface(cachedSurface.Canvas);
+                    
                     Components.ForEach(x => x.OnAfterRender(cachedSurface.Canvas));
 
                     cachedSurface.Flush();
@@ -206,6 +207,7 @@ namespace FenUISharp
                     snapshot.Dispose();
                 }
             }
+
 
             Components.ForEach(x => x.OnBeforeRenderChildren(canvas));
             Transform.Children.ForEach(c => c.ParentComponent.DrawToScreen(canvas));
@@ -601,6 +603,11 @@ namespace FenUISharp
         public static bool operator !=(Vector2 c1, Vector2 c2)
         {
             return c1.x != c2.x || c1.y != c2.y;
+        }
+
+        public override string ToString()
+        {
+            return $"({x}, {y})";
         }
     }
 }

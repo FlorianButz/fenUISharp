@@ -13,6 +13,8 @@ namespace FenUISharp
         public float Pad { get; set; } = 15;
 
         public bool AllowScrollOverflow { get; set; } = true;
+        public bool ContentFade { get; set; } = true;
+        public float FadeLength { get; set; } = 0.1f;
 
         public ContentStackType StackType { get; set; }
         public ContentStackBehavior StackBehavior { get; set; }
@@ -51,6 +53,36 @@ namespace FenUISharp
             else
             {
                 StartAlignment = startAlign.Value;
+            }
+        }
+
+        public override void OnAfterRenderChildren(SKCanvas canvas)
+        {
+            base.OnAfterRender(canvas);
+            
+            if(!ContentFade) return;
+
+            using (var maskPaint = new SKPaint())
+            {
+                maskPaint.BlendMode = SKBlendMode.DstIn;
+
+                SKPoint start = new SKPoint(0, parent.Transform.Bounds.Top);
+                SKPoint end = new SKPoint(0, parent.Transform.Bounds.Bottom);
+
+                if(StackType == ContentStackType.Horizontal){
+                    start = new SKPoint(parent.Transform.Bounds.Left, 0);
+                    end = new SKPoint(parent.Transform.Bounds.Right, 0);
+                }
+
+                maskPaint.Shader = SKShader.CreateLinearGradient(
+                    start,
+                    end,
+                    new SKColor[] { SKColors.Black, SKColors.Black, SKColors.Black, SKColors.Transparent },
+                    new float[] { 0f, FadeLength, 1 - FadeLength, 1f },
+                    SKShaderTileMode.Clamp
+                );
+
+                canvas.DrawRect(parent.Transform.Bounds, maskPaint);
             }
         }
 
