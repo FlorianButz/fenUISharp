@@ -8,6 +8,22 @@ namespace FenUISharp
 {
     public class Easing
     {
+        public static float EaseOutBack(float t)
+        {
+            const float c1 = 1.70158f;
+            const float c3 = c1 + 1;
+
+            return (float)(1 + c3 * Math.Pow(t - 1, 3) + c1 * Math.Pow(t - 1, 2));
+        }
+
+        public static float EaseOutIn(float t)
+        {
+            const float c1 = 1.70158f;
+            const float c3 = c1 + 1;
+
+            return (float)(c3 * t * t * t - c1 * t * t);
+        }
+
         public static float EaseInQuint(float x)
         {
             return x * x * x * x * x;
