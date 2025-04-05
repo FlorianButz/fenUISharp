@@ -150,7 +150,7 @@ namespace FenUISharp
             if (Transform.Parent != null && Transform.ClipWhenFullyOutsideParent && !RMath.IsRectPartiallyInside(Transform.Parent.Bounds, Transform.Bounds)) return;
 
             // Render quality
-            float quality = RMath.Clamp(renderQuality.Value * ((Transform.Parent != null) ? Transform.Parent.ParentComponent.renderQuality.Value : 1), 0.05f, 1);
+            float quality = RMath.Clamp(renderQuality.Value * ((Transform.Parent != null) ? Transform.Parent.ParentComponent.renderQuality.Value : 1), 0.05f, 2);
             var bounds = Transform.FullBounds;
 
             int c = canvas.Save();

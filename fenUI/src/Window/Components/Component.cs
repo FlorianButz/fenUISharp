@@ -8,6 +8,7 @@ namespace FenUISharp {
 
         public Component(UIComponent parent){
             this.parent = parent;
+            this.parent.Components.Add(this);
         }
 
         public void CmpUpdate() {

@@ -484,10 +484,6 @@ namespace FenUISharp
         {
             base.OnUpdate();
 
-            // if(contentBounds.x != 0 && FitBoundsToContent) {
-            // transform.size = contentBounds;
-            // }
-
             if (Truncation == TextTruncation.Scroll)
             {
                 float textWidth = Font.MeasureText(Text);

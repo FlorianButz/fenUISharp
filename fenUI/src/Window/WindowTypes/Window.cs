@@ -22,7 +22,7 @@ namespace FenUISharp
         public Vector2 WindowMaxSize { get; set; } = new Vector2(float.MaxValue, float.MaxValue);
 
         protected bool _allowResize = true;
-        public bool AllowResizing { get => _allowResize; set { _allowResize = value;  /* UpdateAllowResize(_allowResize); */ } }
+        public bool AllowResizing { get => _allowResize; set { _allowResize = value;  UpdateAllowResize(_allowResize); } }
 
         private bool _hasSystemMenu = true;
         public bool HasSystemMenu { get => _hasSystemMenu; set { _hasSystemMenu = value; UpdateHasSysMenu(_hasSystemMenu); } }
@@ -32,6 +32,9 @@ namespace FenUISharp
 
         private bool _hasMinimizeButton = true;
         public bool CanMaximize { get => _hasMinimizeButton; set { _hasMinimizeButton = value; UpdateHasMinimizeButton(_hasMinimizeButton); } }
+
+        private bool _showInTaskbar = true;
+        public bool ShowInTaskbar { get => _showInTaskbar; set { _showInTaskbar = value; SetTaskbarIconVisibility(_showInTaskbar); } }
 
         protected bool _hasTitlebar = false;
 
@@ -93,7 +96,7 @@ namespace FenUISharp
 
         private readonly WndProcDelegate _wndProcDelegate;
         protected bool _alwaysOnTop;
-        volatile bool _isDirty = false;
+        protected volatile bool _isDirty = false;
         volatile bool _isResizing = false;
 
         volatile bool _stopRunningFlag = false;
@@ -134,16 +137,20 @@ namespace FenUISharp
             WindowSize = (windowSize == null || windowSize.Value.Magnitude() < 1) ? new Vector2(400, 300) : windowSize.Value;
             WindowPosition = (windowPosition == null) ? new Vector2(0, 0) : windowPosition.Value;
 
-            _wndProcDelegate = WindowsProcedure;
+            _wndProcDelegate = StaticWndProc;
             _hasTitlebar = hasTitlebar;
 
             // Create window and handle
-            hWnd = CreateWin32Window(RegisterClass(), WindowSize, windowPosition);
+            hWnd = CreateWin32Window(RegisterClass(WindowClass), WindowSize, windowPosition);
             if (hWnd == IntPtr.Zero)
             {
                 int error = Marshal.GetLastWin32Error();
                 throw new Exception($"Window creation failed: error {error}");
             }
+
+            // Making sure every instance of the Window class has its own WndProc
+            GCHandle gch = GCHandle.Alloc(this);
+            SetWindowLongPtr(hWnd, -21 /* GWLP_USERDATA */, GCHandle.ToIntPtr(gch));
 
             WindowThemeManager = new ThemeManager(Resources.GetTheme("default-dark"));
 
@@ -289,10 +296,11 @@ namespace FenUISharp
         }
 
         protected virtual void OnRenderFrame(SKSurface surface) { }
+        protected virtual void OnAfterRenderFrame(SKSurface surface) { }
 
         private readonly object _renderLock = new object();
 
-        private void RenderFrame()
+        protected virtual void RenderFrame()
         {
             if (_isResizing) return;
 
@@ -314,6 +322,8 @@ namespace FenUISharp
                         _canvas.DrawRect(component.InteractionBounds, new SKPaint() { IsStroke = true, Color = SKColors.Green });
                     }
                 }
+
+                OnAfterRenderFrame(RenderContext.Surface);
 
                 RenderContext.EndDraw();
             }
@@ -398,26 +408,24 @@ namespace FenUISharp
 
         public List<UIComponent> GetUIComponents() => uiComponents;
 
-        public void SetWindowVisibility(bool visible)
-        {
-            ShowWindow(hWnd, visible ? 1 : 0);
-        }
-
+        public void SetWindowVisibility(bool visible) => ShowWindow(hWnd, visible ? 1 : 0);
+        
         public void SetAlwaysOnTop(bool alwaysOnTop)
         {
             _alwaysOnTop = alwaysOnTop;
             SetWindowPos(hWnd, alwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, (uint)SetWindowPosFlags.SWP_NOMOVE | (uint)SetWindowPosFlags.SWP_NOSIZE);
         }
 
-        protected WNDCLASSEX RegisterClass()
+        protected virtual WNDCLASSEX RegisterClass(string className)
         {
+            WindowClass = className;
             WNDCLASSEX wndClass = new WNDCLASSEX
             {
                 cbSize = (uint)Marshal.SizeOf(typeof(WNDCLASSEX)),
                 style = 0x0020,
                 lpfnWndProc = _wndProcDelegate,
                 hInstance = Marshal.GetHINSTANCE(typeof(Program).Module),
-                lpszClassName = WindowClass
+                lpszClassName = className
             };
 
             RegisterClassExA(ref wndClass);
@@ -484,14 +492,14 @@ namespace FenUISharp
 
         public void SetTaskbarIconVisibility(bool visible)
         {
+            _showInTaskbar = visible;
             if (!visible)
             {
                 // Create a dummy window (invisible) to act as the owner
-                IntPtr hiddenOwner = CreateWindowEx((int)WindowStyles.WS_EX_TOOLWINDOW, "STATIC", "",
+                IntPtr hiddenOwner = CreateWindowEx((int)WindowStyles.WS_EX_TOOLWINDOW, "STATIC" + Random.Shared.NextInt64(), "",
                     WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero, GetModuleHandle(null), IntPtr.Zero);
 
                 hiddenOwnerWindowHandle = hiddenOwner;
-
                 ShowWindow(hiddenOwner, 0); // Ensure it never appears
 
                 if (hWnd != IntPtr.Zero)
@@ -519,6 +527,8 @@ namespace FenUISharp
             DestroyWindow(hWnd);
             _stopRunningFlag = false;
             DisposeHiddenWindow();
+
+            Console.WriteLine("Destroyed " + Thread.CurrentThread.ManagedThreadId);
         }
 
         public void DisposeAndDestroyWindow()
@@ -535,6 +545,12 @@ namespace FenUISharp
 
         public MultiAccess<Cursor> ActiveCursor = new MultiAccess<Cursor>(Cursor.ARROW);
         
+        private void UpdateAllowResize(bool allowResize)
+        {
+            int toggle = (int)WindowStyles.WS_THICKFRAME;
+            SetWindowStyle(toggle, allowResize);
+        }
+
         protected void UpdateHasSysMenu(bool allow)
         {
             int toggle = (int)WindowStyles.WS_SYSMENU;
@@ -583,7 +599,6 @@ namespace FenUISharp
             _onEndResizeFlag = true;
         }
 
-
         public virtual void WindowRzd(Vector2 size)
         {
             if (!_isResizing && size != oldSize)
@@ -624,6 +639,20 @@ namespace FenUISharp
             var point = new POINT() { x = (int)p.x, y = (int)p.y };
             ScreenToClient(hWnd, ref point);
             return new Vector2(point.x, point.y);
+        }
+
+        private static IntPtr StaticWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+        {
+            IntPtr ptr = GetWindowLongPtrA(hWnd, -21);
+
+            if (ptr != IntPtr.Zero)
+            {
+                GCHandle gch = GCHandle.FromIntPtr(ptr);
+                var instance = (Window)gch.Target;
+                return instance.WindowsProcedure(hWnd, msg, wParam, lParam);
+            }
+
+            return DefWindowProcW(hWnd, msg, wParam, lParam);
         }
 
         protected IntPtr WindowsProcedure(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
@@ -680,6 +709,15 @@ namespace FenUISharp
                     OnWindowMvd();
                     return IntPtr.Zero;
 
+                case (int)WindowMessages.WM_NCDESTROY:
+                    IntPtr ptr = GetWindowLongPtrA(hWnd, -21);
+                    if (ptr != IntPtr.Zero)
+                    {
+                        GCHandle.FromIntPtr(ptr).Free();
+                        SetWindowLongPtr(hWnd, -21, IntPtr.Zero);
+                    }
+                    break;
+
                 case (int)WindowMessages.WM_KEYDOWN:
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_LBUTTONDOWN:
@@ -711,16 +749,11 @@ namespace FenUISharp
                     else
                         SetCursor(LoadCursor(IntPtr.Zero, (int)ActiveCursor.Value));
                     return IntPtr.Zero;
-                
-                // case (int)WindowMessages.WM_NCHITTEST:
-                //     if(_allowResize) DefWindowProcW(hWnd, msg, wParam, lParam);
-                //     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_CLOSE:
+                    SetWindowVisibility(false); // Make sure the window is closes seemingly faster by hiding it first
                     if (!HideWindowOnClose)
                         _windowCloseFlag = true;
-                    else
-                        SetWindowVisibility(false);
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_DESTROY:
@@ -753,19 +786,19 @@ namespace FenUISharp
 
         #region Windows
 
-        public const int WM_SETICON = 0x0080;
-        public const int ICON_SMALL = 0;
-        public const int ICON_BIG = 1;
+        protected const int WM_SETICON = 0x0080;
+        protected const int ICON_SMALL = 0;
+        protected const int ICON_BIG = 1;
 
-        public const uint IMAGE_ICON = 1;
-        public const uint LR_LOADFROMFILE = 0x00000010;
+        protected const uint IMAGE_ICON = 1;
+        protected const uint LR_LOADFROMFILE = 0x00000010;
 
-        public const int CW_USEDEFAULT = unchecked((int)0x80000000);
+        protected const int CW_USEDEFAULT = unchecked((int)0x80000000);
 
-        public const int GWL_HWNDPARENT = -8;
+        protected const int GWL_HWNDPARENT = -8;
 
-        public const int HWND_TOPMOST = -1;
-        public const int HWND_NOTOPMOST = -2;
+        protected const int HWND_TOPMOST = -1;
+        protected const int HWND_NOTOPMOST = -2;
 
         const int WM_SETCURSOR = 0x0020;
         const int HTLEFT = 10;
@@ -778,8 +811,10 @@ namespace FenUISharp
         const int HTBOTTOMRIGHT = 17;
         const int HTCLIENT = 1;
 
-        public const uint LWA_COLORKEY = 0x00000001;
-        public const uint LWA_ALPHA = 0x00000002;
+        protected const uint LWA_COLORKEY = 0x00000001;
+        protected const uint LWA_ALPHA = 0x00000002;
+
+        protected const uint MONITOR_DEFAULTTONEAREST = 2;
 
         public const int WS_OVERLAPPEDWINDOW =
             (int)WindowStyles.WS_OVERLAPPED |
@@ -800,17 +835,34 @@ namespace FenUISharp
             (int)WindowStyles.WS_POPUP |
             (int)WindowStyles.WS_THICKFRAME;
 
-
-        [DllImport("dwmapi.dll")]
-        public static extern void DwmFlush();
+        [DllImport("user32.dll")]
+        protected static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
 
         [DllImport("user32.dll", SetLastError = true)]
-        private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+        protected static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+        [StructLayout(LayoutKind.Sequential)]
+        protected struct MONITORINFO
+        {
+            public uint cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public uint dwFlags;
+        }
+
+        [DllImport("dwmapi.dll")]
+        protected static extern void DwmFlush();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        protected static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
         protected static int GET_X_LPARAM(IntPtr lParam) => (int)(lParam.ToInt32() & 0xFFFF);
         protected static int GET_Y_LPARAM(IntPtr lParam) => (int)((lParam.ToInt32() >> 16) & 0xFFFF);
 
         [DllImport("user32.dll", SetLastError = true)]
         protected static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        protected static extern IntPtr GetWindowLongPtrA(IntPtr hWnd, int nIndex);
 
         [DllImport("uxtheme.dll", EntryPoint = "#135")]
         protected static extern int ShouldSystemUseDarkMode();
@@ -829,6 +881,9 @@ namespace FenUISharp
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         protected static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        [DllImport("user32.dll")]
+        protected static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
 
         [DllImport("user32.dll")]
         protected static extern IntPtr LoadImage(IntPtr hInstance, string lpszName, uint uType, int cx, int cy, uint fuLoad);
@@ -930,7 +985,7 @@ namespace FenUISharp
             ref int attrValue,
             int attrSize);
 
-        public enum DWMWINDOWATTRIBUTE
+        protected enum DWMWINDOWATTRIBUTE
         {
             DWMWA_SYSTEMBACKDROP_TYPE = 38,
             DWMWA_MICA_EFFECT = 1029,      // Dark mode Mica
@@ -1132,6 +1187,8 @@ namespace FenUISharp
 
         WM_SETFOCUS = 0x0007,
         WM_KILLFOCUS = 0x0008,
+
+        WM_NCDESTROY = 0x0082,
 
         WM_GETMINMAXINFO = 0x24,
 

@@ -174,7 +174,7 @@ namespace FenUISharp
                     new SKPoint(Transform.LocalBounds.Left, Transform.LocalBounds.Bottom),
                     new SKPoint(Transform.LocalBounds.Left, Transform.LocalBounds.Top + 4f),
                     new SKColor[] { WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value, SKColors.Transparent },
-                    new float[] { 0f, 0.5f },
+                    new float[] { 0f, 1f },
                     SKShaderTileMode.Clamp
                 );
                 canvas.DrawRoundRect(roundRect, paint);

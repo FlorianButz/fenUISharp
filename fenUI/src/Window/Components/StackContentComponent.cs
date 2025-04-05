@@ -41,8 +41,7 @@ namespace FenUISharp
 
             scrollComponent = new UserScrollComponent(parent);
             scrollComponent.MouseScroll += OnScroll;
-            parent.Components.Add(scrollComponent);
-
+            
             ScrollSpring = new Spring(new Vector2(0, 0), 2, 0.85f, 0.1f);
 
             if (startAlign == null)
@@ -56,11 +55,30 @@ namespace FenUISharp
             }
         }
 
+        private int? _fadeLayerSaveCount = null;
+
+        public override void OnBeforeRenderChildren(SKCanvas canvas)
+        {
+            base.OnBeforeRenderChildren(canvas);
+
+            if (StackBehavior == ContentStackBehavior.Scroll)
+            {
+                canvas.ClipRect(parent.Transform.Bounds);
+            }
+
+            if (!ContentFade || _contentSize <= _pageSize) return;
+
+            // Save a layer for the children to be rendered into
+            var bounds = parent.Transform.Bounds;
+            _fadeLayerSaveCount = canvas.SaveLayer(bounds, null);
+        }
+
         public override void OnAfterRenderChildren(SKCanvas canvas)
         {
             base.OnAfterRender(canvas);
-            
-            if(!ContentFade) return;
+
+            if (!ContentFade) return;
+            if (_contentSize <= _pageSize || _fadeLayerSaveCount == null) return;
 
             using (var maskPaint = new SKPaint())
             {
@@ -69,7 +87,8 @@ namespace FenUISharp
                 SKPoint start = new SKPoint(0, parent.Transform.Bounds.Top);
                 SKPoint end = new SKPoint(0, parent.Transform.Bounds.Bottom);
 
-                if(StackType == ContentStackType.Horizontal){
+                if (StackType == ContentStackType.Horizontal)
+                {
                     start = new SKPoint(parent.Transform.Bounds.Left, 0);
                     end = new SKPoint(parent.Transform.Bounds.Right, 0);
                 }
@@ -77,13 +96,16 @@ namespace FenUISharp
                 maskPaint.Shader = SKShader.CreateLinearGradient(
                     start,
                     end,
-                    new SKColor[] { SKColors.Black, SKColors.Black, SKColors.Black, SKColors.Transparent },
+                    new SKColor[] { SKColors.Transparent, SKColors.Black, SKColors.Black, SKColors.Transparent },
                     new float[] { 0f, FadeLength, 1 - FadeLength, 1f },
                     SKShaderTileMode.Clamp
                 );
 
                 canvas.DrawRect(parent.Transform.Bounds, maskPaint);
             }
+
+            canvas.RestoreToCount(_fadeLayerSaveCount.Value);
+            _fadeLayerSaveCount = null;
         }
 
         public override void ComponentSetup()
@@ -148,7 +170,7 @@ namespace FenUISharp
             if (!AllowScrollOverflow)
                 _scrollPosition = RMath.Clamp(_scrollPosition, -_scrollMax, _scrollMin);
 
-            if(_contentSize > _pageSize)
+            if (_contentSize > _pageSize)
                 _scrollDisplayPosition = ScrollSpring.Update((float)parent.WindowRoot.DeltaTime, new Vector2(_scrollPosition, 0)).x;
             else
                 _scrollDisplayPosition = _pageSize / 2 - _contentSize / 2;
@@ -179,16 +201,6 @@ namespace FenUISharp
             scrollBar.ContentSize = _contentSize;
 
             scrollBar.ScrollPosition = _scrollDisplayPosition;
-        }
-
-        public override void OnBeforeRenderChildren(SKCanvas canvas)
-        {
-            base.OnBeforeRenderChildren(canvas);
-
-            if (StackBehavior == ContentStackBehavior.Scroll)
-            {
-                canvas.ClipRect(parent.Transform.Bounds);
-            }
         }
 
         public void UpdatePosition()

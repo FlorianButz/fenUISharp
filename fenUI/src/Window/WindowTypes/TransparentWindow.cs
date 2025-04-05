@@ -50,6 +50,7 @@ namespace FenUISharp
 
         protected override IntPtr CreateWin32Window(WNDCLASSEX wndClass, Vector2? size, Vector2? position)
         {
+            Console.WriteLine(WindowClass);
             WindowSize = size ?? WindowSize;
             WindowPosition = position ?? WindowPosition;
 
