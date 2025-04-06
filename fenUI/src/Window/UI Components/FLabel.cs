@@ -65,7 +65,7 @@ namespace FenUISharp
             SkPaint.ImageFilter = dropShadow;
 
             changeTextAnim = new AnimatorComponent(this, Easing.EaseInCubic, Easing.EaseOutCubic);
-            changeTextAnim.duration = 0.2f;
+            changeTextAnim.duration = 0.4f;
             changeTextAnim.onValueUpdate += (t) =>
             {
                 float scaleTime = 0.75f + (1f - t) * 0.25f;

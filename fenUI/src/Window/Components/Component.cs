@@ -41,6 +41,7 @@ namespace FenUISharp {
         public void Dispose()
         {
             ComponentDestroy();
+            this.parent.Components.Remove(this);
         }
     }
 }

@@ -14,7 +14,7 @@ namespace FenUISharp
 
         public bool AllowScrollOverflow { get; set; } = true;
         public bool ContentFade { get; set; } = true;
-        public float FadeLength { get; set; } = 0.1f;
+        public float FadeLength { get; set; } = 15f;
 
         public ContentStackType StackType { get; set; }
         public ContentStackBehavior StackBehavior { get; set; }
@@ -61,13 +61,11 @@ namespace FenUISharp
         {
             base.OnBeforeRenderChildren(canvas);
 
-            if (StackBehavior == ContentStackBehavior.Scroll)
-            {
-                canvas.ClipRect(parent.Transform.Bounds);
-            }
-
+            if (StackBehavior != ContentStackBehavior.Scroll) return;
             if (!ContentFade || _contentSize <= _pageSize) return;
 
+            canvas.ClipRect(parent.Transform.Bounds);
+            
             // Save a layer for the children to be rendered into
             var bounds = parent.Transform.Bounds;
             _fadeLayerSaveCount = canvas.SaveLayer(bounds, null);
@@ -77,6 +75,7 @@ namespace FenUISharp
         {
             base.OnAfterRender(canvas);
 
+            if (StackBehavior != ContentStackBehavior.Scroll) return;
             if (!ContentFade) return;
             if (_contentSize <= _pageSize || _fadeLayerSaveCount == null) return;
 
@@ -93,11 +92,13 @@ namespace FenUISharp
                     end = new SKPoint(parent.Transform.Bounds.Right, 0);
                 }
 
+                var fLen = (parent.Transform.Bounds.Height - (parent.Transform.Bounds.Height - FadeLength)) / parent.Transform.Bounds.Height; 
+
                 maskPaint.Shader = SKShader.CreateLinearGradient(
                     start,
                     end,
                     new SKColor[] { SKColors.Transparent, SKColors.Black, SKColors.Black, SKColors.Transparent },
-                    new float[] { 0f, FadeLength, 1 - FadeLength, 1f },
+                    new float[] { 0f, fLen, 1 - fLen, 1f },
                     SKShaderTileMode.Clamp
                 );
 
@@ -119,6 +120,7 @@ namespace FenUISharp
             scrollBar.Transform.ParentIgnoreLayout = true;
             scrollBar.Transform.IgnoreParentOffset = true;
             scrollBar.Visible = false;
+            scrollBar.Enabled = false;
             scrollBar.onPositionChanged += OnScrollbarUpdate;
             scrollBar.Transform.SetParent(parent.Transform);
             parent.WindowRoot.AddUIComponent(scrollBar);
@@ -140,12 +142,15 @@ namespace FenUISharp
 
         public void UpdateScrollbar()
         {
+            const float distance = 5;
+
             scrollBar.Visible = StackBehavior == ContentStackBehavior.Scroll;
+            scrollBar.Enabled = StackBehavior == ContentStackBehavior.Scroll;
             if (StackBehavior == ContentStackBehavior.Scroll)
             {
                 if (StackType == ContentStackType.Vertical)
                 {
-                    scrollBar.Transform.LocalPosition = new Vector2(-8, 0);
+                    scrollBar.Transform.LocalPosition = new Vector2(-distance, 0);
                     scrollBar.Transform.Alignment = new Vector2(1, 0.5f);
                     scrollBar.Transform.StretchHorizontal = false;
                     scrollBar.Transform.StretchVertical = true;
@@ -153,7 +158,7 @@ namespace FenUISharp
                 }
                 else if (StackType == ContentStackType.Horizontal)
                 {
-                    scrollBar.Transform.LocalPosition = new Vector2(0, -8);
+                    scrollBar.Transform.LocalPosition = new Vector2(0, -distance);
                     scrollBar.Transform.Alignment = new Vector2(0.5f, 1);
                     scrollBar.Transform.StretchVertical = false;
                     scrollBar.Transform.StretchHorizontal = true;

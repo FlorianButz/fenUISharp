@@ -266,7 +266,7 @@ namespace FenUISharp
             if (CurrentlySelected == this) CurrentlySelected = null;
             if (WindowRoot.GetUIComponents().Contains(this)) WindowRoot.RemoveUIComponent(this);
 
-            Components.ForEach(x => x.Dispose());
+            new List<Component>(Components).ForEach(x => x.Dispose());
 
             Transform.Dispose();
         }

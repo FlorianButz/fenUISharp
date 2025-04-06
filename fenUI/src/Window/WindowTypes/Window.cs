@@ -926,6 +926,9 @@ namespace FenUISharp
         [DllImport("user32.dll", SetLastError = true)]
         protected static extern bool DestroyWindow(IntPtr hWnd);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        protected static extern bool GetCursorPos(out POINT pt);
+
         [DllImport("user32.dll")]
         protected static extern bool IsWindowVisible(IntPtr hWnd);
 
@@ -1097,6 +1100,9 @@ namespace FenUISharp
     public struct RECT
     {
         public int left, top, right, bottom;
+        
+        public int Width => right - left;
+        public int Height => bottom - top;
     }
 
     [Flags]

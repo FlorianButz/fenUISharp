@@ -8,6 +8,7 @@ namespace FenUISharp
     {
         private static Dictionary<string, SKTypeface> typefaces = new Dictionary<string, SKTypeface>();
         private static Dictionary<string, Theme> themes = new Dictionary<string, Theme>();
+        private static Dictionary<string, SKImage> images = new Dictionary<string, SKImage>();
 
         public static void LoadDefault()
         {
@@ -16,6 +17,8 @@ namespace FenUISharp
             RegisterTypeface("Inter_18pt-Regular.ttf", "inter-regular");
             RegisterTypeface("Inter_18pt-Medium.ttf", "inter-medium");
             RegisterTypeface("Inter_18pt-Light.ttf", "inter-light");
+
+            RegisterImage(LoadImage("images/test_img.png"), "test-img");
 
             var darkTheme = new Theme
             {
@@ -77,6 +80,28 @@ namespace FenUISharp
         public static Theme? GetTheme(string id)
         {
             return themes.ContainsKey(id) ? themes[id] : null;
+        }
+
+        public static SKImage LoadImage(string path)
+        {
+            if (!File.Exists(path))
+            {
+                throw new ArgumentException("Image not found at: " + path);
+            }
+
+            var image = SKImage.FromEncodedData(path);
+            return image;
+        }
+
+        public static SKImage RegisterImage(SKImage image, string withId)
+        {
+            images.Add(withId, image);
+            return image;
+        }
+
+        public static SKImage? GetImage(string id)
+        {
+            return images.ContainsKey(id) ? images[id] : null;
         }
 
         public static Uri ConvertMsAppxToUri(string msAppX)
