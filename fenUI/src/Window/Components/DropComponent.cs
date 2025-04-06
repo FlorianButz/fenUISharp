@@ -61,8 +61,8 @@ namespace FenUISharp
         {
             base.ComponentUpdate();
 
-            if (!parent.careAboutInteractions) return;
-            if (!parent.enabled) return;
+            if (!parent.CareAboutInteractions) return;
+            if (!parent.Enabled) return;
 
             if (!_windowHasCompatibleActiveDragAction) return;
 

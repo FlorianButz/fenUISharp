@@ -6,30 +6,37 @@ namespace FenUISharp
     public class FPanel : UIComponent
     {
         public float CornerRadius { get; set; }
+        public float DropShadowRadius { get; set; } = 5;
 
         public ThemeColor PanelColor { get; set; }
-
+        public ThemeColor ShadowColor { get; set; }
         public ThemeColor BorderColor { get; set; }
 
         public float BorderSize { get; set; } = 2;
 
+        protected bool _drawBasePanel = true;
+
         public FPanel(Window root, Vector2 position, Vector2 size, float cornerRadius, ThemeColor? color = null) : base(root, position, size)
         {
             BorderColor = new ThemeColor(SKColors.Transparent);
+            ShadowColor = WindowRoot.WindowThemeManager.GetColor(t => t.Shadow);
             PanelColor = color ?? WindowRoot.WindowThemeManager.GetColor(t => t.Surface);
 
-            skPaint.ImageFilter = SKImageFilter.CreateDropShadow(0, 2, 5, 5, WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value);
             this.CornerRadius = cornerRadius;
 
-            transform.boundsPadding.SetValue(this, 35, 35);
+            Transform.BoundsPadding.SetValue(this, 35, 35);
         }
 
         protected override void DrawToSurface(SKCanvas canvas)
         {
-            skPaint.Color = PanelColor.Value;
-            canvas.DrawRoundRect(transform.localBounds, CornerRadius, CornerRadius, skPaint);
+            SkPaint.Color = PanelColor.Value;
 
-            using(var strokePaint = skPaint.Clone()){
+            using(var dropShadow = SKImageFilter.CreateDropShadow(0, 2, DropShadowRadius, DropShadowRadius, ShadowColor.Value))
+                SkPaint.ImageFilter = dropShadow;
+            if(_drawBasePanel)
+                canvas.DrawRoundRect(Transform.LocalBounds, CornerRadius, CornerRadius, SkPaint);
+
+            using(var strokePaint = SkPaint.Clone()){
                 strokePaint.IsStroke = true;
                 strokePaint.Color = BorderColor.Value;
                 strokePaint.StrokeWidth = BorderSize;
@@ -37,7 +44,9 @@ namespace FenUISharp
                 strokePaint.StrokeCap = SKStrokeCap.Round;
                 strokePaint.StrokeJoin = SKStrokeJoin.Round;
 
-                canvas.DrawRoundRect(transform.localBounds, CornerRadius, CornerRadius, strokePaint);
+                var strokeRect = SKRect.Create(Transform.LocalBounds.Left + 0.5f, Transform.LocalBounds.Top + 0.5f, Transform.LocalBounds.Width, Transform.LocalBounds.Height);
+
+                canvas.DrawRoundRect(strokeRect, CornerRadius, CornerRadius, strokePaint);
             }
         }
     }

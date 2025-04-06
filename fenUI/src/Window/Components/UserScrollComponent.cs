@@ -13,7 +13,7 @@ namespace FenUISharp
 
         private void OnGlobalHooks_onMouseScroll(float delta)
         {
-            if (RMath.ContainsPoint(parent.transform.bounds, parent.WindowRoot.ClientMousePosition) && 
+            if (RMath.ContainsPoint(parent.Transform.Bounds, parent.WindowRoot.ClientMousePosition) && 
                 parent.GetTopmostComponentAtPositionWithComponent<UserScrollComponent>(parent.WindowRoot.ClientMousePosition) == parent)
             {
                 MouseScroll?.Invoke(delta);

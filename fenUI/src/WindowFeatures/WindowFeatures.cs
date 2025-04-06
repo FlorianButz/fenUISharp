@@ -4,21 +4,26 @@ namespace FenUISharp {
 
         private static bool _hasBeenInitialized;
 
-        public static DesktopCapture DesktopCapture { get; set; }
-        public static WindowsMediaControls MediaControls { get; set; }
-        public static GlobalHooks GlobalHooks { get; set; }
+        private static DesktopCapture _desktopCapture;
+        private static WindowsMediaControls _mediaControls;
+        private static GlobalHooks _globalHooks;
+        private static ToastMessageSender _toastMessageSender;
+
+        public static DesktopCapture DesktopCapture { get { TryInitialize(); return _desktopCapture; } }
+        public static WindowsMediaControls MediaControls { get { TryInitialize(); return _mediaControls; } }
+        public static GlobalHooks GlobalHooks { get { TryInitialize(); return _globalHooks; } }
+        public static ToastMessageSender ToastMessageSender { get { TryInitialize(); return _toastMessageSender; } }
 
         public static bool TryInitialize(){
             if(_hasBeenInitialized) return false;
             _hasBeenInitialized = true;
 
-            Resources.LoadDefault();
+            _globalHooks = new GlobalHooks();
+            _globalHooks.RegisterHooks();
 
-            GlobalHooks = new GlobalHooks();
-            GlobalHooks.RegisterHooks();
-
-            DesktopCapture = new DesktopCapture();
-            MediaControls = new WindowsMediaControls();
+            _desktopCapture = new DesktopCapture();
+            _mediaControls = new WindowsMediaControls();
+            _toastMessageSender = new ToastMessageSender();
 
             return true;
         }

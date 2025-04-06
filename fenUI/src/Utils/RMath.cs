@@ -118,5 +118,14 @@ namespace FenUISharp
 
             return intersectLeft < intersectRight && intersectTop < intersectBottom;
         }
+
+        public static float Remap(float t, float oldMin, float oldMax, float newMin, float newMax)
+        {
+            if (Math.Abs(oldMax - oldMin) < float.Epsilon)
+                return newMin; // Avoid divide-by-zero, default to newMin
+
+            float normalized = (t - oldMin) / (oldMax - oldMin);
+            return newMin + normalized * (newMax - newMin);
+        }
     }
 }

@@ -62,10 +62,10 @@ namespace FenUISharp
                 Typeface = Resources.GetTypeface(typefaceName);
 
             dropShadow = SKImageFilter.CreateDropShadow(0, 0, 3, 3, WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value);
-            skPaint.ImageFilter = dropShadow;
+            SkPaint.ImageFilter = dropShadow;
 
             changeTextAnim = new AnimatorComponent(this, Easing.EaseInCubic, Easing.EaseOutCubic);
-            changeTextAnim.duration = 0.2f;
+            changeTextAnim.duration = 0.4f;
             changeTextAnim.onValueUpdate += (t) =>
             {
                 float scaleTime = 0.75f + (1f - t) * 0.25f;
@@ -75,15 +75,15 @@ namespace FenUISharp
                     if (blur == null || dropShadow == null) return;
                     using (var compose = SKImageFilter.CreateCompose(dropShadow, blur))
                     {
-                        skPaint.ImageFilter = compose;
+                        SkPaint.ImageFilter = compose;
                     }
                 }
 
-                transform.scale = new Vector2(1, 1) * scaleTime;
+                Transform.Scale = new Vector2(1, 1) * scaleTime;
                 Invalidate();
             };
-            components.Add(changeTextAnim);
-            transform.boundsPadding.SetValue(this, 10, 25);
+            Components.Add(changeTextAnim);
+            Transform.BoundsPadding.SetValue(this, 10, 25);
 
             UpdateFont();
             Invalidate();
@@ -117,7 +117,7 @@ namespace FenUISharp
 
             // renderQuality.SetValue(this, 1f, 35);
             int overridePad = 1;
-            transform.boundsPadding.SetValue(overridePad, 25, 50);
+            Transform.BoundsPadding.SetValue(overridePad, 25, 50);
 
             changeTextAnim.Start();
             changeTextAnim.onComplete = () =>
@@ -133,10 +133,10 @@ namespace FenUISharp
                     changeTextAnim.onComplete = null;
                     isSettingText = false;
 
-                    skPaint.ImageFilter = dropShadow;
+                    SkPaint.ImageFilter = dropShadow;
 
                     renderQuality.DissolveValue(this);
-                    transform.boundsPadding.DissolveValue(overridePad);
+                    Transform.BoundsPadding.DissolveValue(overridePad);
                     Invalidate();
                 };
             };
@@ -146,23 +146,23 @@ namespace FenUISharp
         {
             if (FitHorizontalToContent)
             {
-                var rect = transform.localBounds;
+                var rect = Transform.LocalBounds;
                 rect.Inflate(10000, 0);
 
                 var calculatedTextBlockSize = new Vector2(CalculateTextBlockSize(text, rect));
-                transform.size = new Vector2(calculatedTextBlockSize.x, transform.size.y);
+                Transform.Size = new Vector2(calculatedTextBlockSize.x, Transform.Size.y);
             }
 
             if (FitVerticalToContent)
             {
-                var rect = transform.localBounds;
+                var rect = Transform.LocalBounds;
                 rect.Inflate(0, 10000);
 
                 var calculatedTextBlockSize = new Vector2(CalculateTextBlockSize(text, rect));
-                transform.size = new Vector2(transform.size.x, calculatedTextBlockSize.y);
+                Transform.Size = new Vector2(Transform.Size.x, calculatedTextBlockSize.y);
             }
 
-            transform.UpdateLayout();
+            Transform.UpdateLayout();
 
             _text = text;
             Invalidate();
@@ -244,7 +244,7 @@ namespace FenUISharp
                             currentLine = "";
                             currentWidth = 0;
                         }
-                        var brokenParts = BreakWord(word, bounds.Width, skPaint);
+                        var brokenParts = BreakWord(word, bounds.Width, SkPaint);
                         foreach (var part in brokenParts)
                         {
                             lines.Add(part);
@@ -298,9 +298,9 @@ namespace FenUISharp
                         SilentUpdateFont();
 
                         s.Canvas.Clear(SKColors.Transparent);
-                        skPaint.Color = _textColor.Value;
+                        SkPaint.Color = _textColor.Value;
                         s.Canvas.DrawText(line, (float)Math.Round(x * scaleFactor, 0),
-                            (float)Math.Round(y * scaleFactor, 0), Font, skPaint);
+                            (float)Math.Round(y * scaleFactor, 0), Font, SkPaint);
 
                         var snapshot = s.Snapshot();
                         canvas.Scale(1 / scaleFactor);
@@ -313,7 +313,7 @@ namespace FenUISharp
                 }
                 else
                 {
-                    canvas.DrawText(line, (float)Math.Round(x, 0), (float)Math.Round(y, 0), Font, skPaint);
+                    canvas.DrawText(line, (float)Math.Round(x, 0), (float)Math.Round(y, 0), Font, SkPaint);
                 }
                 y += lineHeight;
                 if (y - fm.Descent > bounds.Bottom)
@@ -443,19 +443,19 @@ namespace FenUISharp
                     x = bounds.Right - textWidth;
                 }
 
-                canvas.DrawText(text, x, y, Font, skPaint);
+                canvas.DrawText(text, x, y, Font, SkPaint);
                 return;
             }
 
             canvas.SaveLayer(bounds, null);
             canvas.ClipRect(bounds);
 
-            float gap = transform.localBounds.Width / 4;
+            float gap = Transform.LocalBounds.Width / 4;
             float startX = bounds.Left + _scrollOffset;
 
-            skPaint.Color = _textColor.Value;
-            canvas.DrawText(text, startX, y, Font, skPaint);
-            canvas.DrawText(text, startX + textWidth /* Add Offset */ + gap, y, Font, skPaint);
+            SkPaint.Color = _textColor.Value;
+            canvas.DrawText(text, startX, y, Font, SkPaint);
+            canvas.DrawText(text, startX + textWidth /* Add Offset */ + gap, y, Font, SkPaint);
 
             var leftAlpha = Math.Round(SmoothTransition(Math.Abs(startX - bounds.Left) / textWidth, 0, (textWidth + gap) / textWidth, 100f), 1);
 
@@ -484,21 +484,17 @@ namespace FenUISharp
         {
             base.OnUpdate();
 
-            // if(contentBounds.x != 0 && FitBoundsToContent) {
-            // transform.size = contentBounds;
-            // }
-
             if (Truncation == TextTruncation.Scroll)
             {
                 float textWidth = Font.MeasureText(Text);
-                if (textWidth > transform.localBounds.Width)
+                if (textWidth > Transform.LocalBounds.Width)
                 {
-                    float gap = transform.localBounds.Width / 4;
+                    float gap = Transform.LocalBounds.Width / 4;
 
-                    float startX = transform.localBounds.Left + _scrollOffset;
+                    float startX = Transform.LocalBounds.Left + _scrollOffset;
                     _speedMulti =
                         Math.Clamp(_speedMultiAdd, 0, 1) +
-                        (float)Math.Round(SmoothTransition(Math.Abs(startX - transform.localBounds.Left) / textWidth, 0, (textWidth + gap) / textWidth, 15f), 1);
+                        (float)Math.Round(SmoothTransition(Math.Abs(startX - Transform.LocalBounds.Left) / textWidth, 0, (textWidth + gap) / textWidth, 15f), 1);
 
                     // _speedMulti = RMath.Lerp(_speedMulti, 1f, (float)WindowRoot.DeltaTime);
                     _speedMultiAdd = RMath.Lerp(_speedMultiAdd, 0.1f, (float)WindowRoot.DeltaTime * 2);
@@ -519,16 +515,16 @@ namespace FenUISharp
         protected override void DrawToSurface(SKCanvas canvas)
         {
             if (Truncation == TextTruncation.Linebreak)
-                DrawTextInRect(canvas, Text, transform.localBounds, TextAlign);
+                DrawTextInRect(canvas, Text, Transform.LocalBounds, TextAlign);
             else if (Truncation == TextTruncation.Elipsis)
-                DrawTextInRect(canvas, GetTruncatedText(), transform.localBounds, TextAlign);
+                DrawTextInRect(canvas, GetTruncatedText(), Transform.LocalBounds, TextAlign);
             else
-                DrawScrollingText(canvas, Text, transform.localBounds);
+                DrawScrollingText(canvas, Text, Transform.LocalBounds);
         }
 
         public string GetTruncatedText()
         {
-            if (Font.MeasureText(_text, skPaint) <= transform.size.x) return _text;
+            if (Font.MeasureText(_text, SkPaint) <= Transform.Size.x) return _text;
 
             string truncatedText = "";
 
@@ -536,7 +532,7 @@ namespace FenUISharp
             {
                 string t = _text.Substring(0, c) + "...";
 
-                if (Font.MeasureText(t, skPaint) < transform.size.x)
+                if (Font.MeasureText(t, SkPaint) < Transform.Size.x)
                     truncatedText = t;
                 else break;
             }
@@ -546,7 +542,7 @@ namespace FenUISharp
 
         public float GetSingleLineTextWidth()
         {
-            return Font.MeasureText(Text, skPaint);
+            return Font.MeasureText(Text, SkPaint);
         }
 
         public float GetSingleLineTextHeight()
