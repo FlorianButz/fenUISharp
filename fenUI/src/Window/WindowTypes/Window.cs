@@ -22,7 +22,7 @@ namespace FenUISharp
         public Vector2 WindowMaxSize { get; set; } = new Vector2(float.MaxValue, float.MaxValue);
 
         protected bool _allowResize = true;
-        public bool AllowResizing { get => _allowResize; set { _allowResize = value;  UpdateAllowResize(_allowResize); } }
+        public bool AllowResizing { get => _allowResize; set { _allowResize = value; UpdateAllowResize(_allowResize); } }
 
         private bool _hasSystemMenu = true;
         public bool HasSystemMenu { get => _hasSystemMenu; set { _hasSystemMenu = value; UpdateHasSysMenu(_hasSystemMenu); } }
@@ -92,7 +92,7 @@ namespace FenUISharp
 
         #region Private
 
-        private volatile List<UIComponent> uiComponents = new List<UIComponent>();
+        protected volatile List<UIComponent> uiComponents = new List<UIComponent>();
 
         private readonly WndProcDelegate _wndProcDelegate;
         protected bool _alwaysOnTop;
@@ -129,7 +129,7 @@ namespace FenUISharp
             bool alwaysOnTop = false, bool hideTaskbarIcon = false, bool hasTitlebar = true
         )
         {
-            if(!FenUI.HasBeenInitialized) throw new Exception("FenUI has to be initialized before creating a window.");
+            if (!FenUI.HasBeenInitialized) throw new Exception("FenUI has to be initialized before creating a window.");
 
             WindowTitle = title;
             WindowClass = className;
@@ -239,9 +239,9 @@ namespace FenUISharp
                     TranslateMessage(ref msg);
                     DispatchMessage(ref msg);
 
-                    if(!_isRunning) break;
+                    if (!_isRunning) break;
 
-                    if(_stopRunningFlag) _isRunning = false;
+                    if (_stopRunningFlag) _isRunning = false;
                     Thread.Sleep(1); // Prevent too high cpu usage
                 }
             }
@@ -331,7 +331,7 @@ namespace FenUISharp
 
         private void OnWindowUpdateCall(bool isPaused = false)
         {
-            if(!isPaused)
+            if (!isPaused)
                 OnUpdate?.Invoke();
 
             if (_onEndResizeFlag)
@@ -340,8 +340,9 @@ namespace FenUISharp
                 OnEndResize();
             }
 
-            if(_lastIsWindowFocused != IsWindowFocused){
-                if(IsWindowFocused) OnFocusGained?.Invoke();
+            if (_lastIsWindowFocused != IsWindowFocused)
+            {
+                if (IsWindowFocused) OnFocusGained?.Invoke();
                 else OnFocusLost?.Invoke();
             }
             _lastIsWindowFocused = IsWindowFocused;
@@ -409,7 +410,7 @@ namespace FenUISharp
         public List<UIComponent> GetUIComponents() => uiComponents;
 
         public void SetWindowVisibility(bool visible) => ShowWindow(hWnd, visible ? 1 : 0);
-        
+
         public void SetAlwaysOnTop(bool alwaysOnTop)
         {
             _alwaysOnTop = alwaysOnTop;
@@ -496,7 +497,7 @@ namespace FenUISharp
             if (!visible)
             {
                 // Create a dummy window (invisible) to act as the owner
-                IntPtr hiddenOwner = CreateWindowEx((int)WindowStyles.WS_EX_TOOLWINDOW, "STATIC" + Random.Shared.NextInt64(), "",
+                IntPtr hiddenOwner = CreateWindowEx((int)WindowStyles.WS_EX_TOOLWINDOW, "STATIC", "",
                     WS_OVERLAPPEDWINDOW, 0, 0, 0, 0, IntPtr.Zero, IntPtr.Zero, GetModuleHandle(null), IntPtr.Zero);
 
                 hiddenOwnerWindowHandle = hiddenOwner;
@@ -544,7 +545,7 @@ namespace FenUISharp
         }
 
         public MultiAccess<Cursor> ActiveCursor = new MultiAccess<Cursor>(Cursor.ARROW);
-        
+
         private void UpdateAllowResize(bool allowResize)
         {
             int toggle = (int)WindowStyles.WS_THICKFRAME;
@@ -556,20 +557,21 @@ namespace FenUISharp
             int toggle = (int)WindowStyles.WS_SYSMENU;
             SetWindowStyle(toggle, allow);
         }
-        
+
         protected void UpdateHasMaximizeButton(bool allow)
         {
             int toggle = (int)WindowStyles.WS_MAXIMIZEBOX;
             SetWindowStyle(toggle, allow);
         }
-        
+
         protected void UpdateHasMinimizeButton(bool allow)
         {
             int toggle = (int)WindowStyles.WS_MINIMIZEBOX;
             SetWindowStyle(toggle, allow);
         }
 
-        protected void SetWindowStyle(int style, bool enabled){
+        protected void SetWindowStyle(int style, bool enabled)
+        {
             int styl = GetWindowLong(hWnd, (int)WindowLongs.GWL_STYLE);
             if (enabled)
                 styl |= style;
@@ -584,7 +586,8 @@ namespace FenUISharp
         protected virtual void OnEndResize()
         {
             RenderContext?.OnEndResize();
-            new List<UIComponent>(uiComponents).ForEach(x => {
+            new List<UIComponent>(uiComponents).ForEach(x =>
+            {
                 x?.Transform.UpdateLayout();
                 x?.Invalidate();
             });
@@ -639,6 +642,26 @@ namespace FenUISharp
             var point = new POINT() { x = (int)p.x, y = (int)p.y };
             ScreenToClient(hWnd, ref point);
             return new Vector2(point.x, point.y);
+        }
+
+        public void SetWindowSize(Vector2 size)
+        {
+            WindowSize = size;
+            IntPtr zOrder = _alwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST;
+            SetWindowPos(hWnd, zOrder, 0, 0, (int)size.x, (int)size.y,
+                (int)SetWindowPosFlags.SWP_NOACTIVATE | (int)SetWindowPosFlags.SWP_NOMOVE);
+        
+            RecalcClientBounds();
+        }
+
+        public void SetWindowPosition(Vector2 pos)
+        {
+            WindowPosition = pos;
+            IntPtr zOrder = _alwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST;
+            SetWindowPos(hWnd, zOrder, (int)pos.x, (int)pos.y, 0, 0,
+                (int)SetWindowPosFlags.SWP_NOACTIVATE | (int)SetWindowPosFlags.SWP_NOSIZE);
+            
+            RecalcClientBounds();
         }
 
         private static IntPtr StaticWndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
@@ -829,7 +852,7 @@ namespace FenUISharp
             (int)WindowStyles.WS_CAPTION |
             (int)WindowStyles.WS_SYSMENU |
             (int)WindowStyles.WS_MINIMIZEBOX;
-            
+
         public const int WS_NOTITLEBAR =
             (int)WindowStyles.WS_OVERLAPPED |
             (int)WindowStyles.WS_POPUP |
@@ -902,7 +925,7 @@ namespace FenUISharp
 
         [DllImport("user32.dll", SetLastError = true)]
         protected static extern bool DestroyWindow(IntPtr hWnd);
-        
+
         [DllImport("user32.dll")]
         protected static extern bool IsWindowVisible(IntPtr hWnd);
 
