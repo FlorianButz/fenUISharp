@@ -8,6 +8,16 @@ namespace FenUISharp
         public enum ContentStackType { Horizontal, Vertical }
         public enum ContentStackBehavior { Overflow, SizeToFit, SizeToFitAll, Scroll }
 
+        public enum ContentClipBehavior { Clip, Stack, Scale }
+        public struct ContentClipSettings
+        {
+            public float ScaleStartDistance = 0;
+            public float ScaleEndDistance = 25;
+            public Func<float, float> ScaleEasingFunction = Easing.EaseOutCubic;
+
+            public ContentClipSettings() { }
+        }
+
         public Vector2 StartAlignment { get; set; }
         public float Gap { get; set; } = 10;
         public float Pad { get; set; } = 15;
@@ -18,6 +28,8 @@ namespace FenUISharp
 
         public ContentStackType StackType { get; set; }
         public ContentStackBehavior StackBehavior { get; set; }
+        public ContentClipBehavior ClipBehavior { get; set; }
+        public ContentClipSettings ClipBehaviorSettings { get; set; }
 
         private float _scrollSpeed = 0.25f;
         private float _scrollPosition = 0f;
@@ -39,9 +51,15 @@ namespace FenUISharp
             StackType = type;
             StackBehavior = behavior;
 
+            ClipBehavior = ContentClipBehavior.Scale;
+            ClipBehaviorSettings = new()
+            {
+                ScaleEasingFunction = Easing.EaseOutCubic
+            };
+
             scrollComponent = new UserScrollComponent(parent);
             scrollComponent.MouseScroll += OnScroll;
-            
+
             ScrollSpring = new Spring(new Vector2(0, 0), 2, 0.85f, 0.1f);
 
             if (startAlign == null)
@@ -65,7 +83,7 @@ namespace FenUISharp
             if (!ContentFade || _contentSize <= _pageSize) return;
 
             canvas.ClipRect(parent.Transform.Bounds);
-            
+
             // Save a layer for the children to be rendered into
             var bounds = parent.Transform.Bounds;
             _fadeLayerSaveCount = canvas.SaveLayer(bounds, null);
@@ -92,7 +110,7 @@ namespace FenUISharp
                     end = new SKPoint(parent.Transform.Bounds.Right, 0);
                 }
 
-                var fLen = (parent.Transform.Bounds.Height - (parent.Transform.Bounds.Height - FadeLength)) / parent.Transform.Bounds.Height; 
+                var fLen = (parent.Transform.Bounds.Height - (parent.Transform.Bounds.Height - FadeLength)) / parent.Transform.Bounds.Height;
 
                 maskPaint.Shader = SKShader.CreateLinearGradient(
                     start,
@@ -171,7 +189,6 @@ namespace FenUISharp
         {
             base.ComponentUpdate();
 
-
             if (!AllowScrollOverflow)
                 _scrollPosition = RMath.Clamp(_scrollPosition, -_scrollMax, _scrollMin);
 
@@ -195,6 +212,27 @@ namespace FenUISharp
             {
                 scrollBar.UpdateScrollbar();
                 parent.Invalidate();
+            }
+
+            if (ClipBehavior == ContentClipBehavior.Scale)
+            {
+                var childList = parent.Transform.Children;
+                for (int i = 0; i < childList.Count; i++)
+                {
+                    Vector2 pos = new (childList[i].Bounds.MidX, childList[i].Bounds.MidY);
+                    float startEdge = parent.Transform.Position.y + ClipBehaviorSettings.ScaleStartDistance;
+                    float endEdge = parent.Transform.Position.y + _pageSize - ClipBehaviorSettings.ScaleStartDistance;
+
+                    float distanceFromStartEdge = pos.y - startEdge;
+                    float distanceFromEndEdge = endEdge - pos.y;
+
+                    float startFactor = ClipBehaviorSettings.ScaleEasingFunction(
+                        Math.Clamp(distanceFromStartEdge / ClipBehaviorSettings.ScaleEndDistance, 0, 1));
+                    float endFactor = ClipBehaviorSettings.ScaleEasingFunction(
+                        Math.Clamp(distanceFromEndEdge / ClipBehaviorSettings.ScaleEndDistance, 0, 1));
+
+                    childList[i].Scale = new Vector2(1, 1) * Math.Min(startFactor, endFactor);
+                }
             }
 
             _lastScrollDisplayPosition = _scrollDisplayPosition;

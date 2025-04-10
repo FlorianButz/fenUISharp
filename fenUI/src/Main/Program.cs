@@ -13,7 +13,7 @@ namespace FenUISharpTest1
             FenUI.Init();
             FenUI.SetupAppModel("FlorianButz.fenUI");
 
-            NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(800, 400));
+            NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(800, 300));
             window.SystemDarkMode = true;
             window.SetTrayIcon("icons/TrayIcon.ico", "Test");
             window.SetWindowIcon("icons/TrayIcon.ico");
@@ -38,12 +38,14 @@ namespace FenUISharpTest1
             var layout = new StackContentComponent(panel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
             layout.Pad = 15;
 
-            var label = new FLabel(window, "Lorem ipsum dolor sit amet.",
-                new Vector2(0, 0), new Vector2(400, 0), truncation: TextTruncation.Linebreak);
-            label.FitVerticalToContent = true;
-            label.Transform.SetParent(panel.Transform);
+            for(int i = 0; i < 15; i++){
+                var label = new FLabel(window, "Lorem ipsum dolor sit amet.",
+                    new Vector2(0, 0), new Vector2(400, 0), truncation: TextTruncation.Linebreak);
+                label.FitVerticalToContent = true;
+                label.Transform.SetParent(panel.Transform);
+            }
 
-            var btn2 = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!", () => label.SetText("Test awdpojawpdjawdpojawdpojawpdojawpd awpdjawpodpa apod apwkodpaowdkpoawdk " + Random.Shared.Next()),
+            var btn2 = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!",
                 color: window.WindowThemeManager.GetColor(t => t.Primary), textColor: window.WindowThemeManager.GetColor(t => t.OnPrimary));
             btn2.Transform.Alignment = new Vector2(0.5f, 0f);
             btn2.Transform.SetParent(panel.Transform);
