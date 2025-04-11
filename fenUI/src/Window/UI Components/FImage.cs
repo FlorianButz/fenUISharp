@@ -25,9 +25,15 @@ namespace FenUISharp
         {
             base.DrawToSurface(canvas);
 
+            var rect = Transform.LocalBounds;
+            rect.Inflate(0.5f, 0.5f);
+
             using (var roundRect = new SKRoundRect(Transform.LocalBounds, CornerRadius))
             {
-                canvas.ClipRoundRect(roundRect, antialias: true);
+                if (UseSquircle)
+                    canvas.ClipPath(SKSquircle.CreateSquircle(rect, CornerRadius), antialias: true);
+                else
+                    canvas.ClipRoundRect(roundRect, antialias: true);
 
                 SKRect? bounds = null;
                 switch (ScaleMode)
@@ -71,8 +77,14 @@ namespace FenUISharp
                 SkPaint.ImageFilter = null;
                 SkPaint.Color = TintColor.Value;
                 SkPaint.BlendMode = TintBlendMode;
+
                 roundRect.Deflate(0.5f, 0.5f);
-                canvas.DrawRoundRect(roundRect, SkPaint);
+                rect.Inflate(-1f, -1f);
+
+                if (UseSquircle)
+                    canvas.DrawPath(SKSquircle.CreateSquircle(rect, CornerRadius), SkPaint);
+                else
+                    canvas.DrawRoundRect(roundRect, SkPaint);
             }
         }
     }

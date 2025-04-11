@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using FenUISharp.Themes;
-using SharpDX.DirectWrite;
 using SkiaSharp;
 
 namespace FenUISharp

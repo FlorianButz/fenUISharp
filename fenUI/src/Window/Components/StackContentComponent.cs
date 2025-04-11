@@ -8,28 +8,19 @@ namespace FenUISharp
         public enum ContentStackType { Horizontal, Vertical }
         public enum ContentStackBehavior { Overflow, SizeToFit, SizeToFitAll, Scroll }
 
-        public enum ContentClipBehavior { Clip, Stack, Scale }
-        public struct ContentClipSettings
-        {
-            public float ScaleStartDistance = 0;
-            public float ScaleEndDistance = 25;
-            public Func<float, float> ScaleEasingFunction = Easing.EaseOutCubic;
-
-            public ContentClipSettings() { }
-        }
-
         public Vector2 StartAlignment { get; set; }
         public float Gap { get; set; } = 10;
         public float Pad { get; set; } = 15;
 
         public bool AllowScrollOverflow { get; set; } = true;
         public bool ContentFade { get; set; } = true;
+        public bool ContentClip { get; set; } = true;
         public float FadeLength { get; set; } = 15f;
 
         public ContentStackType StackType { get; set; }
         public ContentStackBehavior StackBehavior { get; set; }
-        public ContentClipBehavior ClipBehavior { get; set; }
-        public ContentClipSettings ClipBehaviorSettings { get; set; }
+
+        public ContentClipBehaviorProvider? ContentClipBehaviorProvider;
 
         private float _scrollSpeed = 0.25f;
         private float _scrollPosition = 0f;
@@ -39,23 +30,19 @@ namespace FenUISharp
         private float _scrollMin = 0;
         private float _scrollMax = 0;
 
-        private float _pageSize = 0;
-        private float _contentSize = 0;
+        public float _pageSize { get; protected set; } = 0;
+        public float _contentSize { get; protected set; } = 0;
 
         public Spring? ScrollSpring { get; set; }
         private UserScrollComponent? scrollComponent;
         private FScrollBar scrollBar;
 
+        public List<Vector2> ChildLocalPosition { get; private set; }
+
         public StackContentComponent(UIComponent parent, ContentStackType type, ContentStackBehavior behavior, Vector2? startAlign = null) : base(parent)
         {
             StackType = type;
             StackBehavior = behavior;
-
-            ClipBehavior = ContentClipBehavior.Scale;
-            ClipBehaviorSettings = new()
-            {
-                ScaleEasingFunction = Easing.EaseOutCubic
-            };
 
             scrollComponent = new UserScrollComponent(parent);
             scrollComponent.MouseScroll += OnScroll;
@@ -82,7 +69,7 @@ namespace FenUISharp
             if (StackBehavior != ContentStackBehavior.Scroll) return;
             if (!ContentFade || _contentSize <= _pageSize) return;
 
-            canvas.ClipRect(parent.Transform.Bounds);
+            if(ContentClip) canvas.ClipRect(parent.Transform.Bounds);
 
             // Save a layer for the children to be rendered into
             var bounds = parent.Transform.Bounds;
@@ -214,24 +201,31 @@ namespace FenUISharp
                 parent.Invalidate();
             }
 
-            if (ClipBehavior == ContentClipBehavior.Scale)
+            if (ContentClipBehaviorProvider != null)
             {
                 var childList = parent.Transform.Children;
+                ContentClipBehaviorProvider.Update(this, childList);
                 for (int i = 0; i < childList.Count; i++)
                 {
-                    Vector2 pos = new (childList[i].Bounds.MidX, childList[i].Bounds.MidY);
-                    float startEdge = parent.Transform.Position.y + ClipBehaviorSettings.ScaleStartDistance;
-                    float endEdge = parent.Transform.Position.y + _pageSize - ClipBehaviorSettings.ScaleStartDistance;
+                    if (childList[i].ParentIgnoreLayout) continue;
+                    childList[i].LocalPosition = ChildLocalPosition[i];
 
-                    float distanceFromStartEdge = pos.y - startEdge;
-                    float distanceFromEndEdge = endEdge - pos.y;
+                    Vector2 pos = new(childList[i].Bounds.MidX, childList[i].Bounds.MidY);
+                    float parPos = parent.Transform.Position.y + parent.Transform.BoundsPadding.Value;
 
-                    float startFactor = ClipBehaviorSettings.ScaleEasingFunction(
-                        Math.Clamp(distanceFromStartEdge / ClipBehaviorSettings.ScaleEndDistance, 0, 1));
-                    float endFactor = ClipBehaviorSettings.ScaleEasingFunction(
-                        Math.Clamp(distanceFromEndEdge / ClipBehaviorSettings.ScaleEndDistance, 0, 1));
+                    float startFactor = Math.Clamp((parPos - pos.y + ContentClipBehaviorProvider.ClipLength + ContentClipBehaviorProvider.ClipStart) / ContentClipBehaviorProvider.ClipLength, 0, 1);
+                    float endFactor = Math.Clamp(1 - (parPos - pos.y + _pageSize - ContentClipBehaviorProvider.ClipStart) / ContentClipBehaviorProvider.ClipLength, 0, 1);
 
-                    childList[i].Scale = new Vector2(1, 1) * Math.Min(startFactor, endFactor);
+                    if (ContentClipBehaviorProvider.Inverse)
+                    {
+                        startFactor = 1f - startFactor;
+                        endFactor = 1f - endFactor;
+                    }
+
+                    float t = Math.Abs(Math.Max(startFactor, endFactor));
+                    if (ContentClipBehaviorProvider.Inverse) t = Math.Abs(Math.Min(startFactor, endFactor));
+
+                    ContentClipBehaviorProvider.ClipBehavior(ContentClipBehaviorProvider.ClipEase(t), this, childList[i].ParentComponent, i, (startFactor <= endFactor));
                 }
             }
 
@@ -249,18 +243,17 @@ namespace FenUISharp
         public void UpdatePosition()
         {
             var childList = parent.Transform.Children;
+            ChildLocalPosition = new List<Vector2>();
 
             float currentPos = 0;
             float contentSize = 0;
             float contentSizePerpendicular = 0;
 
-            float lastItemSize = 0;
-
             for (int c = 0; c < childList.Count; c++)
             {
                 if (childList[c].ParentIgnoreLayout) continue; // Make sure to ignore some transforms
 
-                lastItemSize = StackType == ContentStackType.Horizontal ? childList[c].LocalBounds.Width : childList[c].LocalBounds.Height;
+                var lastItemSize = StackType == ContentStackType.Horizontal ? childList[c].LocalBounds.Width : childList[c].LocalBounds.Height;
 
                 currentPos += lastItemSize / 2;
                 contentSize += lastItemSize / 2;
@@ -283,6 +276,8 @@ namespace FenUISharp
                     childList[c].LocalPosition = new Vector2(currentPos, 0);
                 else
                     childList[c].LocalPosition = new Vector2(0, currentPos);
+
+                ChildLocalPosition.Insert(c, childList[c].LocalPositionExcludeBounds);
 
                 currentPos += lastItemSize / 2;
                 contentSize += lastItemSize / 2;
@@ -312,6 +307,91 @@ namespace FenUISharp
         {
             UpdatePosition();
             parent.Invalidate();
+        }
+    }
+
+    public abstract class ContentClipBehaviorProvider
+    {
+        public float ClipStart { get; set; } = 0;
+        public float ClipLength { get; set; } = 35;
+        public Func<float, float> ClipEase { get; set; } = Easing.EaseOutCubic;
+        public bool Inverse { get; set; } = false;
+
+        protected StackContentComponent Layout;
+
+        public ContentClipBehaviorProvider(StackContentComponent layout)
+        {
+            Layout = layout;
+        }
+
+        public virtual void Update(StackContentComponent layout, List<Transform> children) { }
+        public abstract void ClipBehavior(float t, StackContentComponent layout, UIComponent child, int childIndex, bool isTop);
+    }
+
+    public class ScaleContentClipBehavior : ContentClipBehaviorProvider
+    {
+        public Vector2 DefaultScale { get; set; } = new Vector2(1, 1);
+        public Vector2 ClipScale { get; set; } = new Vector2(0, 0);
+
+        public ScaleContentClipBehavior(StackContentComponent layout) : base(layout)
+        {
+            Inverse = true;
+        }
+
+        public override void ClipBehavior(float t, StackContentComponent layout, UIComponent child, int childIndex, bool isTop)
+        {
+            child.Transform.Scale = RMath.Lerp(ClipScale, DefaultScale, t);
+        }
+    }
+
+    public class StackContentClipBehavior : ContentClipBehaviorProvider
+    {
+        public float DistanceFromEdge { get; set; } = 15;
+
+        public StackContentClipBehavior(StackContentComponent layout) : base(layout) { }
+
+        public override void ClipBehavior(float t, StackContentComponent layout, UIComponent child, int childIndex, bool isTop)
+        {
+            var locPos = layout.ChildLocalPosition[childIndex];
+
+            locPos.y = RMath.Lerp(locPos.y, isTop ? (layout._pageSize - layout.parent.Transform.ChildOffset.y - DistanceFromEdge) : -layout.parent.Transform.ChildOffset.y + DistanceFromEdge, t);
+
+            child.Transform.LocalPosition = locPos;
+        }
+    }
+
+    public class RandomContentClipBehavior : ContentClipBehaviorProvider
+    {
+        private List<Vector2> offsets;
+
+        public RandomContentClipBehavior(StackContentComponent layout) : base(layout)
+        {
+            layout.ContentFade = false;
+            layout.ContentClip = false;
+            layout.parent.Transform.BoundsPadding.SetValue(this, 350, 100);
+        }
+
+        public override void Update(StackContentComponent layout, List<Transform> children)
+        {
+            base.Update(layout, children);
+
+            if(offsets == null){
+                offsets = new List<Vector2>();
+                for (int i = 0; i < layout.parent.Transform.Children.Count; i++)
+                {
+                    layout.parent.Transform.Children[i].ClipWhenFullyOutsideParent = false;
+                    offsets.Add(new Vector2(Random.Shared.NextSingle() * 1000 - 500, -(25 + Random.Shared.NextSingle() * 85)));
+                }
+            }
+        }
+
+        public override void ClipBehavior(float t, StackContentComponent layout, UIComponent child, int childIndex, bool isTop)
+        {
+            var locPos = layout.ChildLocalPosition[childIndex];
+
+            locPos = RMath.Lerp(locPos, isTop ? (new Vector2(0, layout._pageSize) - layout.parent.Transform.ChildOffset - offsets[childIndex]) : layout.parent.Transform.ChildOffset * -1 + offsets[childIndex], t);
+
+            child.Transform.LocalPosition = locPos;
         }
     }
 }

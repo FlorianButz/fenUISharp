@@ -13,6 +13,7 @@ namespace FenUISharp
         public ThemeColor BorderColor { get; set; }
 
         public float BorderSize { get; set; } = 2;
+        public bool UseSquircle { get; set; } = true;
 
         protected bool _drawBasePanel = true;
 
@@ -31,12 +32,18 @@ namespace FenUISharp
         {
             SkPaint.Color = PanelColor.Value;
 
-            using(var dropShadow = SKImageFilter.CreateDropShadow(0, 2, DropShadowRadius, DropShadowRadius, ShadowColor.Value))
+            using (var dropShadow = SKImageFilter.CreateDropShadow(0, 2, DropShadowRadius, DropShadowRadius, ShadowColor.Value))
                 SkPaint.ImageFilter = dropShadow;
-            if(_drawBasePanel)
-                canvas.DrawRoundRect(Transform.LocalBounds, CornerRadius, CornerRadius, SkPaint);
+            if (_drawBasePanel)
+            {
+                if (UseSquircle)
+                    canvas.DrawPath(SKSquircle.CreateSquircle(Transform.LocalBounds, CornerRadius), SkPaint);
+                else
+                    canvas.DrawRoundRect(Transform.LocalBounds, CornerRadius, CornerRadius, SkPaint);
+            }
 
-            using(var strokePaint = SkPaint.Clone()){
+            using (var strokePaint = SkPaint.Clone())
+            {
                 strokePaint.IsStroke = true;
                 strokePaint.Color = BorderColor.Value;
                 strokePaint.StrokeWidth = BorderSize;
@@ -46,7 +53,10 @@ namespace FenUISharp
 
                 var strokeRect = SKRect.Create(Transform.LocalBounds.Left + 0.5f, Transform.LocalBounds.Top + 0.5f, Transform.LocalBounds.Width, Transform.LocalBounds.Height);
 
-                canvas.DrawRoundRect(strokeRect, CornerRadius, CornerRadius, strokePaint);
+                if (UseSquircle)
+                    canvas.DrawPath(SKSquircle.CreateSquircle(Transform.LocalBounds, CornerRadius), SkPaint);
+                else
+                    canvas.DrawRoundRect(Transform.LocalBounds, CornerRadius, CornerRadius, SkPaint);
             }
         }
     }

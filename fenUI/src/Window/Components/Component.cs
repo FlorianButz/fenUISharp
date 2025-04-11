@@ -22,6 +22,8 @@ namespace FenUISharp {
 
         public virtual void OnBeforeRender(SKCanvas canvas) { }
         public virtual void OnAfterRender(SKCanvas canvas) { }
+        public virtual void OnBeforeRenderCache(SKCanvas canvas) { }
+        public virtual void OnAfterRenderCache(SKCanvas canvas) { }
         public virtual void OnBeforeRenderChildren(SKCanvas canvas) { }
         public virtual void OnAfterRenderChildren(SKCanvas canvas) { }
 

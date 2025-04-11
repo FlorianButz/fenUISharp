@@ -11,7 +11,7 @@ namespace FenUISharp
 
         public Transform Transform { get; set; }
         public SKPaint SkPaint { get; set; }
-        protected SKPaint DrawImageFromCachePaint { get; set; }
+        internal SKPaint DrawImageFromCachePaint { get; set; }
 
         public List<Component> Components { get; set; } = new List<Component>();
 
@@ -132,12 +132,12 @@ namespace FenUISharp
                 IsAntialias = true
             };
 
-            CreateSurfacePaint();
+            SkPaint = CreateSurfacePaint();
         }
 
-        protected virtual void CreateSurfacePaint()
+        protected virtual SKPaint CreateSurfacePaint()
         {
-            SkPaint = new SKPaint()
+            return new SKPaint()
             {
                 Color = SKColors.White,
                 IsAntialias = true
@@ -199,7 +199,9 @@ namespace FenUISharp
                     if (Transform.Matrix == null)
                         canvas.Translate(Transform.Position.x * quality, Transform.Position.y * quality);
 
+                    Components.ForEach(x => x.OnBeforeRenderCache(cachedSurface.Canvas));
                     canvas.DrawImage(snapshot, 0, 0, WindowRoot.RenderContext.SamplingOptions, DrawImageFromCachePaint);
+                    Components.ForEach(x => x.OnAfterRenderCache(cachedSurface.Canvas));
 
                     canvas.Translate(-(Transform.Position.x * quality), -(Transform.Position.y * quality)); // Always move back to 0;0. Translate always happen, no matter if rotation matrix is set or not.
                     canvas.Scale(quality, quality); // Scale back for proper rendering
@@ -307,6 +309,7 @@ namespace FenUISharp
 
         public Vector2 Position { get { var pos = _localPosition; if (Parent != null && !IgnoreParentOffset) pos += Parent.ChildOffset; return GetGlobalPosition(pos); } }
         public Vector2 LocalPosition { get => _localPosition + BoundsPadding.Value; set => _localPosition = value; }
+        public Vector2 LocalPositionExcludeBounds { get => _localPosition; set => _localPosition = value; }
         private Vector2 _localPosition { get; set; }
         public Vector2 ChildOffset { get => _childOffset; set => _childOffset = value; }
         private Vector2 _childOffset { get; set; }

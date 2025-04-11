@@ -138,46 +138,50 @@ namespace FenUISharp
 
         protected override void DrawToSurface(SKCanvas canvas)
         {
-            var roundRect = new SKRoundRect(Transform.LocalBounds, cornerRadius, cornerRadius);
-
-            // Draw base rectangle
-            using (var paint = SkPaint.Clone())
+            // using (var roundRect = new SKRoundRect(Transform.LocalBounds, cornerRadius, cornerRadius))
             {
-                paint.IsAntialias = true;
-                paint.Style = SKPaintStyle.Fill;
-                paint.Color = currentcolor;
+                // Draw base rectangle
+                using (var paint = SkPaint.Clone())
+                {
+                    paint.IsAntialias = true;
+                    paint.Style = SKPaintStyle.Fill;
+                    paint.Color = currentcolor;
 
-                using(var shadow = SKImageFilter.CreateDropShadow(0, 2, 2, 2, WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value))
-                    paint.ImageFilter = shadow;
-                canvas.DrawRoundRect(roundRect, paint);
-            }
+                    using (var shadow = SKImageFilter.CreateDropShadow(0, 2, 2, 2, WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value))
+                        paint.ImageFilter = shadow;
+                    // canvas.DrawRoundRect(roundRect, paint);
+                    canvas.DrawPath(SKSquircle.CreateSquircle(Transform.LocalBounds, cornerRadius), paint);
+                }
 
-            // Highlight on Top Edge
-            using (var paint = SkPaint.Clone())
-            {
-                paint.IsAntialias = true;
-                paint.Shader = SKShader.CreateLinearGradient(
-                    new SKPoint(Transform.LocalBounds.Left, Transform.LocalBounds.Top),
-                    new SKPoint(Transform.LocalBounds.Left, Transform.LocalBounds.Top + 4f),
-                    new SKColor[] { currenthighlight, SKColors.Transparent },
-                    new float[] { 0.0f, 0.4f },
-                    SKShaderTileMode.Clamp
-                );
-                canvas.DrawRoundRect(roundRect, paint);
-            }
+                // Highlight on Top Edge
+                using (var paint = SkPaint.Clone())
+                {
+                    paint.IsAntialias = true;
+                    paint.Shader = SKShader.CreateLinearGradient(
+                        new SKPoint(Transform.LocalBounds.Left, Transform.LocalBounds.Top),
+                        new SKPoint(Transform.LocalBounds.Left, Transform.LocalBounds.Top + 4f),
+                        new SKColor[] { currenthighlight, SKColors.Transparent },
+                        new float[] { 0.0f, 0.4f },
+                        SKShaderTileMode.Clamp
+                    );
+                    // canvas.DrawRoundRect(roundRect, paint);
+                    canvas.DrawPath(SKSquircle.CreateSquircle(Transform.LocalBounds, cornerRadius), paint);
+                }
 
-            // Inner Shadow
-            using (var paint = SkPaint.Clone())
-            {
-                paint.IsAntialias = true;
-                paint.Shader = SKShader.CreateLinearGradient(
-                    new SKPoint(Transform.LocalBounds.Left, Transform.LocalBounds.Bottom),
-                    new SKPoint(Transform.LocalBounds.Left, Transform.LocalBounds.Top + 4f),
-                    new SKColor[] { WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value, SKColors.Transparent },
-                    new float[] { 0f, 1f },
-                    SKShaderTileMode.Clamp
-                );
-                canvas.DrawRoundRect(roundRect, paint);
+                // Inner Shadow
+                using (var paint = SkPaint.Clone())
+                {
+                    paint.IsAntialias = true;
+                    paint.Shader = SKShader.CreateLinearGradient(
+                        new SKPoint(Transform.LocalBounds.Left, Transform.LocalBounds.Bottom),
+                        new SKPoint(Transform.LocalBounds.Left, Transform.LocalBounds.Top + 4f),
+                        new SKColor[] { WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value, SKColors.Transparent },
+                        new float[] { 0f, 1f },
+                        SKShaderTileMode.Clamp
+                    );
+                    // canvas.DrawRoundRect(roundRect, paint);
+                    canvas.DrawPath(SKSquircle.CreateSquircle(Transform.LocalBounds, cornerRadius), paint);
+                }
             }
         }
     }
