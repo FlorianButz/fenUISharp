@@ -94,13 +94,10 @@ namespace FenUISharp
             if (Font != null) Font.Dispose();
 
             Font = new SKFont(Typeface, TextSize);
-            // Font = new SKFont(SKTypeface.FromFamilyName("Segoe UI", SKFontStyleWeight.Normal, SKFontStyleWidth.Normal, SKFontStyleSlant.Upright), _textSize);
 
             Font.Hinting = SKFontHinting.Full;
             Font.Subpixel = true;
             Font.Edging = SKFontEdging.SubpixelAntialias;
-
-            // Invalidate();
         }
 
         void UpdateFont()
@@ -146,20 +143,14 @@ namespace FenUISharp
         {
             if (FitHorizontalToContent)
             {
-                var rect = Transform.LocalBounds;
-                rect.Inflate(10000, 0);
-
-                var calculatedTextBlockSize = new Vector2(CalculateTextBlockSize(text, rect));
-                Transform.Size = new Vector2(calculatedTextBlockSize.x, Transform.Size.y);
+                CalculateTextBlockSize(text, out Vector2 calculatedTextBlockSize);
+                Transform.Size = new Vector2(Transform.Size.x != 0 ? Math.Min(calculatedTextBlockSize.x, Transform.Size.x) : calculatedTextBlockSize.x, Transform.Size.y);
             }
 
             if (FitVerticalToContent)
             {
-                var rect = Transform.LocalBounds;
-                rect.Inflate(0, 10000);
-
-                var calculatedTextBlockSize = new Vector2(CalculateTextBlockSize(text, rect));
-                Transform.Size = new Vector2(Transform.Size.x, calculatedTextBlockSize.y);
+                CalculateTextBlockSize(text, out Vector2 calculatedTextBlockSize);
+                Transform.Size = new Vector2(Transform.Size.x, Transform.Size.y != 0 ? Math.Min(calculatedTextBlockSize.y, Transform.Size.y) : calculatedTextBlockSize.y);
             }
 
             Transform.UpdateLayout();
@@ -321,107 +312,167 @@ namespace FenUISharp
             }
         }
 
-        Vector2 CalculateTextBlockSize(string text, SKRect bounds)
+        void CalculateTextBlockSize(string text, out Vector2 size)
         {
-            Font.GetFontMetrics(out SKFontMetrics fm);
-            float lineHeight = (fm.Descent - fm.Ascent) + fm.Leading;
-            float spaceWidth = Font.MeasureText(" ");
-            List<string> lines = new List<string>();
-
-            List<string> BreakWord(string word, float maxWidth)
+            if (Truncation == TextTruncation.Elipsis || Truncation == TextTruncation.Scroll)
+                size = new Vector2(GetSingleLineTextWidth(), GetSingleLineTextHeight());
+            else
             {
-                List<string> parts = new List<string>();
-                string currentPart = "";
-                foreach (char c in word)
+                bool useWidthBound = Transform.Size.x > 0;
+                bool useHeightBound = Transform.Size.y > 0;
+
+                // Get font metrics
+                Font.GetFontMetrics(out SKFontMetrics fm);
+                float lineHeight = (fm.Descent - fm.Ascent) + fm.Leading;
+                float spaceWidth = Font.MeasureText(" ");
+                List<string> lines = new List<string>();
+
+                // Local helper: break a single word so that each part is within maxWidth.
+                List<string> BreakWord(string word, float maxWidth)
                 {
-                    string test = currentPart + c;
-                    if (Font.MeasureText(test) > maxWidth && currentPart.Length > 0)
+                    List<string> parts = new List<string>();
+                    string currentPart = "";
+                    foreach (char c in word)
                     {
-                        parts.Add(currentPart);
-                        currentPart = c.ToString();
-                    }
-                    else
-                    {
-                        currentPart = test;
-                    }
-                }
-                if (!string.IsNullOrEmpty(currentPart))
-                {
-                    parts.Add(currentPart);
-                }
-                return parts;
-            }
-
-            string[] paragraphs = text.Split(new char[] { '\n' }, StringSplitOptions.None);
-            bool firstParagraph = true;
-            foreach (var paragraph in paragraphs)
-            {
-                if (!firstParagraph)
-                {
-                    if (paragraph.Length == 0)
-                    {
-                        lines.Add("");
-                    }
-                }
-                firstParagraph = false;
-
-                if (paragraph.Length == 0)
-                {
-                    continue;
-                }
-
-                string[] words = paragraph.Split(' ');
-                string currentLine = "";
-                float currentWidth = 0;
-
-                foreach (var word in words)
-                {
-                    if (string.IsNullOrEmpty(word))
-                        continue;
-
-                    float wordWidth = Font.MeasureText(word);
-                    if (wordWidth > bounds.Width)
-                    {
-                        if (!string.IsNullOrWhiteSpace(currentLine))
+                        string test = currentPart + c;
+                        if (Font.MeasureText(test) > maxWidth && currentPart.Length > 0)
                         {
-                            lines.Add(currentLine.TrimEnd());
-                            currentLine = "";
-                            currentWidth = 0;
-                        }
-                        var brokenParts = BreakWord(word, bounds.Width);
-                        lines.AddRange(brokenParts);
-                    }
-                    else
-                    {
-                        if (currentWidth + wordWidth > bounds.Width)
-                        {
-                            lines.Add(currentLine.TrimEnd());
-                            currentLine = word + " ";
-                            currentWidth = wordWidth + spaceWidth;
+                            parts.Add(currentPart);
+                            currentPart = c.ToString();
                         }
                         else
                         {
-                            currentLine += word + " ";
-                            currentWidth += wordWidth + spaceWidth;
+                            currentPart = test;
                         }
                     }
+                    if (!string.IsNullOrEmpty(currentPart))
+                        parts.Add(currentPart);
+                    return parts;
                 }
-                if (!string.IsNullOrWhiteSpace(currentLine))
+
+                // Split text into paragraphs then into lines.
+                string[] paragraphs = text.Split(new char[] { '\n' }, StringSplitOptions.None);
+                bool firstParagraph = true;
+                foreach (var paragraph in paragraphs)
                 {
-                    lines.Add(currentLine.TrimEnd());
+                    if (!firstParagraph)
+                    {
+                        // Preserve an empty line between paragraphs if needed.
+                        if (paragraph.Length == 0)
+                            lines.Add("");
+                    }
+                    firstParagraph = false;
+
+                    if (paragraph.Length == 0)
+                        continue;
+
+                    string[] words = paragraph.Split(' ');
+                    string currentLine = "";
+                    float currentWidth = 0;
+
+                    foreach (var word in words)
+                    {
+                        if (string.IsNullOrEmpty(word))
+                            continue;
+
+                        float wordWidth = Font.MeasureText(word);
+                        // If the word is too long to fit (given bounds if available), break it up.
+                        if (useWidthBound && wordWidth > Transform.LocalBounds.Width)
+                        {
+                            // Flush current line first.
+                            if (!string.IsNullOrWhiteSpace(currentLine))
+                            {
+                                lines.Add(currentLine.TrimEnd());
+                                currentLine = "";
+                                currentWidth = 0;
+                            }
+                            // Break the word into pieces.
+                            var brokenParts = BreakWord(word, Transform.LocalBounds.Width);
+                            foreach (var part in brokenParts)
+                            {
+                                lines.Add(part);
+                            }
+                        }
+                        else
+                        {
+                            // If adding this word would overflow the current bound, flush the current line.
+                            if (useWidthBound && currentWidth + wordWidth > Transform.LocalBounds.Width)
+                            {
+                                lines.Add(currentLine.TrimEnd());
+                                currentLine = word + " ";
+                                currentWidth = wordWidth + spaceWidth;
+                            }
+                            else
+                            {
+                                currentLine += word + " ";
+                                currentWidth += wordWidth + spaceWidth;
+                            }
+                        }
+                    }
+                    if (!string.IsNullOrWhiteSpace(currentLine))
+                    {
+                        lines.Add(currentLine.TrimEnd());
+                    }
                 }
-            }
 
-            float maxLineWidth = 0;
-            foreach (var line in lines)
-            {
-                float lineWidth = Font.MeasureText(line);
-                if (lineWidth > maxLineWidth)
-                    maxLineWidth = lineWidth;
-            }
+                // Compute total text height.
+                float totalTextHeight = lines.Count * lineHeight;
 
-            float contentHeight = lines.Count * lineHeight;
-            return new Vector2(maxLineWidth, contentHeight);
+                // Compute starting y. If a height bound is provided, center vertically.
+                float drawTop;
+                if (useHeightBound)
+                {
+                    // We center the text vertically in the provided height.
+                    drawTop = Transform.LocalBounds.Top + (Transform.LocalBounds.Height - totalTextHeight) / 2 - fm.Ascent;
+                }
+                else
+                {
+                    // Otherwise, assume a top margin of zero (adjust the baseline using fm.Ascent).
+                    drawTop = -fm.Ascent;
+                }
+
+                // Iterate through each line to compute its drawn rect, then compute the union.
+                SKRect textBounds = SKRect.Empty;
+                bool firstRect = true;
+                float y = drawTop;
+                foreach (var line in lines)
+                {
+                    float textWidth = Font.MeasureText(line);
+                    float x;
+                    if (useWidthBound)
+                    {
+                        // Align the text horizontally according to the given alignment.
+                        if (_textAlign == SKTextAlign.Center)
+                            x = Transform.LocalBounds.MidX - textWidth / 2;
+                        else if (_textAlign == SKTextAlign.Right)
+                            x = Transform.LocalBounds.Right - textWidth;
+                        else
+                            x = Transform.LocalBounds.Left;
+                    }
+                    else
+                    {
+                        // If no width bound is provided, default to starting at x=0.
+                        x = 0;
+                    }
+
+                    // For each line, the drawn rectangle covers:
+                    // - horizontally: from x to x + textWidth
+                    // - vertically: from (y + fm.Ascent) to (y + fm.Descent).
+                    SKRect lineRect = new SKRect(x, y + fm.Ascent, x + textWidth, y + fm.Descent);
+                    if (firstRect)
+                    {
+                        textBounds = lineRect;
+                        firstRect = false;
+                    }
+                    else
+                    {
+                        textBounds = SKRect.Union(textBounds, lineRect);
+                    }
+                    y += lineHeight;
+                }
+
+                size = new Vector2(textBounds.Width, textBounds.Height);
+            }
         }
 
         void DrawScrollingText(SKCanvas canvas, string text, SKRect bounds)
@@ -550,6 +601,11 @@ namespace FenUISharp
             Font.GetFontMetrics(out SKFontMetrics fm);
             float lineHeight = (fm.Descent - fm.Ascent) + fm.Leading;
             return lineHeight;
+        }
+
+        public void InvalidateText()
+        {
+            SilentSetText(Text);
         }
     }
 

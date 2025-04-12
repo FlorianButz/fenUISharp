@@ -30,17 +30,17 @@ namespace FenUISharpTest1
             var panel = new FPanel(window, new Vector2(0, 0), new Vector2(0, 0), 5, new ThemeColor(SKColors.Transparent));
             panel.Transform.StretchVertical = true;
             panel.Transform.StretchHorizontal = true;
-            panel.Transform.MarginHorizontal = 100;
-            panel.Transform.MarginVertical = 150;
+            panel.Transform.MarginHorizontal = 250;
+            panel.Transform.MarginVertical = 250;
 
             panel.BorderColor = window.WindowThemeManager.GetColor(t => t.Surface);
             panel.BorderSize = 1f;
             panel.CornerRadius = 10;
 
-            var layout = new StackContentComponent(panel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
+            var layout = new StackContentComponent(panel, StackContentComponent.ContentStackType.Horizontal, StackContentComponent.ContentStackBehavior.Scroll);
             layout.Pad = 15;
             // layout.ContentClipBehaviorProvider = new ScaleContentClipBehavior() { ClipScale = new Vector2(1, 1) * 0.85f, ClipStart = 15, ClipLength = 100 };
-            layout.ContentClipBehaviorProvider = new RandomContentClipBehavior(layout);
+            layout.ContentClipBehaviorProvider = new ScaleContentClipBehavior(layout);
 
             var panel2 = new FPanel(window, new Vector2(0, 0), new Vector2(200, 100), 15, window.WindowThemeManager.GetColor(t => t.OnBackground));
             panel2.UseSquircle = true;
@@ -48,10 +48,14 @@ namespace FenUISharpTest1
 
             for(int i = 0; i < 25; i++){
                 var label = new FLabel(window, "Lorem ipsum dolor sit amet.",
-                    new Vector2(0, 0), new Vector2(400, 0), truncation: TextTruncation.Linebreak);
+                    new Vector2(0, 0), new Vector2(100, 0), truncation: TextTruncation.Linebreak);
+                label.FitHorizontalToContent = true;
                 label.FitVerticalToContent = true;
+                label.InvalidateText();
                 label.Transform.SetParent(panel.Transform);
             }
+
+            window.DebugDisplayBounds = true;
 
             var btn2 = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!",
                 color: window.WindowThemeManager.GetColor(t => t.Primary), textColor: window.WindowThemeManager.GetColor(t => t.OnPrimary));
@@ -66,16 +70,6 @@ namespace FenUISharpTest1
             img.Transform.SetParent(panel.Transform);
 
             panel.Transform.UpdateLayout();
-
-            var panel3 = new FPanel(window, new Vector2(0, 0), new Vector2(100, 100), 15, window.WindowThemeManager.GetColor(t => t.Primary));
-            int time = 0;
-            window.OnUpdate += () => {
-                time++;
-                var locPos = panel3.Transform.LocalPositionExcludeBounds;
-                locPos = new Vector2(1, 1) * (float)(Math.Sin((float)time / 5) * 500);
-                panel3.Transform.LocalPosition = locPos;
-                panel3.GloballyInvalidated = true;
-            };
 
             window.SetWindowVisibility(true);
             window.BeginWindowLoop();

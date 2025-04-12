@@ -535,6 +535,11 @@ namespace FenUISharp
             return (float)Math.Sqrt(Math.Abs(x * x + y * y));
         }
 
+        public Vector2 Swapped()
+        {
+            return new Vector2(y, x);
+        }
+
         public static Vector2 operator *(Vector2 c1, Vector2 c2)
         {
             return new Vector2(c1.x * c2.x, c1.y * c2.y);
