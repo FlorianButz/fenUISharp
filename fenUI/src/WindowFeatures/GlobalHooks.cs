@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
+using FenUISharp.Mathematics;
 
-namespace FenUISharp
+namespace FenUISharp.WinFeatures
 {
-
     public class GlobalHooks : IDisposable
     {
         private static GlobalHooks? instance;
@@ -15,13 +15,14 @@ namespace FenUISharp
 
         #region Event Callbacks
 
-        public Action<float> onMouseScroll { get; set; }
-        public Action<Vector2> onMouseMove { get; set; } // Gives back the mouse position in the Vector2
-        public Action<Vector2> onMouseMoveDelta { get; set; } // Gives back the mouse delta in the Vector2
+        public Action<float> OnMouseScroll { get; set; }
+        public Action<Vector2> OnMouseMove { get; set; } // Gives back the mouse position in the Vector2
+        public Action<Vector2> OnMouseMoveDelta { get; set; } // Gives back the mouse delta in the Vector2
+        public Action<MouseInputCode> OnMouseAction { get; set; }
 
-        public Action<int> onKeyPressed { get; set; } // Only when user actually presses key
-        public Action<int> onKeyTyped { get; set; } // Raw windows key event callback
-        public Action<int> onKeyReleased { get; set; }
+        public Action<int> OnKeyPressed { get; set; } // Only when user actually presses key
+        public Action<int> OnKeyTyped { get; set; } // Raw windows key event callback
+        public Action<int> OnKeyReleased { get; set; }
 
         #endregion
 
@@ -83,7 +84,7 @@ namespace FenUISharp
                 if (wParam == (IntPtr)WM_MOUSEWHEEL)
                 {
                     short scrollDelta = (short)((mouseInfo.mouseData >> 16) & 0xFFFF);
-                    instance.onMouseScroll?.Invoke(scrollDelta);
+                    instance.OnMouseScroll?.Invoke(scrollDelta);
                 }
 
                 if (wParam == (IntPtr)WindowMessages.WM_MOUSEMOVE)
@@ -91,11 +92,33 @@ namespace FenUISharp
                     mousePosition.x = mouseX;
                     mousePosition.y = mouseY;
 
-                    instance.onMouseMove?.Invoke(new Vector2(mouseX, mouseY));
-                    instance.onMouseMoveDelta?.Invoke(new Vector2(mouseX - lastMousePosition.x, mouseY - lastMousePosition.y));
+                    instance.OnMouseMove?.Invoke(new Vector2(mouseX, mouseY));
+                    instance.OnMouseMoveDelta?.Invoke(new Vector2(mouseX - lastMousePosition.x, mouseY - lastMousePosition.y));
 
                     lastMousePosition.x = mouseX;
                     lastMousePosition.y = mouseY;
+                }
+
+                switch ((MouseMessages)wParam)
+                {
+                    case MouseMessages.WM_LBUTTONDOWN:
+                        instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Down));
+                        break;
+                    case MouseMessages.WM_LBUTTONUP:
+                        instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Up));
+                        break;
+                    case MouseMessages.WM_RBUTTONDOWN:
+                        instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Right, MouseInputState.Down));
+                        break;
+                    case MouseMessages.WM_RBUTTONUP:
+                        instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Right, MouseInputState.Up));
+                        break;
+                    case MouseMessages.WM_MBUTTONDOWN:
+                        instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Middle, MouseInputState.Down));
+                        break;
+                    case MouseMessages.WM_MBUTTONUP:
+                        instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Middle, MouseInputState.Up));
+                        break;
                 }
             }
 
@@ -115,14 +138,14 @@ namespace FenUISharp
                 if (wParam == (IntPtr)WM_KEYDOWN)
                 {
                     if (!_pressedKeys.Contains(keyInfo.vkCode))
-                        instance.onKeyPressed?.Invoke(keyInfo.vkCode);
+                        instance.OnKeyPressed?.Invoke(keyInfo.vkCode);
                     _pressedKeys.Add(keyInfo.vkCode);
 
-                    instance.onKeyTyped?.Invoke(keyInfo.vkCode);
+                    instance.OnKeyTyped?.Invoke(keyInfo.vkCode);
                 }
                 else if (wParam == (IntPtr)WM_KEYUP)
                 {
-                    instance.onKeyReleased?.Invoke(keyInfo.vkCode);
+                    instance.OnKeyReleased?.Invoke(keyInfo.vkCode);
 
                     if (_pressedKeys.Contains(keyInfo.vkCode))
                         _pressedKeys.Remove(keyInfo.vkCode);
@@ -142,6 +165,16 @@ namespace FenUISharp
         const int WM_MOUSEWHEEL = 0x020A;
         const int WM_KEYDOWN = 0x0100;
         const int WM_KEYUP = 0x0101;
+
+        private enum MouseMessages
+        {
+            WM_LBUTTONDOWN = 0x0201,
+            WM_LBUTTONUP = 0x0202,
+            WM_RBUTTONDOWN = 0x0204,
+            WM_RBUTTONUP = 0x0205,
+            WM_MBUTTONDOWN = 0x0207,
+            WM_MBUTTONUP = 0x0208,
+        }
 
         public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
         public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);

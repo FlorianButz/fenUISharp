@@ -1,7 +1,8 @@
 using System.Runtime.InteropServices;
+using FenUISharp.Mathematics;
 using SkiaSharp;
 
-namespace FenUISharp
+namespace FenUISharp.WinFeatures
 {
     public class DesktopCapture
     {

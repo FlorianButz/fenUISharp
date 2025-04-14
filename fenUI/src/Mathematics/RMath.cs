@@ -1,6 +1,7 @@
+using FenUISharp.Mathematics;
 using SkiaSharp;
 
-namespace FenUISharp
+namespace FenUISharp.Mathematics
 {
     public static class RMath
     {
@@ -14,11 +15,6 @@ namespace FenUISharp
             return value < min ? min : value > max ? max : value;
         }
 
-        public static Vector2 Clamp(Vector2 value, Vector2 min, Vector2 max)
-        {
-            return new Vector2(Clamp(value.x, min.x, max.x), Clamp(value.y, min.y, max.y));
-        }
-
         public static float Lerp(float from, float to, float t)
         {
             return from * (1 - t) + to * t;
@@ -27,11 +23,6 @@ namespace FenUISharp
         public static byte Lerp(byte from, byte to, float t)
         {
             return (byte)(from * (1 - t) + to * t);
-        }
-
-        public static Vector2 Lerp(Vector2 from, Vector2 to, float t)
-        {
-            return new Vector2(Lerp(from.x, to.x, t), Lerp(from.y, to.y, t));
         }
 
         public static SKColor Lerp(SKColor from, SKColor to, float t)
@@ -126,15 +117,6 @@ namespace FenUISharp
 
             float normalized = (t - oldMin) / (oldMax - oldMin);
             return newMin + normalized * (newMax - newMin);
-        }
-
-        public static SKColor MulMix(SKColor color1, SKColor color2){
-            return new SKColor(
-                (byte)((((float)color1.Red / 255)    * ((float)color2.Red / 255))    * 255),
-                (byte)((((float)color1.Green / 255)  * ((float)color2.Green / 255))  * 255),
-                (byte)((((float)color1.Blue / 255)   * ((float)color2.Blue / 255))   * 255),
-                (byte)((((float)color1.Alpha / 255)  * ((float)color2.Alpha / 255))  * 255)
-                );
         }
     }
 }

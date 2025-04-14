@@ -1,7 +1,8 @@
+using FenUISharp.Mathematics;
 using FenUISharp.Themes;
 using SkiaSharp;
 
-namespace FenUISharp
+namespace FenUISharp.Components
 {
     public class FPanel : UIComponent
     {

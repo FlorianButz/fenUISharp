@@ -1,7 +1,8 @@
+using FenUISharp.Mathematics;
 using FenUISharp.Themes;
 using SkiaSharp;
 
-namespace FenUISharp
+namespace FenUISharp.Components
 {
     public class FSimpleButton : UIComponent
     {
@@ -78,7 +79,7 @@ namespace FenUISharp
                 float sx = (Transform.Size.x + pixelsAdd) / Transform.Size.x;
                 float sy = (Transform.Size.y + pixelsAdd / 2) / Transform.Size.y;
 
-                Transform.Scale = RMath.Lerp(new Vector2(1, 1), new Vector2(sx, sy), t);
+                Transform.Scale = Vector2.Lerp(new Vector2(1, 1), new Vector2(sx, sy), t);
                 Invalidate();
             };
 

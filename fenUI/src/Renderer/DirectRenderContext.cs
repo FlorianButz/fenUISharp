@@ -4,6 +4,7 @@ using SharpDX.Direct3D11;
 using SharpDX.DXGI;
 using SkiaSharp;
 using SharpDX.DirectComposition;
+using FenUISharp.Mathematics;
 
 namespace FenUISharp
 {

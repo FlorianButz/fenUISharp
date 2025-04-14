@@ -1,5 +1,8 @@
 using System.Runtime.InteropServices;
+using FenUISharp.Components;
+using FenUISharp.Mathematics;
 using FenUISharp.Themes;
+using FenUISharp.WinFeatures;
 using SkiaSharp;
 
 namespace FenUISharp

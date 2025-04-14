@@ -1,9 +1,10 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using FenUISharp.Mathematics;
 using Microsoft.Toolkit.Uwp.Notifications;
 using Windows.Foundation.Collections;
 
-namespace FenUISharp
+namespace FenUISharp.WinFeatures
 {
     public class ToastMessageSender
     {

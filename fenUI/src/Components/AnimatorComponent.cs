@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using FenUISharp.Components;
 
 namespace FenUISharp
 {
@@ -51,10 +52,10 @@ namespace FenUISharp
 
             if (autoLowerRenderQuality)
             {
-                if (isRunning) Parent.renderQuality.SetValue(this, 0.9f, 50);
-                else Parent.renderQuality.DissolveValue(this);
+                if (isRunning) Parent.RenderQuality.SetValue(this, 0.9f, 50);
+                else Parent.RenderQuality.DissolveValue(this);
             }
-            else Parent.renderQuality.DissolveValue(this);
+            else Parent.RenderQuality.DissolveValue(this);
 
             if (!isRunning)
                 return;

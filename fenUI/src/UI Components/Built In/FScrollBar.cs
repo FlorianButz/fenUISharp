@@ -1,7 +1,8 @@
+using FenUISharp.Mathematics;
 using FenUISharp.Themes;
 using SkiaSharp;
 
-namespace FenUISharp
+namespace FenUISharp.Components
 {
     public class FScrollBar : UIComponent
     {
@@ -29,7 +30,6 @@ namespace FenUISharp
 
         // private Vector2 normalSize;
         // private Vector2 hoverSize;
-        private bool _isDragging;
         private SKRect lastThumbInteractionRect;
 
         public Action<float>? onPositionChanged;
@@ -37,7 +37,8 @@ namespace FenUISharp
         private float _scrollDragPosition;
         private float _lastScrollPos;
         private float _mouseStartScrollPos;
-        private Vector2 _mouseStartDragPos;
+
+        private UserDragComponent dragComponent;
 
         public FScrollBar(Window rootWindow, Vector2 position, Vector2 size, ThemeColor? areaColor = null, ThemeColor? positionColor = null) : base(rootWindow, position, size)
         {
@@ -45,6 +46,11 @@ namespace FenUISharp
             _scrollPositionColor = positionColor ?? WindowRoot.WindowThemeManager.GetColor(t => t.OnSurface);
 
             Transform.InteractionPadding = 5;
+
+            dragComponent = new(this);
+            dragComponent.OnDrag += OnDrag;
+            dragComponent.OnDragEnd += OnDragEnd;
+            dragComponent.OnDragStart += OnDragStart;
         }
 
         protected override void OnUpdate()
@@ -61,66 +67,49 @@ namespace FenUISharp
             if (RMath.Clamp(Alpha, 0, 1) != RMath.Clamp(_lastAlpha, 0, 1)) Invalidate();
             _lastAlpha = Alpha;
 
-            if (_isDragging)
+            Visible = ContentSize > PageSize;
+        }
+
+        void OnDrag(Vector2 delta)
+        {
+            var thumbSize = GetThumbRect(Transform.LocalBounds);
+            float availableTrackSize = HorizontalOrientation ? Transform.Size.x - thumbSize.Width : Transform.Size.y - thumbSize.Height;
+            float mouseDelta = HorizontalOrientation
+                ? (delta.x)
+                : (delta.y);
+
+            // Convert pixel movement to scroll range movement
+            float deltaScroll = (-mouseDelta / availableTrackSize) * (ScrollMax - ScrollMin);
+
+            _scrollDragPosition = RMath.Clamp(_mouseStartScrollPos + deltaScroll, ScrollMin, ScrollMax);
+
+            if (_lastScrollPos != _scrollDragPosition)
             {
-                var thumbSize = GetThumbRect(Transform.LocalBounds);
-                float availableTrackSize = HorizontalOrientation ? Transform.Size.x - thumbSize.Width : Transform.Size.y - thumbSize.Height;
-                float mouseDelta = HorizontalOrientation
-                    ? (WindowRoot.ClientMousePosition.x - _mouseStartDragPos.x)
-                    : (WindowRoot.ClientMousePosition.y - _mouseStartDragPos.y);
-
-                // Convert pixel movement to scroll range movement
-                float deltaScroll = (-mouseDelta / availableTrackSize) * (ScrollMax - ScrollMin);
-
-                _scrollDragPosition = RMath.Clamp(_mouseStartScrollPos + deltaScroll, ScrollMin, ScrollMax);
-
-                if (_lastScrollPos != _scrollDragPosition)
-                {
-                    onPositionChanged?.Invoke(_scrollDragPosition);
-                }
-
-                _lastScrollPos = _scrollDragPosition;
+                onPositionChanged?.Invoke(_scrollDragPosition);
             }
 
-            Visible = ContentSize > PageSize;
+            _lastScrollPos = _scrollDragPosition;
+        }
+
+        void OnDragStart()
+        {
+            Invalidate();
+
+            var interactionRect = lastThumbInteractionRect;
+            interactionRect.Inflate(Transform.InteractionPadding, Transform.InteractionPadding);
+                    
+                    _mouseStartScrollPos = ScrollPosition;
+        }
+
+        void OnDragEnd()
+        {
+            Invalidate();
         }
 
         public void UpdateScrollbar()
         {
             Alpha = AlphaFadeTime;
             Invalidate();
-        }
-
-        protected override void MouseAction(MouseInputCode inputCode)
-        {
-            base.MouseAction(inputCode);
-            Invalidate();
-
-            if (inputCode.button == 0 && inputCode.state == 0)
-            {
-                var interactionRect = lastThumbInteractionRect;
-                interactionRect.Inflate(Transform.InteractionPadding, Transform.InteractionPadding);
-
-                if (RMath.ContainsPoint(interactionRect, WindowRoot.ClientMousePosition))
-                {
-                    _mouseStartDragPos = WindowRoot.ClientMousePosition;
-                    _mouseStartScrollPos = ScrollPosition;
-                    _isDragging = true;
-                }
-                else
-                    _isDragging = false;
-            }
-        }
-
-        protected override void GlobalMouseAction(MouseInputCode inputCode)
-        {
-            base.GlobalMouseAction(inputCode);
-            Invalidate();
-
-            if (inputCode.button == 0 && inputCode.state == 1)
-            {
-                _isDragging = false;
-            }
         }
 
         protected override void MouseEnter()
@@ -140,7 +129,7 @@ namespace FenUISharp
             var scrollArea = Transform.LocalBounds;
 
             // Draw the scroll track
-            SkPaint.Color = _scrollAreaColor.Value.WithAlpha((byte)(255 * RMath.Clamp(Alpha, 0, (_isMouseHovering || _isDragging) ? 1f : 0.4f)));
+            SkPaint.Color = _scrollAreaColor.Value.WithAlpha((byte)(255 * RMath.Clamp(Alpha, 0, (_isMouseHovering || dragComponent.IsDragging) ? 1f : 0.4f)));
             canvas.DrawRoundRect(scrollArea, 5, 5, SkPaint);
 
             canvas.ClipRoundRect(new SKRoundRect(scrollArea, 5, 5), antialias: true);
@@ -148,7 +137,7 @@ namespace FenUISharp
             SKRect thumbRect = GetThumbRect(scrollArea);
 
             // Draw the scroll thumb
-            SkPaint.Color = _scrollPositionColor.Value.WithAlpha((byte)(255 * RMath.Clamp(Alpha, 0, (_isMouseHovering || _isDragging) ? 1f : 0.4f)));
+            SkPaint.Color = _scrollPositionColor.Value.WithAlpha((byte)(255 * RMath.Clamp(Alpha, 0, (_isMouseHovering || dragComponent.IsDragging) ? 1f : 0.4f)));
             canvas.DrawRoundRect(thumbRect, 5, 5, SkPaint);
         }
 

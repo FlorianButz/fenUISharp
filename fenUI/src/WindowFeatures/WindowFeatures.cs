@@ -1,4 +1,4 @@
-namespace FenUISharp {
+namespace FenUISharp.WinFeatures {
     
     public static class WindowFeatures {
 
@@ -28,5 +28,10 @@ namespace FenUISharp {
             return true;
         }
 
+        public static void Uninitialize(){
+            if(!_hasBeenInitialized) return;
+
+            _globalHooks.Dispose();
+        }
     }
 }

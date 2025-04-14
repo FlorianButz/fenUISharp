@@ -1,7 +1,8 @@
+using FenUISharp.Mathematics;
 using FenUISharp.Themes;
 using SkiaSharp;
 
-namespace FenUISharp
+namespace FenUISharp.Components
 {
     public class FLabel : UIComponent
     {
@@ -132,7 +133,7 @@ namespace FenUISharp
 
                     SkPaint.ImageFilter = dropShadow;
 
-                    renderQuality.DissolveValue(this);
+                    RenderQuality.DissolveValue(this);
                     Transform.BoundsPadding.DissolveValue(overridePad);
                     Invalidate();
                 };

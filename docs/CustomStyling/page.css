@@ -14,10 +14,36 @@ input {
   margin: 15px;
   border-radius: 10px;
   border: solid 1px var(--border-col) !important;
+
+  background: linear-gradient(180deg,#444444 0%, #303030 100%) !important;
+  
+  border-width: 1px 0 0 0 !important;
+  border-color: var(--border-col) transparent transparent transparent !important;
+
+  font-weight: bold !important;
+  font-size: medium !important;
+  text-indent: 5px;
+}
+
+input:focus{
+  box-shadow: none !important;
+
+  outline: solid 2px var(--theme-color) !important;
+}
+
+.sidebar li.active > a{
+  color: var(--theme-color) !important;
 }
 
 li a{
   font-size: large !important;
+  font-weight: normal !important;
+  color: #a8a8a8 !important;
+}
+
+li {
+  font-weight: bold !important;
+  color: #dfdfdf !important;
 }
 
 body {
@@ -31,9 +57,21 @@ pre {
   border: solid 1px var(--border-col);
 }
 
+code {
+  border: solid 1px #64a6ec25;
+  border-radius: 5px !important;
+}
+
 .tip{
   border-radius: 10px !important;
-  border: solid 1px var(--border-col);
+  border: solid 1px #f08585;
+
+  background-color: #641818 !important;
+  color: #f08585 !important;
+}
+
+.tip code{
+  background-color: #2eb2d655 !important;
 }
 
 aside {

@@ -1,7 +1,9 @@
+using FenUISharp.Components;
+using FenUISharp.Mathematics;
 using SkiaSharp;
 
 namespace FenUISharp {
-    public class Component : IDisposable
+    public abstract class Component : IDisposable
     {
         public UIComponent Parent { get; init; }
         private bool _isSetup = false;

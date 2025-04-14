@@ -24,6 +24,7 @@ namespace FenUISharp.Themes
 
         public void SetTheme(Theme newTheme)
         {
+            if(newTheme == CurrentTheme) return;
             CurrentTheme = newTheme;
         }
 

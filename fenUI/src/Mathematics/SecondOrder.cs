@@ -1,4 +1,4 @@
-﻿namespace FenUISharp
+﻿namespace FenUISharp.Mathematics
 {
     public class Spring
     {

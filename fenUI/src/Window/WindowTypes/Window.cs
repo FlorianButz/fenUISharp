@@ -1,7 +1,10 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using FenUISharp.Components;
+using FenUISharp.Mathematics;
 using FenUISharp.Themes;
+using FenUISharp.WinFeatures;
 using FenUISharpTest1;
 using SkiaSharp;
 
@@ -134,7 +137,7 @@ namespace FenUISharp
             WindowTitle = title;
             WindowClass = className;
 
-            WindowSize = (windowSize == null || windowSize.Value.Magnitude() < 1) ? new Vector2(400, 300) : windowSize.Value;
+            WindowSize = (windowSize == null || windowSize.Value.Magnitude < 1) ? new Vector2(400, 300) : windowSize.Value;
             WindowPosition = (windowPosition == null) ? new Vector2(0, 0) : windowPosition.Value;
 
             _wndProcDelegate = StaticWndProc;
@@ -593,8 +596,8 @@ namespace FenUISharp
             RenderContext?.OnEndResize();
             new List<UIComponent>(UiComponents).ForEach(x =>
             {
-                x?.Transform.UpdateLayout();
                 x?.Invalidate();
+                x?.Transform.UpdateLayout();
             });
         }
 
@@ -1182,35 +1185,6 @@ namespace FenUISharp
         [MarshalAs(UnmanagedType.LPTStr)]
         public string lpszClassName;
         public IntPtr hIconSm;
-    }
-
-    public struct MouseInputCode
-    {
-        public int button { get; init; } // 0: left, 1: right, 2: middle
-        public int state { get; init; } // 0: down, 1: up
-
-        public MouseInputCode(int btn, int state)
-        {
-            this.button = btn;
-            this.state = state;
-        }
-
-        public override bool Equals([NotNullWhen(true)] object? obj)
-        {
-            return button == ((MouseInputCode)obj).button && state == ((MouseInputCode)obj).state;
-        }
-    }
-
-    public enum MouseInputState : int { Down = 0, Up = 1 }
-    public enum MouseInputButton : int { Left = 0, Right = 1, Middle = 2 }
-
-    public enum Cursor : int
-    {
-        ARROW = 32512,
-        IBEAM = 32513,
-        WAIT = 32514,
-        BLOCK = 32648,
-        HAND = 32649
     }
 
     public enum WindowMessages : uint

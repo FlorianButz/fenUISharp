@@ -8,7 +8,7 @@ using Windows.Media;
 using Windows.Media.Control;
 using Windows.Storage.Streams;
 
-namespace FenUISharp
+namespace FenUISharp.WinFeatures
 {
     public struct PlaybackInfo
     {

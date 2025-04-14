@@ -1,5 +1,7 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
+using FenUISharp.Components;
+using FenUISharp.Mathematics;
 using Microsoft.Win32;
 using SkiaSharp;
 
@@ -18,23 +20,6 @@ namespace FenUISharp
             bool alwaysOnTop = false, bool hideTaskbarIcon = false, bool hasTitlebar = true) :
             base(title, className, type, windowSize, windowPosition, alwaysOnTop, hideTaskbarIcon, hasTitlebar)
         {
-            MouseAction += OnMouseAction;
-        }
-
-        void OnMouseAction(MouseInputCode inputCode)
-        {
-            if (inputCode.state == (int)MouseInputState.Up &&
-                inputCode.button == (int)MouseInputButton.Right)
-            {
-                ContextMenu.Create((ctx) =>
-                {
-                    var btn = new FSimpleButton(ctx, new Vector2(0, 25), "Test Text, click!", () => Console.WriteLine("test3"),
-color: ctx.WindowThemeManager.GetColor(t => t.Primary), textColor: ctx.WindowThemeManager.GetColor(t => t.OnPrimary));
-                    btn.Transform.Alignment = new Vector2(0.5f, 0f);
-
-                    return new List<UIComponent>() { btn };
-                });
-            }
         }
 
         protected override IntPtr CreateWin32Window(WNDCLASSEX wndClass, Vector2? size, Vector2? position)

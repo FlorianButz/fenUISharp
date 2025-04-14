@@ -1,7 +1,8 @@
 using System.ComponentModel;
+using FenUISharp.Mathematics;
 using SkiaSharp;
 
-namespace FenUISharp
+namespace FenUISharp.Components
 {
     public class FBlurPane : FPanel
     {

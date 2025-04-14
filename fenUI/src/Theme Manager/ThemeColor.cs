@@ -25,7 +25,7 @@ namespace FenUISharp.Themes
             _overrideColor = color;
         }
 
-        public void Reset()
+        public void ResetOverride()
         {
             _overrideColor = null;
         }
