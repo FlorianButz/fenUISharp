@@ -1,0 +1,67 @@
+:root {
+  --theme-color: #2e7ed6;
+  --on-theme-color: #82b9f3;
+  --border-theme-color: #1566bd;
+
+  --border-col: #ffffff46;
+}
+
+article h1 {
+  font-size: 45pt !important;
+}
+
+input {
+  margin: 15px;
+  border-radius: 10px;
+  border: solid 1px var(--border-col) !important;
+}
+
+li a{
+  font-size: large !important;
+}
+
+body {
+  /* background-color: #181818 !important; */
+  background: #181818;
+  font-size: large;
+}
+
+pre {
+  border-radius: 10px !important;
+  border: solid 1px var(--border-col);
+}
+
+.tip{
+  border-radius: 10px !important;
+  border: solid 1px var(--border-col);
+}
+
+aside {
+  border: solid 0 var(--border-col) !important;
+  border-width: 0 1px 0 0 !important;
+
+  backdrop-filter: blur(5px) contrast(0.95);
+}
+
+.sidebar-nav{
+    margin: 10px;
+}
+
+.search {
+  border-color: var(--border-col) !important;
+}
+
+.sidebar-toggle {
+  background-color: transparent;
+}
+
+.sidebar {
+  background-color: transparent;
+}
+
+.docsify-copy-code-button {
+  border-radius: 0 0 0 10px !important;
+  background-color: var(--border-theme-color) !important;
+  border: solid 2px var(--theme-color) !important;
+  color: var(--on-theme-color) !important;
+}

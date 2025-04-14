@@ -1,2 +1,2 @@
 # fenUISharp
-A native C# Windows overlay UI framework with a focus on exciting design.
+FenUISharp is a native Windows C# UI framework which aims for a modern and unique style.
