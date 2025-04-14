@@ -1,6 +1,3 @@
-using System.Numerics;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography.X509Certificates;
 using SkiaSharp;
 
 namespace FenUISharp
@@ -11,13 +8,14 @@ namespace FenUISharp
 
         public Transform Transform { get; set; }
         public SKPaint SkPaint { get; set; }
-        internal SKPaint DrawImageFromCachePaint { get; set; }
 
         public List<Component> Components { get; set; } = new List<Component>();
 
         public bool Enabled { get; set; } = true;
         public bool Visible { get; set; } = true;
         public bool CareAboutInteractions { get; set; } = true;
+
+        public ImageEffect ImageEffect { get; init; }
 
         public static UIComponent? CurrentlySelected { get; set; } = null;
 
@@ -54,7 +52,7 @@ namespace FenUISharp
             if (rootWindow == null) throw new Exception("Root window cannot be null.");
             WindowRoot = rootWindow;
 
-            Transform = new Transform(this);
+            Transform = new(this);
             Transform.LocalPosition = position;
             Transform.Size = size;
 
@@ -66,6 +64,8 @@ namespace FenUISharp
 
             WindowRoot.WindowThemeManager.ThemeChanged += Invalidate;
             WindowRoot.AddUIComponent(this);
+
+            ImageEffect = new(this);
         }
 
         private void OnMouseAction(MouseInputCode inputCode)
@@ -126,12 +126,6 @@ namespace FenUISharp
 
         protected void CreatePaint()
         {
-            DrawImageFromCachePaint = new SKPaint()
-            {
-                Color = SKColors.White,
-                IsAntialias = true
-            };
-
             SkPaint = CreateSurfacePaint();
         }
 
@@ -173,13 +167,20 @@ namespace FenUISharp
 
                 // Create an offscreen surface for this component
                 cachedSurface = WindowRoot.RenderContext.CreateAdditional(cachedImageInfo.Value);
-                
+
                 if (cachedSurface != null)
                 {
                     cachedSurface.Canvas.Scale(quality, quality);
                     Components.ForEach(x => x.OnBeforeRender(cachedSurface.Canvas));
-                    DrawToSurface(cachedSurface.Canvas);
-                    
+
+                    int layerRestoreCount = 0;
+                    using (var effectPaint = ImageEffect.ApplyInsideCacheImageEffect(new SKPaint() { Color = SKColors.White }))
+                    {
+                        layerRestoreCount = cachedSurface.Canvas.SaveLayer(effectPaint);
+                        DrawToSurface(cachedSurface.Canvas);
+                    }
+                    cachedSurface.Canvas.RestoreToCount(layerRestoreCount);
+
                     Components.ForEach(x => x.OnAfterRender(cachedSurface.Canvas));
 
                     cachedSurface.Flush();
@@ -200,7 +201,12 @@ namespace FenUISharp
                         canvas.Translate(Transform.Position.x * quality, Transform.Position.y * quality);
 
                     Components.ForEach(x => x.OnBeforeRenderCache(cachedSurface.Canvas));
-                    canvas.DrawImage(snapshot, 0, 0, WindowRoot.RenderContext.SamplingOptions, DrawImageFromCachePaint);
+
+                    using (var effectPaint = ImageEffect.ApplyImageEffect(new SKPaint() { Color = SKColors.White, IsAntialias = true }))
+                    {
+                        canvas.DrawImage(snapshot, 0, 0, WindowRoot.RenderContext.SamplingOptions, effectPaint);
+                    }
+
                     Components.ForEach(x => x.OnAfterRenderCache(cachedSurface.Canvas));
 
                     canvas.Translate(-(Transform.Position.x * quality), -(Transform.Position.y * quality)); // Always move back to 0;0. Translate always happen, no matter if rotation matrix is set or not.
@@ -212,7 +218,7 @@ namespace FenUISharp
 
 
             Components.ForEach(x => x.OnBeforeRenderChildren(canvas));
-            Transform.Children.ForEach(c => c.ParentComponent.DrawToScreen(canvas));
+            Transform.OrderTransforms(Transform.Children).ForEach(c => c.ParentComponent.DrawToScreen(canvas));
             Components.ForEach(x => x.OnAfterRenderChildren(canvas));
 
             canvas.RestoreToCount(c);
@@ -275,14 +281,16 @@ namespace FenUISharp
 
         public UIComponent? GetTopmostComponentAtPosition(Vector2 pos)
         {
-            if (!WindowRoot.GetUIComponents().Any(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos))) return null;
-            return WindowRoot.GetUIComponents().Last(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos));
+            var searchList = WindowRoot.OrderUIComponents(WindowRoot.GetUIComponents());
+            if (!searchList.Any(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos))) return null;
+            return searchList.Last(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos));
         }
 
         public UIComponent? GetTopmostComponentAtPositionWithComponent<T>(Vector2 pos)
         {
-            if (!WindowRoot.GetUIComponents().Any(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos) && x.Components.Any(x => x is T))) return null;
-            return WindowRoot.GetUIComponents().Last(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos) && x.Components.Any(x => x is T));
+            var searchList = WindowRoot.OrderUIComponents(WindowRoot.GetUIComponents());
+            if (!searchList.Any(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos) && x.Components.Any(x => x is T))) return null;
+            return searchList.Last(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos) && x.Components.Any(x => x is T));
         }
 
         public void SetColor(SKColor color)
@@ -297,6 +305,213 @@ namespace FenUISharp
         }
     }
 
+    public class ImageEffect
+    {
+        public UIComponent Parent { get; init; }
+
+        public bool InheritValues { get; set; } = true;
+
+        // Effects which are only applied to the cached version
+
+        private float _blurRadius = 0f;
+        public float BlurRadius
+        {
+            get => (Parent.Transform.Parent != null && InheritValues) ? Math.Max(_blurRadius, Parent.Transform.Parent.ParentComponent.ImageEffect.BlurRadius) : _blurRadius;
+            set { _blurRadius = value; OnRequireInvalidation(); }
+        }
+
+        // Effects which are applied every frame
+
+        private float _opacity = 1f;
+        public float Opacity
+        {
+            get => (Parent.Transform.Parent != null && InheritValues) ? _opacity * Parent.Transform.Parent.ParentComponent.ImageEffect.Opacity : _opacity;
+            set { _opacity = value; }
+        }
+
+        private float _brightness = 1f;
+        public float Brightness
+        {
+            get => (Parent.Transform.Parent != null && InheritValues) ? _brightness * Parent.Transform.Parent.ParentComponent.ImageEffect.Brightness : _brightness;
+            set { _brightness = value; }
+        }
+
+        private float _contrast = 1f;
+        public float Contrast
+        {
+            get => (Parent.Transform.Parent != null && InheritValues) ? _contrast * Parent.Transform.Parent.ParentComponent.ImageEffect.Contrast : _contrast;
+            set { _contrast = value; }
+        }
+
+        private float _saturation = 1f;
+        public float Saturation
+        {
+            get => (Parent.Transform.Parent != null && InheritValues) ? _saturation * Parent.Transform.Parent.ParentComponent.ImageEffect.Saturation : _saturation;
+            set { _saturation = value; }
+        }
+
+        private SKColor _tint = SKColors.White;
+        public SKColor Tint
+        {
+            get => (Parent.Transform.Parent != null && InheritValues) ? RMath.MulMix(_tint, Parent.Transform.Parent.ParentComponent.ImageEffect.Tint) : _tint;
+            set { _tint = value; }
+        }
+
+        private SKColor _add = SKColors.Black;
+        public SKColor Add
+        {
+            get => (Parent.Transform.Parent != null && InheritValues) ? RMath.MulMix(_add, Parent.Transform.Parent.ParentComponent.ImageEffect.Add) : _add;
+            set { _add = value; }
+        }
+
+        public ImageEffect(UIComponent parent)
+        {
+            Parent = parent;
+        }
+
+        public void OnRequireInvalidation()
+        {
+            Parent.Invalidate();
+        }
+
+        public SKPaint ApplyImageEffect(in SKPaint paint)
+        {
+            SKImageFilter? finalImageFilter = null;
+            SKColorFilter? finalColorFilter = null;
+
+            if (Opacity != 1)
+            {
+                var opacityColor = OpacityColor(Opacity);
+                finalColorFilter = ComposeColorFilter(finalColorFilter, opacityColor);
+            }
+
+            if (Brightness != 1)
+            {
+                var lightnessColor = BrightnessColor(Brightness);
+                finalColorFilter = ComposeColorFilter(finalColorFilter, lightnessColor);
+            }
+
+            if (Contrast != 1)
+            {
+                var contrastColor = ContrastFilter(Contrast);
+                finalColorFilter = ComposeColorFilter(finalColorFilter, contrastColor);
+            }
+
+            if (Saturation != 1)
+            {
+                var saturationColor = SaturationFilter(Saturation);
+                finalColorFilter = ComposeColorFilter(finalColorFilter, saturationColor);
+            }
+
+            if (Tint != SKColors.White || Add != SKColors.Black)
+            {
+                var tintAddColor = TintAddColor(Tint, Add);
+                finalColorFilter = ComposeColorFilter(finalColorFilter, tintAddColor);
+            }
+
+            if (finalImageFilter != null)
+                paint.ImageFilter = finalImageFilter;
+            if (finalColorFilter != null)
+                paint.ColorFilter = finalColorFilter;
+
+            return paint;
+        }
+
+        public SKPaint ApplyInsideCacheImageEffect(in SKPaint paint)
+        {
+            SKImageFilter? finalImageFilter = null;
+            SKColorFilter? finalColorFilter = null;
+
+            if (BlurRadius > 0)
+                using (var blur = SKImageFilter.CreateBlur(BlurRadius, BlurRadius))
+                    finalImageFilter = ComposeImageFilter(finalImageFilter, blur);
+
+            if (finalImageFilter != null)
+                paint.ImageFilter = finalImageFilter;
+            if (finalColorFilter != null)
+                paint.ColorFilter = finalColorFilter;
+
+            return paint;
+        }
+
+        SKImageFilter ComposeImageFilter(SKImageFilter? inner, SKImageFilter outer)
+        {
+            if (inner == null) return outer;
+            else return SKImageFilter.CreateCompose(inner, outer);
+        }
+
+        SKColorFilter? ComposeColorFilter(SKColorFilter? inner, SKColorFilter? outer)
+        {
+            if (inner == null && outer != null) return outer;
+            else if (outer == null && inner != null) return inner;
+            else if (outer == null && inner == null) return null;
+            else return SKColorFilter.CreateCompose(inner, outer);
+        }
+
+        static SKColorFilter OpacityColor(float value)
+        {
+            return SKColorFilter.CreateColorMatrix(new float[]
+            {
+                1, 0, 0, 0, 0,
+                0, 1, 0, 0, 0,
+                0, 0, 1, 0, 0,
+                0, 0, 0, value, 0
+            });
+        }
+
+        static SKColorFilter ContrastFilter(float value)
+        {
+            float avgLuminance = (1 - value) * 0.5f;
+
+            return SKColorFilter.CreateColorMatrix(new float[]
+            {
+                value, 0, 0, 0, avgLuminance,
+                0, value, 0, 0, avgLuminance,
+                0, 0, value, 0, avgLuminance,
+                0, 0, 0, 1, 0
+            });
+        }
+
+        static SKColorFilter BrightnessColor(float brightness)
+        {
+            brightness = Math.Clamp(brightness, 0f, 2f);
+
+            return SKColorFilter.CreateColorMatrix(new float[]
+            {
+                brightness, 0, 0, 0, 0,
+                0, brightness, 0, 0, 0,
+                0, 0, brightness, 0, 0,
+                0, 0, 0, 1, 0
+            });
+        }
+
+        static SKColorFilter TintAddColor(SKColor tint, SKColor add)
+        {
+            return SKColorFilter.CreateColorMatrix(new float[]
+            {
+                (float)tint.Red / 255, 0, 0, 0, (float)add.Red,
+                0, (float)tint.Blue / 255, 0, 0, (float)add.Green,
+                0, 0, (float)tint.Green / 255, 0, (float)add.Blue,
+                0, 0, 0, 1, 0
+            });
+        }
+
+        static SKColorFilter SaturationFilter(float saturation)
+        {
+            float lumR = 0.2126f;
+            float lumG = 0.7152f;
+            float lumB = 0.0722f;
+
+            return SKColorFilter.CreateColorMatrix(new float[]
+            {
+                lumR + (1 - lumR) * saturation, lumG - lumG * saturation,     lumB - lumB * saturation,     0, 0,
+                lumR - lumR * saturation,     lumG + (1 - lumG) * saturation, lumB - lumB * saturation,     0, 0,
+                lumR - lumR * saturation,     lumG - lumG * saturation,     lumB + (1 - lumB) * saturation, 0, 0,
+                0, 0, 0, 1, 0
+            });
+        }
+    }
+
     public class Transform : IDisposable
     {
         public UIComponent ParentComponent { get; private set; }
@@ -304,6 +519,10 @@ namespace FenUISharp
         public Transform? Root { get; private set; }
         public Transform? Parent { get; private set; }
         public List<Transform> Children { get; private set; } = new List<Transform>();
+
+        public int ZIndex { get; set; } = 0;
+        public int CreationIndex { get; init; } = 0; // Stores the actual order
+        private static int _lastCreationIndex = 0;
 
         public SKMatrix? Matrix { get; set; }
 
@@ -339,6 +558,19 @@ namespace FenUISharp
         public MultiAccess<int> BoundsPadding = new MultiAccess<int>(0);
 
         public Vector2 Alignment { get; set; } = new Vector2(0.5f, 0.5f); // Place object in the middle of parent
+
+        public Transform(UIComponent component)
+        {
+            ParentComponent = component;
+            
+            CreationIndex = _lastCreationIndex;
+            _lastCreationIndex++;
+        }
+
+        public List<Transform> OrderTransforms(List<Transform> transforms)
+        {
+            return transforms.AsEnumerable().OrderBy(e => e.ZIndex).ThenBy(e => e.CreationIndex).ToList();
+        }
 
         public Vector2 GetSize()
         {
@@ -419,11 +651,6 @@ namespace FenUISharp
             }));
 
             return returnList;
-        }
-
-        public Transform(UIComponent component)
-        {
-            ParentComponent = component;
         }
 
         private Vector2 GetGlobalPosition(Vector2 localPosition)

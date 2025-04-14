@@ -92,7 +92,7 @@ namespace FenUISharp
 
         #region Private
 
-        protected volatile List<UIComponent> uiComponents = new List<UIComponent>();
+        protected volatile List<UIComponent> UiComponents = new List<UIComponent>();
 
         private readonly WndProcDelegate _wndProcDelegate;
         protected bool _alwaysOnTop;
@@ -282,7 +282,7 @@ namespace FenUISharp
                         OnEndRender?.Invoke();
 
                         _isDirty = false;
-                        uiComponents.ForEach(x => x.GloballyInvalidated = false);
+                        UiComponents.ForEach(x => x.GloballyInvalidated = false);
                     }
 
                     nextFrameTime = currentTime + frameInterval;
@@ -292,7 +292,7 @@ namespace FenUISharp
                 await Task.Delay(1);
             }
 
-            new List<UIComponent>(uiComponents).ForEach(x => x?.Dispose());
+            new List<UIComponent>(UiComponents).ForEach(x => x?.Dispose());
         }
 
         protected virtual void OnRenderFrame(SKSurface surface) { }
@@ -311,7 +311,7 @@ namespace FenUISharp
 
                 OnRenderFrame(RenderContext.Surface);
 
-                foreach (var component in uiComponents)
+                foreach (var component in OrderUIComponents(UiComponents))
                 {
                     if (component.Enabled && component.Transform.Parent == null)
                         component.DrawToScreen(_canvas);
@@ -327,6 +327,11 @@ namespace FenUISharp
 
                 RenderContext.EndDraw();
             }
+        }
+
+        public List<UIComponent> OrderUIComponents(List<UIComponent> uiComponents)
+        {
+            return uiComponents.AsEnumerable().OrderBy(e => e.Transform.ZIndex).ThenBy(e => e.Transform.CreationIndex).ToList();
         }
 
         private void OnWindowUpdateCall(bool isPaused = false)
@@ -380,18 +385,18 @@ namespace FenUISharp
         public void AddUIComponent(UIComponent component)
         {
             if (component == null) return;
-            if (uiComponents.Contains(component)) return;
+            if (UiComponents.Contains(component)) return;
 
             component.WindowRoot = this;
-            uiComponents.Add(component);
+            UiComponents.Add(component);
         }
 
         public void RemoveUIComponent(UIComponent component)
         {
-            if (component == null || !uiComponents.Contains(component)) return;
+            if (component == null || !UiComponents.Contains(component)) return;
 
             // component.WindowRoot = null; // Don't do, could break some stuff
-            uiComponents.Remove(component);
+            UiComponents.Remove(component);
         }
 
         public void DestroyUIComponent(UIComponent component)
@@ -399,15 +404,15 @@ namespace FenUISharp
             if (component == null) return;
 
             component.Dispose();
-            uiComponents.Remove(component);
+            UiComponents.Remove(component);
         }
 
         public bool IsNextFrameRendering()
         {
-            return uiComponents.Any(x => x.GloballyInvalidated && x.Enabled && x.Visible && x.Transform.Parent == null);
+            return UiComponents.Any(x => x.GloballyInvalidated && x.Enabled && x.Visible && x.Transform.Parent == null);
         }
 
-        public List<UIComponent> GetUIComponents() => uiComponents;
+        public List<UIComponent> GetUIComponents() => UiComponents;
 
         public void SetWindowVisibility(bool visible) => ShowWindow(hWnd, visible ? 1 : 0);
 
@@ -586,7 +591,7 @@ namespace FenUISharp
         protected virtual void OnEndResize()
         {
             RenderContext?.OnEndResize();
-            new List<UIComponent>(uiComponents).ForEach(x =>
+            new List<UIComponent>(UiComponents).ForEach(x =>
             {
                 x?.Transform.UpdateLayout();
                 x?.Invalidate();
@@ -650,7 +655,7 @@ namespace FenUISharp
             IntPtr zOrder = _alwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST;
             SetWindowPos(hWnd, zOrder, 0, 0, (int)size.x, (int)size.y,
                 (int)SetWindowPosFlags.SWP_NOACTIVATE | (int)SetWindowPosFlags.SWP_NOMOVE);
-        
+
             RecalcClientBounds();
         }
 
@@ -660,7 +665,7 @@ namespace FenUISharp
             IntPtr zOrder = _alwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST;
             SetWindowPos(hWnd, zOrder, (int)pos.x, (int)pos.y, 0, 0,
                 (int)SetWindowPosFlags.SWP_NOACTIVATE | (int)SetWindowPosFlags.SWP_NOSIZE);
-            
+
             RecalcClientBounds();
         }
 
@@ -1100,7 +1105,7 @@ namespace FenUISharp
     public struct RECT
     {
         public int left, top, right, bottom;
-        
+
         public int Width => right - left;
         public int Height => bottom - top;
     }

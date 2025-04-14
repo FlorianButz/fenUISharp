@@ -3,12 +3,12 @@ using SkiaSharp;
 namespace FenUISharp {
     public class Component : IDisposable
     {
-        public UIComponent parent { get; private set; }
+        public UIComponent Parent { get; init; }
         private bool _isSetup = false;
 
         public Component(UIComponent parent){
-            this.parent = parent;
-            this.parent.Components.Add(this);
+            Parent = parent;
+            Parent.Components.Add(this);
         }
 
         public void CmpUpdate() {
@@ -43,7 +43,7 @@ namespace FenUISharp {
         public void Dispose()
         {
             ComponentDestroy();
-            this.parent.Components.Remove(this);
+            this.Parent.Components.Remove(this);
         }
     }
 }

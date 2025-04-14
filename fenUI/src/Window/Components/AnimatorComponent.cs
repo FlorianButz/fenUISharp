@@ -51,15 +51,15 @@ namespace FenUISharp
 
             if (autoLowerRenderQuality)
             {
-                if (isRunning) parent.renderQuality.SetValue(this, 0.9f, 50);
-                else parent.renderQuality.DissolveValue(this);
+                if (isRunning) Parent.renderQuality.SetValue(this, 0.9f, 50);
+                else Parent.renderQuality.DissolveValue(this);
             }
-            else parent.renderQuality.DissolveValue(this);
+            else Parent.renderQuality.DissolveValue(this);
 
             if (!isRunning)
                 return;
 
-            _timePassed += (float)parent.WindowRoot.DeltaTime;
+            _timePassed += (float)Parent.WindowRoot.DeltaTime;
 
             // Normalize time and clamp between 0 and 1.
             float t = Math.Clamp(_timePassed / duration, 0f, 1f);
@@ -68,7 +68,7 @@ namespace FenUISharp
             // Interpolate from the starting value to the target value.
             currentValue = startValue + (targetValue - startValue) * easedT;
             onValueUpdate?.Invoke(currentValue);
-            parent.SoftInvalidate();
+            Parent.SoftInvalidate();
 
             if (_timePassed >= duration)
             {

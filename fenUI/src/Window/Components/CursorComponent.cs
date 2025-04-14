@@ -15,14 +15,14 @@ namespace FenUISharp
         {
             base.MouseEnter();
 
-            if(parent.GetTopmostComponentAtPosition(parent.WindowRoot.ClientMousePosition) == parent) parent.WindowRoot.ActiveCursor.SetValue(this, CursorOnHover, 5);
+            if(Parent.GetTopmostComponentAtPosition(Parent.WindowRoot.ClientMousePosition) == Parent) Parent.WindowRoot.ActiveCursor.SetValue(this, CursorOnHover, 5);
         }
 
         public override void MouseExit()
         {
             base.MouseExit();
 
-            parent.WindowRoot.ActiveCursor.DissolveValue(this);
+            Parent.WindowRoot.ActiveCursor.DissolveValue(this);
         }
     }
 }

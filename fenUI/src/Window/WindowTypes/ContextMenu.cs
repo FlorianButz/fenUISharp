@@ -121,7 +121,7 @@ namespace FenUISharp
 
             if(layout != null) layout.Dispose();
 
-            uiComponents.ForEach(x =>
+            UiComponents.ForEach(x =>
             {
                 if(x.Transform.Parent != mainPanel.Transform) return;
                 if (!x.Transform.StretchHorizontal)

@@ -24,7 +24,7 @@ namespace FenUISharp
 
         private void DragDrop(FDropData? data)
         {
-            if(parent.GetTopmostComponentAtPosition(parent.WindowRoot.ClientMousePosition) == parent && _isCurrentlyInDragAction){
+            if(Parent.GetTopmostComponentAtPosition(Parent.WindowRoot.ClientMousePosition) == Parent && _isCurrentlyInDragAction){
                 OnDragDropActionComplete(data);
             }
 
@@ -50,9 +50,9 @@ namespace FenUISharp
         {
             base.ComponentSetup();
 
-            parent.WindowRoot.DropTarget.dragDrop += DragDrop;
-            parent.WindowRoot.DropTarget.dragEnter += DragEnter;
-            parent.WindowRoot.DropTarget.dragLeave += DragLeave;
+            Parent.WindowRoot.DropTarget.dragDrop += DragDrop;
+            Parent.WindowRoot.DropTarget.dragEnter += DragEnter;
+            Parent.WindowRoot.DropTarget.dragLeave += DragLeave;
 
             // Don't use drag over, it runs on different thread. Should use cutom drag over
         }
@@ -61,43 +61,43 @@ namespace FenUISharp
         {
             base.ComponentUpdate();
 
-            if (!parent.CareAboutInteractions) return;
-            if (!parent.Enabled) return;
+            if (!Parent.CareAboutInteractions) return;
+            if (!Parent.Enabled) return;
 
             if (!_windowHasCompatibleActiveDragAction) return;
 
-            if (parent.GetTopmostComponentAtPosition(parent.WindowRoot.ClientMousePosition) == parent && !_isCurrentlyInDragAction)
+            if (Parent.GetTopmostComponentAtPosition(Parent.WindowRoot.ClientMousePosition) == Parent && !_isCurrentlyInDragAction)
             {
                 _isCurrentlyInDragAction = true;
-                OnDragDropActionEnter(parent.WindowRoot.DropTarget.lastDropData);
+                OnDragDropActionEnter(Parent.WindowRoot.DropTarget.lastDropData);
             }
-            else if (parent.GetTopmostComponentAtPosition(parent.WindowRoot.ClientMousePosition) != parent && _isCurrentlyInDragAction)
+            else if (Parent.GetTopmostComponentAtPosition(Parent.WindowRoot.ClientMousePosition) != Parent && _isCurrentlyInDragAction)
             {
                 _isCurrentlyInDragAction = false;
                 OnDragDropActionLeave();
             }
-            else if(parent.GetTopmostComponentAtPosition(parent.WindowRoot.ClientMousePosition) == parent && _isCurrentlyInDragAction){
+            else if(Parent.GetTopmostComponentAtPosition(Parent.WindowRoot.ClientMousePosition) == Parent && _isCurrentlyInDragAction){
                 OnDragStay?.Invoke();
             }
         }
 
         protected void OnDragDropActionEnter(FDropData? data)
         {
-            parent.WindowRoot.DropTarget.dropEffect.SetValue(this, DropEffect, 5);
+            Parent.WindowRoot.DropTarget.dropEffect.SetValue(this, DropEffect, 5);
 
             OnDragEnter?.Invoke(data);
         }
 
         protected void OnDragDropActionLeave()
         {
-            parent.WindowRoot.DropTarget.dropEffect.DissolveValue(this);
+            Parent.WindowRoot.DropTarget.dropEffect.DissolveValue(this);
         
             OnDragLeave?.Invoke();
         }
 
         protected void OnDragDropActionComplete(FDropData? data)
         {
-            parent.WindowRoot.DropTarget.dropEffect.DissolveValue(this);
+            Parent.WindowRoot.DropTarget.dropEffect.DissolveValue(this);
         
             OnDrop?.Invoke(data);
         }
@@ -113,9 +113,9 @@ namespace FenUISharp
         {
             base.ComponentDestroy();
 
-            parent.WindowRoot.DropTarget.dragDrop -= DragDrop;
-            parent.WindowRoot.DropTarget.dragEnter -= DragEnter;
-            parent.WindowRoot.DropTarget.dragLeave -= DragLeave;
+            Parent.WindowRoot.DropTarget.dragDrop -= DragDrop;
+            Parent.WindowRoot.DropTarget.dragEnter -= DragEnter;
+            Parent.WindowRoot.DropTarget.dragLeave -= DragLeave;
         }
     }
 }
