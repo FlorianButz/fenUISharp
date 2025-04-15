@@ -16,7 +16,7 @@ namespace FenUISharpTest1
             FenUI.SetupAppModel("FlorianButz.fenUI");
 
             NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(1200, 800));
-            // window.SystemDarkMode = true;
+            window.SystemDarkMode = true;
             window.AllowResizing = true;
             window.SetTrayIcon("icons/TrayIcon.ico", "Test");
             window.SetWindowIcon("icons/TrayIcon.ico");
@@ -41,9 +41,10 @@ namespace FenUISharpTest1
             panel.CornerRadius = 10;
 
             var layout = new StackContentComponent(panel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
-            layout.Pad = 15;
-            // layout.ContentClipBehaviorProvider = new ScaleContentClipBehavior() { ClipScale = new Vector2(1, 1) * 0.85f, ClipStart = 15, ClipLength = 100 };
-            layout.ContentClipBehaviorProvider = new StackContentClipBehavior(layout);
+            layout.Pad = 50;
+            layout.Gap = 25;
+            // layout.ContentClipBehaviorProvider = new ScaleContentClipBehavior(layout) { ClipScale = new Vector2(1, 1) * 0.85f, ClipStart = 15, ClipLength = 100 };
+            // layout.ContentClipBehaviorProvider = new StackContentClipBehavior(layout);
             // layout.ContentClipBehaviorProvider = new StackContentClipBehavior(layout);
 
             for (int i = 0; i < 10; i++)
@@ -53,8 +54,6 @@ namespace FenUISharpTest1
                 panel2.UseSquircle = true;
                 panel2.Transform.SetParent(panel.Transform);
             }
-            layout.ContentFade = false;
-            panel.Transform.BoundsPadding.SetValue(panel, 100, 100);
 
             // for(int i = 0; i < 25; i++){
             //     var label = new FLabel(window, "Lorem ipsum dolor sit amet.",

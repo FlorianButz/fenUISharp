@@ -115,7 +115,8 @@ namespace FenUISharp
                 canvas.DrawRect(Parent.Transform.Bounds, maskPaint);
             }
 
-            canvas.RestoreToCount(_fadeLayerSaveCount.Value);
+            if(_fadeLayerSaveCount != null)
+                canvas.RestoreToCount(_fadeLayerSaveCount.Value);
             _fadeLayerSaveCount = null;
         }
 
@@ -386,6 +387,9 @@ namespace FenUISharp
 
         public StackContentClipBehavior(StackContentComponent layout) : base(layout)
         {
+            layout.ContentFade = false;
+            layout.ContentClip = false;
+            layout.Parent.Transform.BoundsPadding.SetValue(this, 25, 25);
         }
 
         public override void ClipBehavior(float t, StackContentComponent layout, UIComponent child, int childIndex, bool isBottom)
