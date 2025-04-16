@@ -45,7 +45,12 @@ namespace FenUISharpTest1
             layout.Gap = 25;
             // layout.ContentClipBehaviorProvider = new ScaleContentClipBehavior(layout) { ClipScale = new Vector2(1, 1) * 0.85f, ClipStart = 15, ClipLength = 100 };
             // layout.ContentClipBehaviorProvider = new StackContentClipBehavior(layout);
-            // layout.ContentClipBehaviorProvider = new StackContentClipBehavior(layout);
+            layout.ContentClipBehaviorProvider = new StackContentClipBehavior(layout);
+
+            var btn2 = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!",
+                color: window.WindowThemeManager.GetColor(t => t.Primary), textColor: window.WindowThemeManager.GetColor(t => t.OnPrimary));
+            btn2.Transform.Alignment = new Vector2(0.5f, 0f);
+            btn2.Transform.SetParent(panel.Transform);
 
             for (int i = 0; i < 10; i++)
             {
@@ -65,11 +70,6 @@ namespace FenUISharpTest1
             // }
 
             // window.DebugDisplayBounds = true;
-
-            var btn2 = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!",
-                color: window.WindowThemeManager.GetColor(t => t.Primary), textColor: window.WindowThemeManager.GetColor(t => t.OnPrimary));
-            btn2.Transform.Alignment = new Vector2(0.5f, 0f);
-            btn2.Transform.SetParent(panel.Transform);
 
             // var btn = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!", () => Console.WriteLine("test3"),
             //     color: window.WindowThemeManager.GetColor(t => t.Primary), textColor: window.WindowThemeManager.GetColor(t => t.OnPrimary));

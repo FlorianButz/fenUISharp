@@ -422,7 +422,7 @@ namespace FenUISharp
                 !isInUpperHalf ? (layout._pageSize - layout.Parent.Transform.ChildOffset.x - DistanceFromEdge) : -layout.Parent.Transform.ChildOffset.x + DistanceFromEdge;
 
             if (FlipZIndex) isInUpperHalf = !isInUpperHalf;
-            child.Transform.ZIndex = isInUpperHalf ? 0 : -childIndex;
+            child.Transform.ZIndex = isInUpperHalf ? 0 : -childIndex + layout.Parent.Transform.Children.Count;
 
 
             if (layout.StackType == StackContentComponent.ContentStackType.Horizontal)
