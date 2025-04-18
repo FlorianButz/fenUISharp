@@ -8,6 +8,8 @@
 
         public Spring(Vector2 startValue, float speed = 2f, float springy = 0.4f, float r = 0.1f)
         {
+            springy = 1f / springy; // Translate to actual springieness
+
             k1 = (float)(springy / (Math.PI * speed));
             k2 = (float)(1 / ((2 * Math.PI * speed) * (2 * Math.PI * speed)));
             k3 = (float)(r * springy / (2 * Math.PI * speed));
@@ -16,6 +18,23 @@
             y = startValue;
             yd = new Vector2(0, 0);
         }
+
+        public Spring(float speed = 2f, float springy = 0.4f)
+        {
+            springy = 1f / springy;
+
+            var startValue = new Vector2(0, 0);
+            var r = 0.1f;
+
+            k1 = (float)(springy / (Math.PI * speed));
+            k2 = (float)(1 / ((2 * Math.PI * speed) * (2 * Math.PI * speed)));
+            k3 = (float)(r * springy / (2 * Math.PI * speed));
+
+            xp = startValue;
+            y = startValue;
+            yd = new Vector2(0, 0);
+        }
+
 
         public void SetValues(float f = 2f, float z = 0.4f, float r = 0.1f)
         {

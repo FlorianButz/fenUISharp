@@ -5,7 +5,10 @@ namespace FenUISharp.Mathematics {
         public float x, y;
 
         public float Magnitude => (float)Math.Sqrt(Math.Abs(x * x + y * y));
-        public Vector2 Swapped => new Vector2(y, x);
+        public Vector2 Swapped => new(y, x);
+
+        public static Vector2 One => new(1, 1);
+        public static Vector2 Zero => new(0, 0);
 
         public Vector2(float x, float y)
         {

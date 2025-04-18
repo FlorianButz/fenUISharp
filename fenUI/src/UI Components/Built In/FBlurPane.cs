@@ -9,58 +9,34 @@ namespace FenUISharp.Components
         private SKPaint dropShadowPaint;
         private SKPaint blurPaint;
 
-        private Vector2 _blurAmount;
-        public Vector2 BlurAmount { get => _blurAmount; set => _blurAmount = value; }
+        private float _blurAmount;
+        public float BlurAmount { get => _blurAmount; set => _blurAmount = value; }
 
-        private Vector2 _brightContrast;
-        public float Brightness { get => _brightContrast.x; set => _brightContrast.x = value; }
-        public float Contrast { get => _brightContrast.y; set => _brightContrast.y = value; }
-
-        private bool _useDropShadow;
-
-        public FBlurPane(Window root, Vector2 position, Vector2 size, float cornerRadius, Vector2 blurAmount, bool useDropShadow = false, float brightness = 0.4f, float contrast = 0.77f)
+        public FBlurPane(Window root, Vector2 position, Vector2 size, float cornerRadius, float blurAmount)
             : base(root, position, size, cornerRadius, null)
         {
             _blurAmount = blurAmount;
             Transform.BoundsPadding.SetValue(this, 60, 35);
+            this._drawBasePanel = false;
 
-            var useBrightContrast = !(brightness == contrast && brightness == 1);
-
-            _brightContrast = new Vector2(brightness, contrast);
-
-            _useDropShadow = useDropShadow;
-
-            using (var blur = SKImageFilter.CreateBlur(RMath.Clamp(_blurAmount.x, 0.1f, 50), RMath.Clamp(_blurAmount.y, 0.1f, 50)))
+            using (var blur = SKImageFilter.CreateBlur(1f, 1f))
             {
-                float contrastFactor = RMath.Clamp(_brightContrast.y, 0, 1); // Less than 1 to reduce contrast
-                float translate = (1f - contrastFactor) * 0.5f;
-
-                float[] contrastMatrix = new float[]
-                {
-                    contrastFactor, 0, 0, 0, translate,  // Red
-                    0, contrastFactor, 0, 0, translate,  // Green
-                    0, 0, contrastFactor, 0, translate,  // Blue
-                    0, 0, 0, 1, 0  // Alpha (unchanged)
-                };
-
-                if (useBrightContrast)
-                {
-                    using (var colorFilter = SKImageFilter.CreateColorFilter(
-                    SKColorFilter.CreateCompose(SKColorFilter.CreateLighting(
-                    SKColors.White, new SKColor(
-                        (byte)(25 * RMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * RMath.Clamp((int)_brightContrast.x, 0, 1)), (byte)(25 * RMath.Clamp((int)_brightContrast.x, 0, 1)))),
-                        SKColorFilter.CreateColorMatrix(contrastMatrix))))
-                    {
-                        blurPaint = SkPaint.Clone();
-                        blurPaint.ImageFilter = SKImageFilter.CreateCompose(blur, colorFilter);
-                    }
-                }
-                else
                 {
                     blurPaint = SkPaint.Clone();
-                    blurPaint.ImageFilter = blur;
+
+                    float[] alphaMatrix = new float[]
+                    {
+                        1, 0, 0, 0, 0,  // Red
+                        0, 1, 0, 0, 0,  // Green
+                        0, 0, 1, 0, 0,  // Blue
+                        0, 0, 0, 100, 0  // Alpha
+                    };
+
+                    using (var alphaOne = SKColorFilter.CreateColorMatrix(alphaMatrix))
+                        blurPaint.ImageFilter = SKImageFilter.CreateCompose(SKImageFilter.CreateColorFilter(alphaOne), blur);
                 }
             }
+
             using (var drop = SKImageFilter.CreateDropShadowOnly(2, 2, 15, 15, SKColors.Black.WithAlpha(165)))
             {
                 dropShadowPaint = SkPaint.Clone();
@@ -89,34 +65,32 @@ namespace FenUISharp.Components
 
         protected override void DrawToSurface(SKCanvas canvas)
         {
+            base.DrawToSurface(canvas);
+
             var bounds = Transform.FullBounds;
             var pad = 60;
             var rect = new SKRoundRect(Transform.LocalBounds, CornerRadius);
             var captureArea = new SKRect(bounds.Left - pad, bounds.Top - pad, bounds.Right + pad, bounds.Bottom + pad);
 
-            float scaleFactor = 0.5f;
+            float scaleFactor = RMath.Clamp(1 / _blurAmount, 0.05f, 1f);
 
             using (var capture = WindowRoot.RenderContext.CaptureWindowRegion(captureArea, scaleFactor))
             {
                 // Save for clipping
                 int c = canvas.Save();
-                canvas.ClipRoundRect(rect, antialias: true);
 
-                canvas.Translate(-pad, -pad);
+                if (UseSquircle)
+                    canvas.ClipPath(SKSquircle.CreateSquircle(Transform.LocalBounds, CornerRadius), antialias: true);
+                else
+                    canvas.ClipRoundRect(rect, antialias: true);
+
+                canvas.Translate(-pad + Transform.BoundsPadding.Value * 2, -pad + Transform.BoundsPadding.Value * 2);
                 canvas.Scale(1 / scaleFactor);
-                canvas.DrawImage(capture, 0, 0, blurPaint);
+                canvas.DrawImage(capture, 0, 0, new SKSamplingOptions(SKFilterMode.Linear), blurPaint);
                 canvas.Scale(scaleFactor);
-                canvas.Translate(pad, pad);
+                canvas.Translate(pad - Transform.BoundsPadding.Value * 2, pad - Transform.BoundsPadding.Value * 2);
 
                 canvas.RestoreToCount(c);
-
-                if (_useDropShadow)
-                {
-                    canvas.Save();
-                    canvas.ClipRoundRect(rect, SKClipOperation.Difference, true);
-                    canvas.DrawRoundRect(rect, dropShadowPaint);
-                    canvas.Restore();
-                }
             }
             rect.Dispose();
         }

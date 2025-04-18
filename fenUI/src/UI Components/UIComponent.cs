@@ -37,12 +37,13 @@ namespace FenUISharp.Components
 
         protected bool _isMouseHovering { get; private set; } = false;
         private bool _isThisGloballyInvalidated;
+        public bool SelfInvalidated => _isThisGloballyInvalidated;
         public bool GloballyInvalidated
         {
             get
             {
                 if (!Enabled || !Visible) return false;
-                if (_isThisGloballyInvalidated) return true;
+                if (SelfInvalidated) return true;
                 if (Transform.Children.Any(x => x.ParentComponent._isThisGloballyInvalidated)) return true;
                 return false;
             }
@@ -82,10 +83,14 @@ namespace FenUISharp.Components
                         {
                             if (inputCode.state == 1)
                             {
+                                var oldSelected = CurrentlySelected;
                                 if (CurrentlySelected != this) CurrentlySelected?.SelectedLost();
 
                                 CurrentlySelected = this;
                                 CurrentlySelected?.Selected();
+
+                                if (oldSelected != this) oldSelected?.Invalidate();
+                                Invalidate();
                             }
 
                             break;
@@ -185,6 +190,8 @@ namespace FenUISharp.Components
 
                     Components.ForEach(x => x.OnAfterRender(cachedSurface.Canvas));
 
+                    // DrawSelectionEffect(cachedSurface.Canvas);
+
                     cachedSurface.Flush();
                     cachedSurface.Context?.Dispose();
                     cachedSurface.SurfaceProperties?.Dispose();
@@ -218,12 +225,31 @@ namespace FenUISharp.Components
                 }
             }
 
-
             Components.ForEach(x => x.OnBeforeRenderChildren(canvas));
             Transform.OrderTransforms(Transform.Children).ForEach(c => c.ParentComponent.DrawToScreen(canvas));
             Components.ForEach(x => x.OnAfterRenderChildren(canvas));
 
             canvas.RestoreToCount(c);
+        }
+
+        public void DrawSelectionEffect(SKCanvas canvas)
+        {
+            if (UIComponent.CurrentlySelected == this)
+            {
+                using (var paint = new SKPaint() { IsAntialias = true, Color = WindowRoot.WindowThemeManager.GetColor(t => t.OnBackground).Value, IsStroke = true, StrokeWidth = 0.5f })
+                {
+                    float[] intervals = { 2, 6 };
+                    paint.PathEffect = SKPathEffect.CreateDash(intervals, 0);
+
+                    paint.IsStroke = true;
+                    paint.StrokeCap = SKStrokeCap.Round;
+                    paint.StrokeJoin = SKStrokeJoin.Round;
+
+                    var rect = SKRect.Create((float)Math.Round(Transform.LocalBounds.Left) + 0.5f, (float)Math.Round(Transform.LocalBounds.Top) + 0.5f, Transform.LocalBounds.Width, Transform.LocalBounds.Height);
+                    rect.Inflate(3f, 3f);
+                    canvas.DrawPath(SKSquircle.CreateSquircle(rect, 10), paint);
+                }
+            }
         }
 
         public void Invalidate()

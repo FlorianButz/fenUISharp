@@ -33,8 +33,8 @@ namespace FenUISharpTest1
             var panel = new FPanel(window, new Vector2(0, 0), new Vector2(0, 0), 5, new ThemeColor(SKColors.Transparent));
             panel.Transform.StretchVertical = true;
             panel.Transform.StretchHorizontal = true;
-            panel.Transform.MarginHorizontal = 250;
-            panel.Transform.MarginVertical = 250;
+            panel.Transform.MarginHorizontal = 25;
+            panel.Transform.MarginVertical = 25;
 
             panel.BorderColor = window.WindowThemeManager.GetColor(t => t.Surface);
             panel.BorderSize = 1f;
@@ -42,23 +42,31 @@ namespace FenUISharpTest1
 
             var layout = new StackContentComponent(panel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
             layout.Pad = 50;
-            layout.Gap = 25;
+            layout.Gap = 10;
             // layout.ContentClipBehaviorProvider = new ScaleContentClipBehavior(layout) { ClipScale = new Vector2(1, 1) * 0.85f, ClipStart = 15, ClipLength = 100 };
             // layout.ContentClipBehaviorProvider = new StackContentClipBehavior(layout);
-            layout.ContentClipBehaviorProvider = new StackContentClipBehavior(layout);
+            // layout.ContentClipBehaviorProvider = new StackContentClipBehavior(layout);
+            // layout.SnappingProvider = (x) => (float)Math.Round(x / 100) * 100;
+            // layout.ScrollSpring = null;
 
             var btn2 = new FSimpleButton(window, new Vector2(0, 25), "Test Text, click!",
                 color: window.WindowThemeManager.GetColor(t => t.Primary), textColor: window.WindowThemeManager.GetColor(t => t.OnPrimary));
             btn2.Transform.Alignment = new Vector2(0.5f, 0f);
             btn2.Transform.SetParent(panel.Transform);
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 35; i++)
             {
-                var panel2 = new FPanel(window, new Vector2(0, 0), new Vector2(250, 50), 15, new ThemeColor(new SKColor((byte)(Random.Shared.NextSingle() * 255), (byte)(Random.Shared.NextSingle() * 255), (byte)(Random.Shared.NextSingle() * 255))));
+                var panel2 = new FPanel(window, new Vector2(0, 0), new Vector2(250, 15), 15, new ThemeColor(new SKColor((byte)(Random.Shared.NextSingle() * 255), (byte)(Random.Shared.NextSingle() * 255), (byte)(Random.Shared.NextSingle() * 255))));
                 if (layout.StackType == StackContentComponent.ContentStackType.Horizontal) panel2.Transform.Size = panel2.Transform.Size.Swapped;
-                panel2.UseSquircle = true;
+                panel2.UseSquircle = false;
                 panel2.Transform.SetParent(panel.Transform);
             }
+
+            // var bp = new FBlurPane(window, new Vector2(0, 0), new Vector2(50, 75), 0, 25);
+            // bp.Transform.Alignment = new(0.5f, 0);
+            // bp.Transform.Anchor = new(0.5f, 0);
+            // bp.Transform.StretchHorizontal = true;
+            // bp.Transform.MarginHorizontal = 0;
 
             // for(int i = 0; i < 25; i++){
             //     var label = new FLabel(window, "Lorem ipsum dolor sit amet.",

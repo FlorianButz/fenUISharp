@@ -53,9 +53,9 @@ namespace FenUISharp
         {
             get
             {
-                var mousePos = new POINT() { x = (int)GlobalHooks.MousePosition.x, y = (int)GlobalHooks.MousePosition.y };
-                ScreenToClient(hWnd, ref mousePos);
-                return new Vector2(mousePos.x, mousePos.y);
+                // var mousePos = new POINT() { x = (int)GlobalHooks.MousePosition.x, y = (int)GlobalHooks.MousePosition.y };
+                // ScreenToClient(hWnd, ref mousePos);
+                return GlobalPointToClient(new Vector2(GlobalHooks.MousePosition.x, GlobalHooks.MousePosition.y));
             }
         }
 
@@ -63,6 +63,7 @@ namespace FenUISharp
         public bool SystemDarkMode { get => _sysDarkMode; set { _sysDarkMode = value; UpdateSysDarkmode(); } }
 
         public bool DebugDisplayBounds { get; set; } = false;
+        public bool DebugDisplayAreaCache { get; set; } = false;
 
         public ThemeManager WindowThemeManager { get; private set; }
 
@@ -312,10 +313,15 @@ namespace FenUISharp
                 var _canvas = RenderContext.BeginDraw().Canvas;
                 if (_canvas == null) return;
 
+                int notClipped = _canvas.Save();
+                using (var clipPath = GetDirtyClipPath())
+                    _canvas.ClipPath(clipPath);
+
                 OnRenderFrame(RenderContext.Surface);
 
                 foreach (var component in OrderUIComponents(UiComponents))
                 {
+                    int savedBeforeComponent = _canvas.Save();
                     if (component.Enabled && component.Transform.Parent == null)
                         component.DrawToScreen(_canvas);
 
@@ -324,12 +330,39 @@ namespace FenUISharp
                         _canvas.DrawRect(component.Transform.Bounds, new SKPaint() { IsStroke = true, Color = SKColors.Red });
                         _canvas.DrawRect(component.InteractionBounds, new SKPaint() { IsStroke = true, Color = SKColors.Green });
                     }
+                    _canvas.RestoreToCount(savedBeforeComponent);
+                }
+
+                _canvas.RestoreToCount(notClipped);
+
+                if (DebugDisplayAreaCache)
+                {
+                    using (var paint = new SKPaint() { Color = SKColors.Red.WithAlpha(1) })
+                        _canvas.DrawRect(Bounds, paint);
                 }
 
                 OnAfterRenderFrame(RenderContext.Surface);
 
                 RenderContext.EndDraw();
             }
+        }
+
+        public SKPath GetDirtyClipPath()
+        {
+            var clipPath = new SKPath();
+            if (_isDirty)
+            {
+                clipPath.AddRect(Bounds);
+                return clipPath;
+            }
+
+            foreach (var component in UiComponents)
+            {
+                if (component.SelfInvalidated)
+                    clipPath.AddRect(component.Transform.FullBounds);
+            }
+
+            return clipPath;
         }
 
         public List<UIComponent> OrderUIComponents(List<UIComponent> uiComponents)
@@ -412,7 +445,7 @@ namespace FenUISharp
 
         public bool IsNextFrameRendering()
         {
-            return UiComponents.Any(x => x.GloballyInvalidated && x.Enabled && x.Visible && x.Transform.Parent == null);
+            return UiComponents.Any(x => x.GloballyInvalidated && x.Enabled && x.Visible && x.Transform.Parent == null) || DebugDisplayAreaCache;
         }
 
         public List<UIComponent> GetUIComponents() => UiComponents;
@@ -866,6 +899,10 @@ namespace FenUISharp
             (int)WindowStyles.WS_POPUP |
             (int)WindowStyles.WS_THICKFRAME;
 
+        static ushort LOWORD(IntPtr value) => (ushort)((long)value & 0xFFFF);
+        static ushort HIWORD(IntPtr value) => (ushort)(((long)value >> 16) & 0xFFFF);
+
+
         [DllImport("user32.dll")]
         protected static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
 
@@ -1192,6 +1229,8 @@ namespace FenUISharp
         WM_SETTINGCHANGE = 0x001A,
         WM_INITMENUPOPUP = 0x0117,
         WM_NCHITTEST = 0x0084,
+
+        WM_DPICHANGED = 0x02E0,
 
         WM_SETFOCUS = 0x0007,
         WM_KILLFOCUS = 0x0008,

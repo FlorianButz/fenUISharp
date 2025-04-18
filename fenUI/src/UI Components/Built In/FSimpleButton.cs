@@ -137,6 +137,11 @@ namespace FenUISharp.Components
             WindowRoot.DestroyUIComponent(label);
         }
 
+        protected override void OnUpdate()
+        {
+            base.OnUpdate();
+        }
+
         protected override void DrawToSurface(SKCanvas canvas)
         {
             // using (var roundRect = new SKRoundRect(Transform.LocalBounds, cornerRadius, cornerRadius))

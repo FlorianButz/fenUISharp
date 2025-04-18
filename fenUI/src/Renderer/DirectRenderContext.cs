@@ -96,12 +96,13 @@ namespace FenUISharp
 
         public override SKSurface BeginDraw()
         {
-            if (Surface == null || _bitmap == null)
+            if (_onEndResizeFlag) OnEndResizeAfterDraw();
+            if (Surface == null || _bitmap == null || _surfaceDirty)
             {
                 Surface = CreateSurface();
             }
 
-            Surface.Canvas.Clear(new SKColor(0, 0, 0, 0));
+            // Surface.Canvas.Clear(new SKColor(0, 0, 0, 0));
             return Surface;
         }
 
@@ -207,6 +208,15 @@ namespace FenUISharp
 
         public override void OnEndResize()
         {
+            _onEndResizeFlag = true;
+        }
+
+        bool _onEndResizeFlag = false;
+        bool _surfaceDirty = false;
+
+        void OnEndResizeAfterDraw()
+        {
+            _onEndResizeFlag = false;
             var size = GetSize();
 
             // Dispose old resources first
@@ -234,12 +244,12 @@ namespace FenUISharp
 
         public override void OnWindowPropertyChanged()
         {
-            CreateSurface();
+            _surfaceDirty = true;
         }
 
         private Vector2 GetSize()
         {
-            if(WindowRoot.Bounds.Width <= 0 || WindowRoot.Bounds.Height <= 0) return new Vector2(1, 1);
+            if (WindowRoot.Bounds.Width <= 0 || WindowRoot.Bounds.Height <= 0) return new Vector2(1, 1);
             return new Vector2(WindowRoot.Bounds.Width, WindowRoot.Bounds.Height);
         }
 

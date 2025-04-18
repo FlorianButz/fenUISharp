@@ -24,8 +24,12 @@ namespace FenUISharp
 
         public ContentClipBehaviorProvider? ContentClipBehaviorProvider;
 
+        public Func<float, float>? SnappingProvider { get; set; } = null;
+        public bool ApplySnapSeparately { get; set; } = true;
+
         private float _scrollSpeed = 0.25f;
         private float _scrollPosition = 0f;
+        private float _snappedScrollPosition = 0f;
         private float _scrollDisplayPosition = 0f;
         private float _lastScrollDisplayPosition = 0f;
 
@@ -52,7 +56,7 @@ namespace FenUISharp
             dragComponent = new UserDragComponent(parent);
             dragComponent.OnDragDelta += OnDrag;
 
-            ScrollSpring = new Spring(new Vector2(0, 0), 2, 0.85f, 0.1f);
+            ScrollSpring = new Spring(new Vector2(0, 0), 2f, 1f / 0.85f, 0.1f);
 
             if (startAlign == null)
             {
@@ -188,29 +192,39 @@ namespace FenUISharp
         {
             base.ComponentUpdate();
 
-            if (!AllowScrollOverflow)
+            if (!AllowScrollOverflow || ScrollSpring == null)
                 _scrollPosition = RMath.Clamp(_scrollPosition, -_scrollMax, _scrollMin);
 
-            if (_contentSize > _pageSize)
-                _scrollDisplayPosition = ScrollSpring.Update((float)Parent.WindowRoot.DeltaTime, new Vector2(_scrollPosition, 0)).x;
+            if (SnappingProvider != null && ApplySnapSeparately)
+                _snappedScrollPosition = SnappingProvider.Invoke(_scrollPosition);
+            else
+                _snappedScrollPosition = _scrollPosition;
+
+            if (ScrollSpring != null && _contentSize > _pageSize)
+                _scrollDisplayPosition = ScrollSpring.Update((float)Parent.WindowRoot.DeltaTime, new Vector2(_snappedScrollPosition, 0)).x;
+            else if (ScrollSpring == null)
+                _scrollDisplayPosition = _snappedScrollPosition;
             else
                 _scrollDisplayPosition = _pageSize / 2 - _contentSize / 2;
 
-            if (AllowScrollOverflow)
+            if (AllowScrollOverflow && ScrollSpring != null)
                 _scrollPosition = RMath.Clamp(_scrollPosition, -_scrollMax, _scrollMin);
 
+            if (SnappingProvider != null && !ApplySnapSeparately)
+                _scrollPosition = SnappingProvider.Invoke(_scrollPosition);
+
             if (StackBehavior == ContentStackBehavior.Scroll)
-            {
-                if (StackType == ContentStackType.Horizontal)
-                    Parent.Transform.ChildOffset = new Vector2(_scrollDisplayPosition, 0);
-                else if (StackType == ContentStackType.Vertical)
-                    Parent.Transform.ChildOffset = new Vector2(0, _scrollDisplayPosition);
-            }
+                {
+                    if (StackType == ContentStackType.Horizontal)
+                        Parent.Transform.ChildOffset = new Vector2(_scrollDisplayPosition, 0);
+                    else if (StackType == ContentStackType.Vertical)
+                        Parent.Transform.ChildOffset = new Vector2(0, _scrollDisplayPosition);
+                }
 
             if (Math.Round(_lastScrollDisplayPosition) != Math.Round(_scrollDisplayPosition))
             {
                 scrollBar.UpdateScrollbar();
-                Parent.Invalidate();
+                Parent.SoftInvalidate();
             }
 
             ProcessLayout();
@@ -295,7 +309,7 @@ namespace FenUISharp
 
         void ProcessLayout()
         {
-            if (ContentClipBehaviorProvider != null)
+            if (ContentClipBehaviorProvider != null && StackBehavior == ContentStackBehavior.Scroll)
             {
                 var childList = Parent.Transform.Children;
 
