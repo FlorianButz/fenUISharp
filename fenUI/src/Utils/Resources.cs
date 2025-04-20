@@ -1,4 +1,5 @@
 using System.Reflection;
+using FenUISharp.Components.Text.Model;
 using FenUISharp.Themes;
 using SkiaSharp;
 
@@ -6,17 +7,14 @@ namespace FenUISharp
 {
     public static class Resources
     {
-        private static Dictionary<string, SKTypeface> typefaces = new Dictionary<string, SKTypeface>();
+        private static Dictionary<string, FTypeface> typefaces = new Dictionary<string, FTypeface>();
         private static Dictionary<string, Theme> themes = new Dictionary<string, Theme>();
         private static Dictionary<string, SKImage> images = new Dictionary<string, SKImage>();
 
         public static void LoadDefault()
         {
-            RegisterTypeface("Inter_18pt-Black.ttf", "inter-black");
-            RegisterTypeface("Inter_18pt-Bold.ttf", "inter-bold");
-            RegisterTypeface("Inter_18pt-Regular.ttf", "inter-regular");
-            RegisterTypeface("Inter_18pt-Medium.ttf", "inter-medium");
-            RegisterTypeface("Inter_18pt-Light.ttf", "inter-light");
+            // RegisterTypeface("fonts/Inter-VariableFont_opsz,wght.ttf", "inter-variable");
+            RegisterTypeface("Segoe UI Variable", "segoe-ui");
 
             RegisterImage(LoadImage("images/test_img.png"), "test-img");
 
@@ -50,23 +48,18 @@ namespace FenUISharp
             RegisterTheme(darkTheme, "default-dark");
         }
 
-        public static SKTypeface RegisterTypeface(string fontName, string withId)
+        public static FTypeface RegisterTypeface(string familyName, string withId)
         {
             if (typefaces.Keys.Contains(withId)) return typefaces[withId];
-            var assembly = Assembly.GetExecutingAssembly();
+            
+            var typeface = new FTypeface(familyName);
+            typefaces.Add(withId, typeface);
+            return typeface;
 
-            var stream = assembly.GetManifestResourceStream("fenUI.fonts." + fontName);
-            if (stream != null)
-            {
-                var typeface = SKTypeface.FromStream(stream);
-                typefaces.Add(withId, typeface);
-                return typeface;
-            }
-
-            throw new IOException("Font with the name " + fontName + " could not be found. ");
+            throw new IOException("Font with the name " + familyName + " could not be found. ");
         }
 
-        public static SKTypeface? GetTypeface(string id)
+        public static FTypeface? GetTypeface(string id)
         {
             return typefaces.ContainsKey(id) ? typefaces[id] : null;
         }

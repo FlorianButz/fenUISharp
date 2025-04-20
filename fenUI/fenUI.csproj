@@ -26,11 +26,9 @@
     <None Include="images\**\*">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-      <EmbeddedResource Include="fonts\Inter_18pt-Black.ttf" />
-      <EmbeddedResource Include="fonts\Inter_18pt-Bold.ttf" />
-      <EmbeddedResource Include="fonts\Inter_18pt-Regular.ttf" />
-      <EmbeddedResource Include="fonts\Inter_18pt-Medium.ttf" />
-      <EmbeddedResource Include="fonts\Inter_18pt-Light.ttf" />
+    <None Include="fonts\**\*">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

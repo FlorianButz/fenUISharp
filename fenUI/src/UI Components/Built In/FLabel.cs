@@ -1,3 +1,4 @@
+using FenUISharp.Components.Text.Model;
 using FenUISharp.Mathematics;
 using FenUISharp.Themes;
 using SkiaSharp;
@@ -36,7 +37,7 @@ namespace FenUISharp.Components
         private bool _fitVerticalToContent = false;
         public bool FitVerticalToContent { get => _fitVerticalToContent; set { _fitVerticalToContent = value; SilentSetText(Text); } }
 
-        public SKTypeface? Typeface { get; private set; }
+        public FTypeface? Typeface { get; private set; }
         private float _textSize = 14;
         public float TextSize { get => _textSize; set { _textSize = value; UpdateFont(); } }
         private float _textWeight = 500;
@@ -58,7 +59,7 @@ namespace FenUISharp.Components
             _textColor = textColor ?? WindowRoot.WindowThemeManager.GetColor(t => t.OnSurface);
 
             if (typefaceName == null)
-                Typeface = Resources.GetTypeface("inter-regular");
+                Typeface = FTypeface.Default;
             else
                 Typeface = Resources.GetTypeface(typefaceName);
 
@@ -94,7 +95,7 @@ namespace FenUISharp.Components
         {
             if (Font != null) Font.Dispose();
 
-            Font = new SKFont(Typeface, TextSize);
+            Font = new SKFont(Typeface?.CreateSKTypeface(), TextSize);
 
             Font.Hinting = SKFontHinting.Full;
             Font.Subpixel = true;
@@ -160,7 +161,7 @@ namespace FenUISharp.Components
             Invalidate();
         }
 
-        public void SetTypeface(SKTypeface sKTypeface)
+        public void SetTypeface(FTypeface sKTypeface)
         {
             Typeface = sKTypeface;
             UpdateFont();
