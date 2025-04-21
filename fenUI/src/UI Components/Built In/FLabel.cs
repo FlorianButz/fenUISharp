@@ -67,7 +67,7 @@ namespace FenUISharp.Components
             SkPaint.ImageFilter = dropShadow;
 
             changeTextAnim = new AnimatorComponent(this, Easing.EaseInCubic, Easing.EaseOutCubic);
-            changeTextAnim.duration = 0.4f;
+            changeTextAnim.Duration = 0.4f;
             changeTextAnim.onValueUpdate += (t) =>
             {
                 float scaleTime = 0.75f + (1f - t) * 0.25f;
@@ -123,12 +123,12 @@ namespace FenUISharp.Components
             {
                 SilentSetText(text);
 
-                changeTextAnim.inverse = true;
+                changeTextAnim.Inverse = true;
                 changeTextAnim.Start();
 
                 changeTextAnim.onComplete = () =>
                 {
-                    changeTextAnim.inverse = false;
+                    changeTextAnim.Inverse = false;
                     changeTextAnim.onComplete = null;
                     isSettingText = false;
 

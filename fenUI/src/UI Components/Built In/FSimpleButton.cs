@@ -65,7 +65,7 @@ namespace FenUISharp.Components
             currenthighlight = highlight.Value;
 
             animatorComponent = new AnimatorComponent(this, Easing.EaseOutCubic);
-            animatorComponent.duration = 0.2f;
+            animatorComponent.Duration = 0.2f;
 
             animatorComponent.onValueUpdate += (t) =>
             {
@@ -102,14 +102,14 @@ namespace FenUISharp.Components
         protected override void MouseEnter()
         {
             base.MouseEnter();
-            animatorComponent.inverse = false;
+            animatorComponent.Inverse = false;
             animatorComponent.Start();
         }
 
         protected override void MouseExit()
         {
             base.MouseExit();
-            animatorComponent.inverse = true;
+            animatorComponent.Inverse = true;
             animatorComponent.Start();
         }
 
@@ -119,12 +119,12 @@ namespace FenUISharp.Components
 
             if (inputCode.button == 0 && inputCode.state == 0)
             {
-                animatorComponent.inverse = true;
+                animatorComponent.Inverse = true;
                 animatorComponent.Start();
             }
             else if (inputCode.button == 0 && inputCode.state == 1)
             {
-                animatorComponent.inverse = false;
+                animatorComponent.Inverse = false;
                 animatorComponent.Start();
 
                 OnClick?.Invoke();

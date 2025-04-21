@@ -50,6 +50,8 @@ namespace FenUISharp.Components
             set { _isThisGloballyInvalidated = value; }
         }
 
+        private bool _isMarkedInvalid = false;
+
         public UIComponent(Window rootWindow, Vector2 position, Vector2 size)
         {
             if (rootWindow == null) throw new Exception("Root window cannot be null.");
@@ -266,12 +268,24 @@ namespace FenUISharp.Components
             GloballyInvalidated = true;
         }
 
+        public void MarkInvalidated()
+        {
+            _isMarkedInvalid = true;
+            GloballyInvalidated = true;
+        }
+
         protected abstract void DrawToSurface(SKCanvas canvas);
 
         private void Update()
         {
             if (Enabled)
             {
+                if (_isMarkedInvalid)
+                {
+                    _isMarkedInvalid = false;
+                    Invalidate();
+                }
+
                 OnUpdate();
                 Components.ForEach(x => x.CmpUpdate());
             }

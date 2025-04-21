@@ -7,9 +7,15 @@ namespace FenUISharp.Components.Text.Layout
 {
     public class WrapLayout : TextLayout
     {
+        public char EllipsisChar => '\u2026';
+        public bool AllowLinebreakChar => true;
+        public bool AllowLinebreakOnOverflow => true;
+
         public WrapLayout(FText Parent) : base(Parent)
         {
         }
+
+        public virtual string[] SplitWords(string content) => Regex.Split(content, @"(\s+|\n)");
 
         public override List<Glyph> ProcessModel(TextModel model)
         {
@@ -24,110 +30,119 @@ namespace FenUISharp.Components.Text.Layout
             float leading = 0;
             float baselineOff = 0;
 
-            // start first line
             lines.Add(new TextLine());
 
-            // for each styled run
             foreach (var part in model.TextParts)
             {
                 var font = TextRenderer.CreateFont(model.Typeface, part.Style);
 
-                // SKia: ascent is negative, descent positive
                 ascent = font.Metrics.Ascent;
                 descent = font.Metrics.Descent;
                 leading = font.Metrics.Leading;
                 lineHeight = -ascent + descent + leading;
                 baselineOff = -ascent;
 
-                // update the current line’s height
                 var line = lines[^1];
                 line.LineHeight = lineHeight;
 
-                // split on whitespace but keep it
-                var words = Regex.Split(part.Content, @"(\s+)");
+                var words = SplitWords(part.Content);
 
                 foreach (var word in words)
                 {
-                    float wordWidth = 0;
-                    foreach (char c in word)
-                        wordWidth += font.MeasureText(c.ToString()) + part.CharacterSpacing;
-
-                    // Word doesn't fit
-                    if (line.LineWidth + wordWidth > bounds.Width)
+                    if (string.IsNullOrEmpty(word))
+                        continue;
+                    if (word.Contains("\r\n") || word.Contains("\n"))
                     {
-                        // if it's not the first thing on the line, start new line before splitting
-                        if (line.Glyphs.Count > 0)
+                        if (AllowLinebreakChar && AllowLinebreakOnOverflow)
                         {
                             currentLineY += lineHeight;
                             lines.Add(new TextLine { LineHeight = lineHeight });
                             line = lines[^1];
                         }
+                        continue;
+                    }
 
-                        // Try to fit the word char by char
-                        foreach (char c in word)
+                    bool stopProcessing = false;
+
+                    float wordWidth = 0;
+                    foreach (char c in word)
+                    {
+                        if (c == '\n' || c == '\r')
+                            continue;
+
+                        wordWidth += font.MeasureText(c.ToString()) + part.CharacterSpacing;
+                    }
+
+                    if (line.LineWidth + wordWidth > bounds.Width)
+                    {
+                        // NO LINEBREAK mode?
+                        if (!AllowLinebreakOnOverflow)
                         {
-                            float charWidth = font.MeasureText(c.ToString()) + part.CharacterSpacing;
-
-                            if (line.LineWidth + charWidth > bounds.Width)
+                            AppendEllipsis(line, font, part, bounds.Width, returnList, baselineOff);
+                            stopProcessing = true;    // mark that we're done laying out
+                        }
+                        else
+                        {
+                            // —— existing linebreak + mid‐word splitting logic —— 
+                            if (line.Glyphs.Count > 0)
                             {
-                                // wrap to new line
                                 currentLineY += lineHeight;
-                                lines.Add(new TextLine { LineHeight = lineHeight });
-                                line = lines[^1];
+                                if (currentLineY + lineHeight > bounds.Height)
+                                {
+                                    AppendEllipsis(line, font, part, bounds.Width, returnList, baselineOff);
+                                    stopProcessing = true;
+                                }
+                                else
+                                {
+                                    lines.Add(new TextLine { LineHeight = lineHeight });
+                                }
                             }
 
-                            float halfW = font.MeasureText(c.ToString()) / 2;
-                            float halfSpacing = part.CharacterSpacing / 2;
+                            line = lines[^1];
 
-                            float x = line.LineWidth + halfW + halfSpacing;
-                            float y = currentLineY + baselineOff;
+                            foreach (char c in word)
+                            {
+                                if (stopProcessing) break;  // bail if we've already ellipsized
 
-                            var glyph = new Glyph(
-                                c,
-                                new SKPoint(x, y),
-                                new SKSize(1, 1),
-                                new SKPoint(0.5f, 0.5f),
-                                part.Style,
-                                new SKSize(font.MeasureText(c.ToString()), lineHeight)
-                            );
+                                float charWidth = font.MeasureText(c.ToString()) + part.CharacterSpacing;
 
-                            returnList.Add(glyph);
-                            line.Glyphs.Add(glyph);
+                                if (line.LineWidth + charWidth > bounds.Width)
+                                {
+                                    currentLineY += lineHeight;
+                                    if (currentLineY + lineHeight > bounds.Height)
+                                    {
+                                        AppendEllipsis(line, font, part, bounds.Width, returnList, baselineOff);
+                                        stopProcessing = true;
+                                        break;
+                                    }
+                                    lines.Add(new TextLine { LineHeight = lineHeight });
+                                    line = lines[^1];
+                                }
 
-                            line.LineWidth += charWidth;
+                                AddGlyph(c, font, part, line, currentLineY, baselineOff, returnList);
+                            }
                         }
                     }
                     else
                     {
-                        // Word fits, so add normally
                         foreach (char c in word)
-                        {
-                            float halfW = font.MeasureText(c.ToString()) / 2;
-                            float halfSpacing = part.CharacterSpacing / 2;
+                            AddGlyph(c, font, part, line, currentLineY, baselineOff, returnList);
 
-                            float x = line.LineWidth + halfW + halfSpacing;
-                            float y = currentLineY + baselineOff;
-
-                            var glyph = new Glyph(
-                                c,
-                                new SKPoint(x, y),
-                                new SKSize(1, 1),
-                                new SKPoint(0.5f, 0.5f),
-                                part.Style,
-                                new SKSize(font.MeasureText(c.ToString()), lineHeight)
-                            );
-
-                            returnList.Add(glyph);
-                            line.Glyphs.Add(glyph);
-
-                            line.LineWidth += font.MeasureText(c.ToString()) + part.CharacterSpacing;
-                        }
                     }
+
+                    if (stopProcessing) 
+                        break; 
                 }
             }
 
+            ApplyHorizontalAlign(model, bounds, lines);
+            ApplyVerticalAlign(model, currentLineY, lineHeight, bounds, lines);
 
-            // ========== HORIZONTAL ALIGN ==========
+            return returnList;
+        }
+
+        protected virtual void ApplyHorizontalAlign(TextModel model, SKRect bounds, List<TextLine> lines)
+        {
             if (model.Align.HorizontalAlign != TextAlign.AlignType.Start)
             {
                 for (int i = 0; i < lines.Count; i++)
@@ -140,11 +155,12 @@ namespace FenUISharp.Components.Text.Layout
                         g.Position = new SKPoint(g.Position.X + offsetX, g.Position.Y);
                 }
             }
+        }
 
-            // ========== VERTICAL ALIGN ==========
+        protected virtual void ApplyVerticalAlign(TextModel model, float currentLineY, float lineHeight, SKRect bounds, List<TextLine> lines)
+        {
             if (model.Align.VerticalAlign != TextAlign.AlignType.Start)
             {
-                // total height is just how far we’ve stacked down + the last line’s height
                 float fullHeight = currentLineY + lineHeight;
 
                 float offsetY = model.Align.VerticalAlign == TextAlign.AlignType.Middle
@@ -155,8 +171,40 @@ namespace FenUISharp.Components.Text.Layout
                     foreach (var g in l.Glyphs)
                         g.Position = new SKPoint(g.Position.X, g.Position.Y + offsetY);
             }
+        }
 
-            return returnList;
+        protected virtual void AddGlyph(char c, SKFont font, TextSpan part, TextLine line, float currentLineY, float baselineOff, List<Glyph> outList)
+        {
+            float halfW = font.MeasureText(c.ToString()) / 2;
+            float halfSpace = part.CharacterSpacing / 2;
+            float x = line.LineWidth + halfW + halfSpace;
+            float y = currentLineY + baselineOff;
+            var glyph = new Glyph(
+                c,
+                new SKPoint(x, y),
+                new SKSize(1, 1),
+                new SKPoint(0.5f, 0.5f),
+                new(part.Style),
+                new SKSize(font.MeasureText(c.ToString()), -font.Metrics.Ascent + font.Metrics.Descent + font.Metrics.Leading)
+            );
+            outList.Add(glyph);
+            line.Glyphs.Add(glyph);
+            line.LineWidth += font.MeasureText(c.ToString()) + part.CharacterSpacing;
+        }
+
+        protected virtual void AppendEllipsis(TextLine line, SKFont font, TextSpan part, float maxWidth, List<Glyph> outList, float baselineOff)
+        {
+            float ellWidth = font.MeasureText(EllipsisChar.ToString());
+
+            while (line.Glyphs.Count > 0 && line.LineWidth + ellWidth > maxWidth)
+            {
+                var last = line.Glyphs[^1];
+                line.LineWidth -= last.Size.Width + part.CharacterSpacing;
+                outList.Remove(last);
+                line.Glyphs.RemoveAt(line.Glyphs.Count - 1);
+            }
+
+            AddGlyph(EllipsisChar, font, part, line, line.Glyphs.Count > 0 ? line.Glyphs[^1].Position.Y - baselineOff : 0, -font.Metrics.Ascent, outList);
         }
     }
 }

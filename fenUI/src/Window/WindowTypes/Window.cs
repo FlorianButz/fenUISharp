@@ -570,7 +570,7 @@ namespace FenUISharp
             _stopRunningFlag = false;
             DisposeHiddenWindow();
 
-            Console.WriteLine("Destroyed " + Thread.CurrentThread.ManagedThreadId);
+            // Console.WriteLine("Destroyed " + Thread.CurrentThread.ManagedThreadId);
         }
 
         public void DisposeAndDestroyWindow()

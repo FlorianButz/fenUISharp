@@ -2,6 +2,7 @@
 using FenUISharp;
 using FenUISharp.Components;
 using FenUISharp.Components.Text;
+using FenUISharp.Components.Text.Layout;
 using FenUISharp.Components.Text.Model;
 using FenUISharp.Mathematics;
 using FenUISharp.Themes;
@@ -90,8 +91,15 @@ namespace FenUISharpTest1
 
             // panel.Transform.UpdateLayout();
 
-            FText text = new(window, Vector2.Zero, new(500, 100), TextModelFactory.CreateBasic("Test Text, Hello World!  Test Text, Hello World!  Test Text, Hello Worlawjawdoawdpoiajwdopiawjdopiajwdpoiwajdopiawjdopiajdopjadopijawopidjaowidjapoijdpoqwijdpowijdpowiadjapodiwjpoid!  Test Text, Hello World!"));
+            FText text = new(window, Vector2.Zero, new(500, 100), TextModelFactory.CreateTest("Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut"));
+            text.Layout = new BlurLayoutProcessor(text, new WrapLayout(text));
             window.DebugDisplayBounds = true;
+            // window.DebugDisplayAreaCache = true;
+
+            FSimpleButton button = new(window, new(0, 100), "Change Text", () =>
+            {
+                text.Model = TextModelFactory.CreateBasic("Lorem ipsum dolor sit amet " + Random.Shared.Next());
+            });
 
             window.SetWindowVisibility(true);
             window.BeginWindowLoop();

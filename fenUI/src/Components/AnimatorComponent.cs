@@ -6,18 +6,19 @@ namespace FenUISharp
 
     public class AnimatorComponent : Component
     {
-        public float duration { get; set; } = 1;
+        public float Duration { get; set; } = 1;
+        public float Time => _timePassed;
 
         private float _timePassed = 0;
         public Action<float>? onValueUpdate;
         public Action? onComplete;
 
-        private bool isRunning { get; set; } = false;
+        public bool IsRunning { get; private set; } = false;
         private Func<float, float> easing;
         private Func<float, float> inverseEasing;
 
-        public bool inverse { get; set; } = false;
-        public bool autoLowerRenderQuality { get; set; } = false;
+        public bool Inverse { get; set; } = false;
+        public bool AutoLowerRenderQuality { get; set; } = false;
 
         private float startValue;
         private float targetValue;
@@ -30,9 +31,9 @@ namespace FenUISharp
             else this.inverseEasing = inverseEasing;
 
             // Initialize current value based on the expected default.
-            currentValue = !inverse ? 0f : 1f;
+            currentValue = !Inverse ? 0f : 1f;
             startValue = currentValue;
-            targetValue = inverse ? 0f : 1f;
+            targetValue = Inverse ? 0f : 1f;
         }
 
         public void Start()
@@ -41,39 +42,47 @@ namespace FenUISharp
             // Otherwise, if idle, use the last known current value.
             startValue = currentValue;
             // The target remains the same: 1 when not inverse, 0 when inverse.
-            targetValue = inverse ? 0f : 1f;
+            targetValue = Inverse ? 0f : 1f;
             _timePassed = 0;
-            isRunning = true;
+            IsRunning = true;
+        }
+
+        public void Restart()
+        {
+            startValue = Inverse ? 1f : 0f;
+            targetValue = Inverse ? 0f : 1f;
+            _timePassed = 0;
+            IsRunning = true;
         }
 
         public override void ComponentUpdate()
         {
             base.ComponentUpdate();
 
-            if (autoLowerRenderQuality)
+            if (AutoLowerRenderQuality)
             {
-                if (isRunning) Parent.RenderQuality.SetValue(this, 0.9f, 50);
+                if (IsRunning) Parent.RenderQuality.SetValue(this, 0.9f, 50);
                 else Parent.RenderQuality.DissolveValue(this);
             }
             else Parent.RenderQuality.DissolveValue(this);
 
-            if (!isRunning)
+            if (!IsRunning)
                 return;
 
             _timePassed += (float)Parent.WindowRoot.DeltaTime;
 
             // Normalize time and clamp between 0 and 1.
-            float t = Math.Clamp(_timePassed / duration, 0f, 1f);
-            float easedT = (inverse) ? inverseEasing(t) : easing(t);
+            float t = Math.Clamp(_timePassed / Duration, 0f, 1f);
+            float easedT = (Inverse) ? inverseEasing(t) : easing(t);
 
             // Interpolate from the starting value to the target value.
             currentValue = startValue + (targetValue - startValue) * easedT;
             onValueUpdate?.Invoke(currentValue);
             Parent.SoftInvalidate();
 
-            if (_timePassed >= duration)
+            if (_timePassed >= Duration)
             {
-                isRunning = false;
+                IsRunning = false;
                 onComplete?.Invoke();
             }
         }

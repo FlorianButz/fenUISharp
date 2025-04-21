@@ -45,7 +45,7 @@ namespace FenUISharp
             panel.BorderColor = new ThemeColor(new SKColor(150, 150, 150, 100));
 
             AnimatorComponent anim = new AnimatorComponent(panel, Easing.EaseOutBack);
-            anim.duration = 0.3f;
+            anim.Duration = 0.3f;
             anim.onValueUpdate += (t) =>
             {
                 _renderSize = t;
