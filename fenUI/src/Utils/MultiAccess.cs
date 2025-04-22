@@ -1,10 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace FenUISharp
 {
     public class MultiAccess<T>
     {
         public T Value { get => GetValue(); }
 
-        public Action<T> onValueUpdated;
+        public Action<T>? onValueUpdated;
 
         public struct MA_V
         {
@@ -22,7 +24,7 @@ namespace FenUISharp
 
         public void SetValue(object caller, T value, float priority)
         {
-            if(valueList.Any(x => x.caller == caller && x.value.Equals(value))) return;
+            if (valueList.Any(x => x.caller == caller && x.value != null && x.value.Equals(value))) return;
 
             var valueBefore = Value;
 
