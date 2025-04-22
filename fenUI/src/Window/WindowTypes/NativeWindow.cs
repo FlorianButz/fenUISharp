@@ -28,7 +28,7 @@ namespace FenUISharp
 
             if (centerPos)
             {
-                var r = GetMonitorRect(0).Value;
+                var r = GetMonitorRect(0);
                 WindowPosition = new Vector2((r.right - r.left) / 2 - (WindowSize.x / 2), (r.bottom - r.top) / 2 - (WindowSize.y / 2));
             }
 
@@ -37,10 +37,10 @@ namespace FenUISharp
                 this.WindowClass,
                 this.WindowTitle,
                 _hasTitlebar ? WS_NATIVE : WS_NOTITLEBAR,
-                centerPos ? (int)WindowPosition.x : (int)position?.x,
-                centerPos ? (int)WindowPosition.y : (int)position?.y,
-                (int)size?.x,
-                (int)size?.y,
+                centerPos ? (int)WindowPosition.x : (int)(position ?? new()).x,
+                centerPos ? (int)WindowPosition.y : (int)(position ?? new()).y,
+                (int)(size ?? new()).x,
+                (int)(size ?? new()).y,
                 IntPtr.Zero,
                 IntPtr.Zero,
                 wndClass.hInstance,

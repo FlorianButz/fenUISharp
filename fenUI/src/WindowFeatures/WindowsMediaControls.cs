@@ -53,10 +53,13 @@ namespace FenUISharp.WinFeatures
             set
             {
                 continousPolling = value;
-                if (continousPolling)
-                    globSessionManager.SessionsChanged -= (s, e) => TrySubscribeToCurrentSession();
-                else
-                    globSessionManager.SessionsChanged += (s, e) => TrySubscribeToCurrentSession();
+                if (globSessionManager != null)
+                {
+                    if (continousPolling)
+                        globSessionManager.SessionsChanged -= (s, e) => TrySubscribeToCurrentSession();
+                    else
+                        globSessionManager.SessionsChanged += (s, e) => TrySubscribeToCurrentSession();
+                }
             }
         }
 
@@ -123,7 +126,7 @@ namespace FenUISharp.WinFeatures
                     {
                         using (IRandomAccessStreamWithContentType stream = await thumbnail.OpenReadAsync())
                         {
-                            cachedInfo.thumbnail = await ConvertThumbnailToSkImage(stream);
+                            cachedInfo.thumbnail = ConvertThumbnailToSkImage(stream);
                             onThumbnailUpdated?.Invoke();
                         }
                     }
@@ -138,17 +141,20 @@ namespace FenUISharp.WinFeatures
                 }
 
                 var timelineProperties = currentSession?.GetTimelineProperties();
-                TimeSpan duration = timelineProperties.EndTime - timelineProperties.StartTime;
+                if (timelineProperties != null)
+                {
+                    TimeSpan duration = timelineProperties.EndTime - timelineProperties.StartTime;
 
-                bool isUpdatedTimeline = false;
-                if (cachedInfo.duration != duration.TotalSeconds || cachedInfo.position != timelineProperties.Position.TotalSeconds) isUpdatedTimeline = true;
-                cachedInfo.duration = duration.TotalSeconds;
-                cachedInfo.position = timelineProperties.Position.TotalSeconds;
+                    bool isUpdatedTimeline = false;
+                    if (cachedInfo.duration != duration.TotalSeconds || cachedInfo.position != timelineProperties.Position.TotalSeconds) isUpdatedTimeline = true;
+                    cachedInfo.duration = duration.TotalSeconds;
+                    cachedInfo.position = timelineProperties.Position.TotalSeconds;
 
-                if (isUpdatedTimeline && ContinousPolling)
-                    onTimelineUpdated?.Invoke();
+                    if (isUpdatedTimeline && ContinousPolling)
+                        onTimelineUpdated?.Invoke();
 
-                cachedInfo.isActiveSession = true;
+                    cachedInfo.isActiveSession = true;
+                }
             }
             else
             {
@@ -157,7 +163,7 @@ namespace FenUISharp.WinFeatures
         }
 
         // Returns thumbnail as 128x128 SKImage
-        private static async Task<SKImage?> ConvertThumbnailToSkImage(IRandomAccessStreamWithContentType thumbnailStream)
+        private static SKImage? ConvertThumbnailToSkImage(IRandomAccessStreamWithContentType thumbnailStream)
         {
             using (var skStream = new SKManagedStream(thumbnailStream.AsStream()))
             {

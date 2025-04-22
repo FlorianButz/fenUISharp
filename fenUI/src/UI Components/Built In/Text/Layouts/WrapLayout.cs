@@ -7,9 +7,9 @@ namespace FenUISharp.Components.Text.Layout
 {
     public class WrapLayout : TextLayout
     {
-        public char EllipsisChar => '\u2026';
-        public bool AllowLinebreakChar => true;
-        public bool AllowLinebreakOnOverflow => true;
+        public char EllipsisChar { get; set; } = '\u2026';
+        public bool AllowLinebreakChar { get; set; } = true;
+        public bool AllowLinebreakOnOverflow { get; set; } = true;
 
         public WrapLayout(FText Parent) : base(Parent)
         {
@@ -17,11 +17,10 @@ namespace FenUISharp.Components.Text.Layout
 
         public virtual string[] SplitWords(string content) => Regex.Split(content, @"(\s+|\n)");
 
-        public override List<Glyph> ProcessModel(TextModel model)
+        public override List<Glyph> ProcessModel(TextModel model, SKRect bounds)
         {
             var lines = new List<TextLine>();
             var returnList = new List<Glyph>();
-            var bounds = Parent.Transform.LocalBounds;
 
             float currentLineY = 0;
             float lineHeight = 0;
@@ -130,8 +129,8 @@ namespace FenUISharp.Components.Text.Layout
 
                     }
 
-                    if (stopProcessing) 
-                        break; 
+                    if (stopProcessing)
+                        break;
                 }
             }
 

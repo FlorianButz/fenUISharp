@@ -8,13 +8,13 @@ namespace FenUISharp.Components.Text
 {
     public class FText : UIComponent
     {
-        private TextModel _model;
+        protected TextModel _model;
         public TextModel Model { get { return _model; } set { _model = value; OnModelChanged?.Invoke(); OnAnyChange?.Invoke(); Invalidate(); } }
 
-        public TextRenderer _renderer;
+        protected TextRenderer _renderer;
         public TextRenderer Renderer { get { return _renderer; } set { _renderer = value; OnRendererChanged?.Invoke(); OnAnyChange?.Invoke(); Invalidate(); } }
 
-        public TextLayout _layout;
+        protected TextLayout _layout;
         public TextLayout Layout { get { return _layout; } set { _layout = value; OnLayoutChanged?.Invoke(); OnAnyChange?.Invoke(); Invalidate(); } }
 
         public Action? OnModelChanged { get; set; }
@@ -34,7 +34,7 @@ namespace FenUISharp.Components.Text
 
         protected override void DrawToSurface(SKCanvas canvas)
         {
-            List<Glyph> glyphs = _layout.ProcessModel(_model);
+            List<Glyph> glyphs = _layout.ProcessModel(_model, Transform.LocalBounds);
             _renderer.DrawText(canvas, _model, glyphs, SkPaint);
         }
     }

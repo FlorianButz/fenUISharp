@@ -7,9 +7,8 @@ namespace FenUISharp
 
     public abstract class FRenderContext : IDisposable
     {
-
         public Window WindowRoot { get; set; }
-        public SKSurface Surface { get; protected set; }
+        public SKSurface? Surface { get; protected set; }
 
         public bool HasAlphaChannel { get; set; } = false;
 
@@ -18,6 +17,10 @@ namespace FenUISharp
         public IntPtr _hdcMemory { get; protected set; } = IntPtr.Zero;    // Memory DC
         public IntPtr _hBitmap { get; protected set; } = IntPtr.Zero;      // Handle to our DIB section
         protected IntPtr _ppvBits = IntPtr.Zero;      // Pointer to pixel bits
+
+        protected bool _recreateSurfaceFlag = false;
+
+        public void RecreateSurface() => _recreateSurfaceFlag = true;
 
         public FRenderContext(Window windowRoot)
         {

@@ -41,9 +41,9 @@ namespace FenUISharp
     {
         public DropType dropType;
 
-        private string textData;
-        private string[] fileData;
-        private IntPtr bitmapPointer;
+        private string? textData;
+        private string[]? fileData;
+        private IntPtr? bitmapPointer;
 
         public FDropData(DropType dropType, string[] stringData)
         {
@@ -129,7 +129,7 @@ namespace FenUISharp
 
         const int DV_E_FORMATETC = unchecked((int)0x80040064);
 
-        FDropData HandleDropAction([In] IntPtr pDataObj)
+        FDropData? HandleDropAction([In] IntPtr pDataObj)
         {
             // Convert the IntPtr to IDataObject using the built-in COM interface
             IDataObject dataObject = (IDataObject)Marshal.GetObjectForIUnknown(pDataObj);
@@ -230,14 +230,14 @@ namespace FenUISharp
             // Lock the HGLOBAL to get a pointer to the data
             IntPtr ptr = GlobalLock(hGlobal);
             if (ptr == IntPtr.Zero)
-                return null;
+                return "";
 
             try
             {
                 // Get the size of the global memory block
                 int size = GlobalSize(hGlobal).ToInt32();
                 if (size <= 0)
-                    return null;
+                    return "";
 
                 // Copy data into a byte array
                 byte[] buffer = new byte[size];
@@ -310,7 +310,7 @@ namespace FenUISharp
 
 
         [DllImport("shell32.dll", CharSet = CharSet.Auto)]
-        public static extern uint DragQueryFile(IntPtr hDrop, uint iFile, StringBuilder lpszFile, uint cch);
+        public static extern uint DragQueryFile(IntPtr hDrop, uint iFile, StringBuilder? lpszFile, uint cch);
 
         [DllImport("ole32.dll")]
         public static extern void ReleaseStgMedium(ref STGMEDIUM pmedium);

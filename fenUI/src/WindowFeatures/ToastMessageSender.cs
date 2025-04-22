@@ -8,7 +8,7 @@ namespace FenUISharp.WinFeatures
 {
     public class ToastMessageSender
     {
-        public Action<ToastArguments, ValueSet> OnActionReceived { get; set; }
+        public Action<ToastArguments, ValueSet>? OnActionReceived { get; set; }
 
         public ToastMessageSender()
         {

@@ -19,15 +19,17 @@ namespace FenUISharp.Components.Text.Rendering
                 int save = canvas.Save();
                 canvas.Translate(Parent.Transform.BoundsPadding.Value, Parent.Transform.BoundsPadding.Value);
 
-                var glyph = glyphs[i];
-                paint.Color = glyph.Style.Color;
+                var fontPaint = paint.Clone();
 
-                canvas.Scale(glyph.Scale.Width, glyph.Scale.Height, glyph.Position.X + glyph.Size.Width * glyph.Anchor.X, glyph.Position.Y + -glyph.Size.Height * glyph.Anchor.Y);
+                var glyph = glyphs[i];
+                fontPaint.Color = glyph.Style.Color.Value;
+
+                canvas.Scale(glyph.Scale.Width, glyph.Scale.Height, glyph.Position.X + glyph.Bounds.Width * glyph.Anchor.X / 2, glyph.Position.Y + -glyph.Bounds.Height * glyph.Anchor.Y / 2);
 
                 using (var blur = SKImageFilter.CreateBlur(glyph.Style.BlurRadius, glyph.Style.BlurRadius))
                 using (var font = CreateFont(model.Typeface, glyph.Style))
                 {
-                    if (glyph.Style.BlurRadius > 0) paint.ImageFilter = blur;
+                    if (glyph.Style.BlurRadius > 0) fontPaint.ImageFilter = blur;
 
                     if (glyph.Style.Opacity < 1 && glyph.Style.Opacity >= 0)
                     {
@@ -44,22 +46,22 @@ namespace FenUISharp.Components.Text.Rendering
                             if (blur != null)
                             {
                                 using (var compose = SKImageFilter.CreateCompose(opacityFilter, blur))
-                                    paint.ImageFilter = compose;
+                                    fontPaint.ImageFilter = compose;
                             }
                             else
                             {
-                                paint.ImageFilter = opacityFilter;
+                                fontPaint.ImageFilter = opacityFilter;
                             }
                         }
                     }
 
-                    canvas.DrawText(glyph.Character.ToString(), glyph.Position, SKTextAlign.Center, font, paint);
+                    var position = glyph.Position;
+                    canvas.DrawText(glyph.Character.ToString(), position, SKTextAlign.Center, font, fontPaint);
                 }
 
                 if (glyph.Style.Underlined)
-                    DrawUnderline(canvas, glyph, paint);
+                    DrawUnderline(canvas, glyph, fontPaint);
 
-                paint.ImageFilter = null; // Reset the filters
                 canvas.RestoreToCount(save);
             }
         }

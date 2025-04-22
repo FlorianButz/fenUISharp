@@ -6,14 +6,12 @@ namespace FenUISharp.WinFeatures
 {
     public class DesktopCapture
     {
-        public static DesktopCapture instance;
-        private Thread _captureThread;
-        private bool _isRunning = false;
+        public static DesktopCapture? instance;
 
         public SKImage? previousCapture;
         public SKImage? lastCapture;
 
-        public Action<SKImage> onCapture;
+        public Action<SKImage>? onCapture;
         public float CaptureQuality { get; set; } = 0.01f;
         public int CaptureInterval { get; set; } = 2500;
 

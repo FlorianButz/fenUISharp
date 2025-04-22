@@ -61,7 +61,7 @@ namespace FenUISharp.Components
             Transform.LocalPosition = position;
             Transform.Size = size;
 
-            CreatePaint();
+            SkPaint = CreatePaint();
 
             WindowFeatures.GlobalHooks.OnMouseMove += OnMouseMove;
             rootWindow.OnUpdate += Update;
@@ -133,9 +133,10 @@ namespace FenUISharp.Components
             Components.ForEach(z => z.MouseMove(mousePos));
         }
 
-        protected void CreatePaint()
+        protected SKPaint CreatePaint()
         {
             SkPaint = CreateSurfacePaint();
+            return SkPaint;
         }
 
         protected virtual SKPaint CreateSurfacePaint()
@@ -272,6 +273,12 @@ namespace FenUISharp.Components
         {
             _isMarkedInvalid = true;
             GloballyInvalidated = true;
+        }
+
+        public void RecursiveInvalidate()
+        {
+            Invalidate();
+            Transform.Children.ForEach(x => x.ParentComponent.RecursiveInvalidate());
         }
 
         protected abstract void DrawToSurface(SKCanvas canvas);

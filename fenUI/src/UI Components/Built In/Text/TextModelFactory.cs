@@ -1,13 +1,18 @@
 using FenUISharp.Components.Text.Layout;
+using FenUISharp.Themes;
 using SkiaSharp;
 
 namespace FenUISharp.Components.Text.Model
 {
     public class TextModelFactory
     {
-        public static TextModel CreateBasic(string text)
+        public static TextModel CreateBasic(string text, float textSize = 14, ThemeColor? textColor = null)
         {
-            TextStyle style = new();
+            TextStyle style = new()
+            {
+                FontSize = textSize,
+                Color = textColor ?? new(SKColors.Gray)
+            };
             TextAlign align = new() { HorizontalAlign = TextAlign.AlignType.Middle, VerticalAlign = TextAlign.AlignType.Middle };
 
             return new(new List<TextSpan>() { new TextSpan(text, style) }, align, FTypeface.Default);
@@ -23,11 +28,11 @@ namespace FenUISharp.Components.Text.Model
             foreach (var part in splitText)
             {
                 TextStyle style = new();
-                style.Color = new SKColor(
+                style.Color = new(new SKColor(
                     (byte)(Random.Shared.NextSingle() * 255),
                     (byte)(Random.Shared.NextSingle() * 255),
                     (byte)(Random.Shared.NextSingle() * 255),
-                    255);
+                    255));
 
                 if(Random.Shared.NextSingle() > 0.5f)
                     style.Weight = SKFontStyleWeight.Bold;

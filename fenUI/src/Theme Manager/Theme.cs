@@ -6,8 +6,10 @@ namespace FenUISharp.Themes
     {
         public SKColor Primary { get; init; }
         public SKColor PrimaryVariant { get; init; }
+        public SKColor PrimaryBorder { get; init; }
         public SKColor Secondary { get; init; }
         public SKColor SecondaryVariant { get; init; }
+        public SKColor SecondaryBorder { get; init; }
 
         public SKColor Background { get; init; }
         public SKColor Surface { get; init; }

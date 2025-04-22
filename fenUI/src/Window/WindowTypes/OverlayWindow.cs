@@ -36,13 +36,11 @@ namespace FenUISharp
             else
             {
                 var monitorRect = GetMonitorRect(activeMonitorDisplay);
-                if (monitorRect == null)
-                    throw new ArgumentException("Invalid monitor index");
 
-                x = monitorRect.Value.left;
-                y = monitorRect.Value.top;
-                width = monitorRect.Value.right - monitorRect.Value.left;
-                height = monitorRect.Value.bottom - monitorRect.Value.top;
+                x = monitorRect.left;
+                y = monitorRect.top;
+                width = monitorRect.right - monitorRect.left;
+                height = monitorRect.bottom - monitorRect.top;
             }
 
             WindowSize = new Vector2(width, height);

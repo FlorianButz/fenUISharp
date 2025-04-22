@@ -86,7 +86,8 @@ namespace FenUISharp
         {
             Parent.WindowRoot.DropTarget.dropEffect.SetValue(this, DropEffect, 5);
 
-            OnDragEnter?.Invoke(data);
+            if(data != null)
+                OnDragEnter?.Invoke(data);
         }
 
         protected void OnDragDropActionLeave()
@@ -100,7 +101,8 @@ namespace FenUISharp
         {
             Parent.WindowRoot.DropTarget.dropEffect.DissolveValue(this);
         
-            OnDrop?.Invoke(data);
+            if(data != null)
+                OnDrop?.Invoke(data);
         }
 
         bool IsSameType(DropType otherType){

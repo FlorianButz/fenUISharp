@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace FenUISharp.Mathematics {
 
     public struct Vector2
@@ -94,7 +96,7 @@ namespace FenUISharp.Mathematics {
             return new Vector2(c1 - c2.x, c1 - c2.y);
         }
 
-        public override readonly bool Equals(object obj)
+        public override readonly bool Equals([AllowNull]object obj)
         {
             if (obj is Vector2)
                 return x == ((Vector2)obj).x && y == ((Vector2)obj).y;

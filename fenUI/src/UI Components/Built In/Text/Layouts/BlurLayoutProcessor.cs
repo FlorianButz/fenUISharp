@@ -9,10 +9,14 @@ namespace FenUISharp.Components.Text.Layout
         private List<Glyph>? oldLayout;
         private List<SKPoint>? oldLayoutPositions;
         private List<Glyph>? newLayout;
-        private List<SKPoint>? newLayoutPositions;
 
         private AnimatorComponent animatorOut;
         private AnimatorComponent animatorIn;
+
+        public float Duration { get; init; } = 0.7f;
+        public float BlurRadius { get; init; } = 4f;
+        public float GlyphOffset { get; init; } = 5;
+        public float FadeLength { get; init; } = 0.5f;
 
         public BlurLayoutProcessor(FText parent, TextLayout innerLayout) : base(parent, innerLayout)
         {
@@ -25,18 +29,17 @@ namespace FenUISharp.Components.Text.Layout
 
                 newLayout = null;
                 animatorOut?.Restart();
+                animatorIn?.Break();
             };
 
-            const float duration = 0.5f;
-
             animatorOut = new(parent, t => t);
-            animatorOut.Duration = duration;
+            animatorOut.Duration = Duration;
 
             animatorOut.onComplete += OnAnimCompleteOut;
             animatorOut.onValueUpdate += OnAnimValueUpdated;
 
             animatorIn = new(parent, t => t);
-            animatorIn.Duration = duration;
+            animatorIn.Duration = Duration;
 
             animatorIn.onComplete += OnAnimCompleteIn;
             animatorIn.onValueUpdate += OnAnimValueUpdated;
@@ -48,7 +51,7 @@ namespace FenUISharp.Components.Text.Layout
         }
 
         private void OnAnimCompleteIn()
-        { 
+        {
             oldLayout = null;
         }
 
@@ -58,88 +61,72 @@ namespace FenUISharp.Components.Text.Layout
         }
 
 
-        public override List<Glyph> ProcessModel(TextModel model)
+        public override List<Glyph> ProcessModel(TextModel model, SKRect bounds)
         {
-            if (newLayout == null)
-            {
-                newLayout = base.ProcessModel(model);
-             
-                newLayoutPositions = new();
-                newLayout?.ForEach(x => newLayoutPositions.Add(x.Position));   
-            }
-
+            newLayout = base.ProcessModel(model, bounds);
             Parent.MarkInvalidated();
 
-            if (oldLayout != null)
+            if (oldLayout != null && newLayout != null)
             {
-                float fadeLength = 0.3f;
+                float fadeLength = FadeLength;
                 int maxCount = Math.Max(oldLayout.Count, newLayout.Count);
-                float t = animatorIn.IsRunning 
-                    ? animatorIn.Time 
-                    : animatorOut.Time;
-                
-                float adjustedTime = t * (2.5f + fadeLength);
+                float t = (animatorIn.IsRunning
+                    ? animatorIn.Time
+                    : animatorOut.Time);
 
-                float glyphOffset = 5;
-                float blurRadius = 6;
-                        var easing = Easing.EaseInCubic;
+                float adjustedTime = t * (1 + fadeLength);
+
+                var easingIn = Easing.EaseOutQuint;
+                var easingOut = Easing.EaseInQuint;
 
                 for (int i = 0; i < maxCount; i++)
                 {
-                    float charPosition = maxCount > 1 
-                        ? (float)i / (maxCount - 1) 
+                    float charPosition = maxCount > 1
+                        ? (float)i / (maxCount - 1)
                         : 0;
                     float charProgress = (adjustedTime - charPosition) / fadeLength;
                     charProgress = RMath.Clamp(charProgress, 0f, 1f);
+                    charProgress = animatorIn.IsRunning ? Easing.EaseInCubic(charProgress) : Easing.EaseOutCubic(charProgress);
 
                     if (i < oldLayout.Count && animatorOut.IsRunning)
                     {
                         charProgress = 1 - charProgress;
 
-                        var easedTime = easing(1 - charProgress);
+                        var easedTime = easingOut(1 - charProgress);
+                        var easedTimeNonInversed = easingIn(charProgress);
 
                         if (oldLayoutPositions == null) continue;
 
                         oldLayout[i].Position = new(
                             oldLayoutPositions[i].X,
-                            oldLayoutPositions[i].Y - (easedTime) * glyphOffset
+                            oldLayoutPositions[i].Y - (easedTime) * GlyphOffset
                         );
 
-                        float scale = RMath.Remap(charProgress, 0, 1, 0.75f, 1f);
-                        oldLayout[i].Scale = new SKSize(scale, scale);
-
-                        oldLayout[i].Style.BlurRadius = (1 - charProgress) * blurRadius;
-                        oldLayout[i].Style.Opacity = RMath.Clamp(charProgress * 2, 0, 1);
+                        oldLayout[i].Style.BlurRadius = easedTime * BlurRadius;
+                        oldLayout[i].Style.Opacity = RMath.Clamp(easedTimeNonInversed * 2, 0, 1);
                     }
 
                     if (i < newLayout.Count && animatorIn.IsRunning)
                     {
-                        var easedTime = easing(1 - charProgress);
-                        
-                        if (newLayoutPositions == null) continue;
+                        var easedTime = easingOut(1 - charProgress);
+                        var easedTimeNonInversed = easingIn(charProgress);
 
                         newLayout[i].Position = new(
-                            newLayoutPositions[i].X,
-                            newLayoutPositions[i].Y - (easedTime) * -glyphOffset
+                            newLayout[i].Position.X,
+                            newLayout[i].Position.Y - (easedTime) * -GlyphOffset
                         );
 
-                        float scale = RMath.Remap(charProgress, 0, 1, 0.75f, 1f);
-                        newLayout[i].Scale = new SKSize(scale, scale);
-
-                        newLayout[i].Style.BlurRadius = (1 - charProgress) * blurRadius;
-                        newLayout[i].Style.Opacity = RMath.Clamp(charProgress * 2, 0, 1);
+                        newLayout[i].Style.BlurRadius = easedTime * BlurRadius;
+                        newLayout[i].Style.Opacity = RMath.Clamp(easedTimeNonInversed * 2, 0, 1);
                     }
                     else if (i < newLayout.Count && !animatorIn.IsRunning)
-                    {
-
                         newLayout[i].Style.Opacity = 0;
-                    }
                 }
 
                 return [.. oldLayout, .. newLayout];
             }
             else
-                return newLayout;
+                return newLayout ?? base.ProcessModel(model, bounds);
         }
     }
 }

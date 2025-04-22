@@ -15,14 +15,14 @@ namespace FenUISharp.WinFeatures
 
         #region Event Callbacks
 
-        public Action<float> OnMouseScroll { get; set; }
-        public Action<Vector2> OnMouseMove { get; set; } // Gives back the mouse position in the Vector2
-        public Action<Vector2> OnMouseMoveDelta { get; set; } // Gives back the mouse delta in the Vector2
-        public Action<MouseInputCode> OnMouseAction { get; set; }
+        public Action<float>? OnMouseScroll { get; set; }
+        public Action<Vector2>? OnMouseMove { get; set; } // Gives back the mouse position in the Vector2
+        public Action<Vector2>? OnMouseMoveDelta { get; set; } // Gives back the mouse delta in the Vector2
+        public Action<MouseInputCode>? OnMouseAction { get; set; }
 
-        public Action<int> OnKeyPressed { get; set; } // Only when user actually presses key
-        public Action<int> OnKeyTyped { get; set; } // Raw windows key event callback
-        public Action<int> OnKeyReleased { get; set; }
+        public Action<int>? OnKeyPressed { get; set; } // Only when user actually presses key
+        public Action<int>? OnKeyTyped { get; set; } // Raw windows key event callback
+        public Action<int>? OnKeyReleased { get; set; }
 
         #endregion
 
@@ -207,7 +207,7 @@ namespace FenUISharp.WinFeatures
         }
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern IntPtr GetModuleHandle(string lpModuleName);
+        private static extern IntPtr GetModuleHandle(string? lpModuleName);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern IntPtr SetWindowsHookEx(

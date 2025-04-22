@@ -76,18 +76,22 @@ namespace FenUISharp
 
             if (_globalFadeSaveCount == null)
                 return;
-            var canvas = RenderContext.Surface.Canvas;
 
-            using (var fadePaint = new SKPaint())
+            if (RenderContext != null && RenderContext.Surface != null)
             {
-                fadePaint.Color = SKColors.White.WithAlpha((byte)(Math.Clamp(255 * _renderSize, 0, 255)));
-                fadePaint.BlendMode = SKBlendMode.DstIn;
+                var canvas = RenderContext.Surface.Canvas;
 
-                canvas.DrawRect(Bounds, fadePaint);
+                using (var fadePaint = new SKPaint())
+                {
+                    fadePaint.Color = SKColors.White.WithAlpha((byte)(Math.Clamp(255 * _renderSize, 0, 255)));
+                    fadePaint.BlendMode = SKBlendMode.DstIn;
+
+                    canvas.DrawRect(Bounds, fadePaint);
+                }
+
+                canvas.RestoreToCount(_globalFadeSaveCount.Value);
+                _globalFadeSaveCount = null;
             }
-
-            canvas.RestoreToCount(_globalFadeSaveCount.Value);
-            _globalFadeSaveCount = null;
         }
 
         private void SetMenuPosition()

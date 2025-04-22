@@ -1,3 +1,4 @@
+using FenUISharp.Themes;
 using SkiaSharp;
 
 namespace FenUISharp.Components.Text.Model
@@ -23,7 +24,7 @@ namespace FenUISharp.Components.Text.Model
         public SKFontStyleSlant Slant { get; set; } = SKFontStyleSlant.Upright;
         public bool Underlined { get; set; } = false;
         public float FontSize { get; set; } = 16;
-        public SKColor Color { get; set; } = SKColors.White;
+        public ThemeColor Color { get; set; } = new ThemeColor(SKColors.White);
 
         public float BlurRadius { get; set; } = 0;
         public float Opacity { get; set; } = 1;

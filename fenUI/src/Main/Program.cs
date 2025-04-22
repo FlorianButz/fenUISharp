@@ -21,6 +21,8 @@ namespace FenUISharpTest1
             NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(1200, 800));
             window.SystemDarkMode = true;
             window.AllowResizing = true;
+            window.CanMaximize = true;
+            window.CanMinimize = true;
             window.SetTrayIcon("icons/TrayIcon.ico", "Test");
             window.SetWindowIcon("icons/TrayIcon.ico");
 
@@ -92,14 +94,32 @@ namespace FenUISharpTest1
             // panel.Transform.UpdateLayout();
 
             FText text = new(window, Vector2.Zero, new(500, 100), TextModelFactory.CreateTest("Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut"));
-            text.Layout = new BlurLayoutProcessor(text, new WrapLayout(text));
-            window.DebugDisplayBounds = true;
+            text.Layout = new BlurLayoutProcessor(text, new WiggleCharsLayoutProcessor(text, new WrapLayout(text)));
+            // window.DebugDisplayBounds = true;
             // window.DebugDisplayAreaCache = true;
 
-            FSimpleButton button = new(window, new(0, 100), "Change Text", () =>
+            FText text2 = new(window, new(0, -250), new(255, 50), TextModelFactory.CreateBasic("Lorem ipsum dolor sit amet", textColor: window.WindowThemeManager.GetColor(t => t.OnSecondary)));
+            text2.Layout = new WrapLayout(text);
+
+            FSimpleButton button = new(window, new(0, 100), "Change Tesawdawdwad2", () =>
             {
-                text.Model = TextModelFactory.CreateBasic("Lorem ipsum dolor sit amet " + Random.Shared.Next());
+                text.Model = TextModelFactory.CreateBasic("Lorem ipsum dolor sit amet " + Random.Shared.Next(), textColor: window.WindowThemeManager.GetColor(t => t.Primary));
             });
+
+            FSimpleButton button2 = new(window, new(0, 200), "Change Theme", () =>
+            {
+                window.SystemDarkMode = !window.SystemDarkMode;
+                window.WindowThemeManager.SetTheme(Resources.GetTheme(window.SystemDarkMode ? "default-dark" : "default-light"));
+                window.FullRedraw();
+            }, color: window.WindowThemeManager.GetColor(t => t.Primary), textColor: window.WindowThemeManager.GetColor(t => t.OnPrimary));
+
+            var col = window.WindowThemeManager.GetColor(t => t.Secondary);
+
+            Console.WriteLine(col.Value);
+            window.WindowThemeManager.ThemeChanged += () =>
+            {
+                Console.WriteLine(col.Value);
+            };
 
             window.SetWindowVisibility(true);
             window.BeginWindowLoop();

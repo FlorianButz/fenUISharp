@@ -21,7 +21,9 @@ namespace FenUISharp
 
         public override bool Equals([NotNullWhen(true)] object? obj)
         {
-            return button == ((MouseInputCode)obj).button && state == ((MouseInputCode)obj).state;
+            if (obj != null)
+                return button == ((MouseInputCode)obj).button && state == ((MouseInputCode)obj).state;
+            else return false;
         }
 
         public override int GetHashCode()

@@ -1,3 +1,6 @@
+using FenUISharp.Components.Text;
+using FenUISharp.Components.Text.Layout;
+using FenUISharp.Components.Text.Model;
 using FenUISharp.Mathematics;
 using FenUISharp.Themes;
 using SkiaSharp;
@@ -6,7 +9,9 @@ namespace FenUISharp.Components
 {
     public class FSimpleButton : UIComponent
     {
-        public FLabel label;
+        public FText Label { get; protected set; }
+
+        private string labelText = "";
 
         private AnimatorComponent animatorComponent;
 
@@ -24,12 +29,25 @@ namespace FenUISharp.Components
             }
         }
 
-        public ThemeColor TextColor
+        private ThemeColor _border;
+        public ThemeColor Border
         {
-            get => label.TextColor;
+            get => _border;
             set
             {
-                label.TextColor = value;
+                _border = value;
+                Invalidate();
+            }
+        }
+
+        private ThemeColor _textColor;
+        public ThemeColor TextColor
+        {
+            get => _textColor;
+            set
+            {
+                _textColor = value;
+                CreateModel();
             }
         }
 
@@ -46,20 +64,26 @@ namespace FenUISharp.Components
             ThemeColor? color = null, ThemeColor? textColor = null) : base(root, position, new Vector2(0, 0))
         {
             this.OnClick = onClick;
-            label = new FLabel(root, text, new Vector2(0, 0), new Vector2(0, 0), 12);
+            Label = new FText(root, new Vector2(0, 0), new Vector2(0, 0), TextModelFactory.CreateBasic(text));
+
+            var wrap = new WrapLayout(Label) { AllowLinebreakOnOverflow = false };
+            Label.Layout = wrap;
 
             highlight = new ThemeColor(new SKColor(112, 102, 107, 100));
-            BaseColor = color ?? WindowRoot.WindowThemeManager.GetColor(t => t.Secondary);
-            TextColor = textColor ?? WindowRoot.WindowThemeManager.GetColor(t => t.OnSecondary);
+            _color = color ?? WindowRoot.WindowThemeManager.GetColor(t => t.Secondary);
+            _textColor = textColor ?? WindowRoot.WindowThemeManager.GetColor(t => t.OnSecondary);
+            _border = WindowRoot.WindowThemeManager.GetColor(t => t.SecondaryBorder);
 
             this.maxWidth = RMath.Clamp(maxWidth, minWidth, float.MaxValue);
             this.minWidth = RMath.Clamp(minWidth, 0, this.maxWidth);
 
             SetText(text);
 
-            label.Transform.SetParent(Transform);
-            label.CareAboutInteractions = false;
-            WindowRoot.AddUIComponent(label);
+            WindowRoot.WindowThemeManager.ThemeChanged += UpdateColors;
+
+            Label.Transform.SetParent(Transform);
+            Label.CareAboutInteractions = false;
+            WindowRoot.AddUIComponent(Label);
 
             currentcolor = BaseColor.Value;
             currenthighlight = highlight.Value;
@@ -88,15 +112,37 @@ namespace FenUISharp.Components
             Components.Add(animatorComponent);
         }
 
+        void UpdateColors()
+        {
+            var hoveredMix = RMath.Lerp(BaseColor.Value, WindowRoot.WindowThemeManager.GetColor(t => t.HoveredMix).Value, 0.2f);
+            var hoveredHigh = RMath.Lerp(highlight.Value, WindowRoot.WindowThemeManager.GetColor(t => t.HoveredMix).Value, 0.2f);
+
+            currentcolor = RMath.Lerp(BaseColor.Value, hoveredMix, _isMouseHovering ? 1 : 0);
+            currenthighlight = RMath.Lerp(highlight.Value, hoveredHigh, _isMouseHovering ? 1 : 0);
+        }
+
+        void CreateModel()
+        {
+            Label.Model = TextModelFactory.CreateBasic(labelText, textColor: _textColor);
+        }
+
         public void SetText(string text)
         {
-            label.Text = text;
+            labelText = text;
+            CreateModel();
 
-            float height = label.GetSingleLineTextHeight() + 1;
-            float width = RMath.Clamp(label.GetSingleLineTextWidth(), minWidth, maxWidth);
+            // float height = Label.Layout.GetSingleLineTextHeight() + 1;
+            // float height = 25;
 
-            label.Transform.Size = new Vector2(width, height);
-            Transform.Size = new Vector2(width + padding * 2.5f, height + padding);
+            var measuredText = Label.Layout.GetBoundingRect(Label.Model, SKRect.Create(0, 0, maxWidth, 1000));
+
+            float width = RMath.Clamp(measuredText.Width, minWidth, maxWidth);
+            float height = RMath.Clamp(measuredText.Height, 25, 100);
+
+            Label.Transform.Size = new Vector2(width, height);
+            Label.Invalidate();
+
+            Transform.Size = new Vector2(width + padding * 2.5f, height + padding * 0.5f);
         }
 
         protected override void MouseEnter()
@@ -134,7 +180,9 @@ namespace FenUISharp.Components
         protected override void ComponentDestroy()
         {
             base.ComponentDestroy();
-            WindowRoot.DestroyUIComponent(label);
+            WindowRoot.DestroyUIComponent(Label);
+
+            WindowRoot.WindowThemeManager.ThemeChanged -= UpdateColors;
         }
 
         protected override void OnUpdate()
@@ -172,6 +220,17 @@ namespace FenUISharp.Components
                     );
                     // canvas.DrawRoundRect(roundRect, paint);
                     canvas.DrawPath(SKSquircle.CreateSquircle(Transform.LocalBounds, cornerRadius), paint);
+                }
+
+                using (var paint = SkPaint.Clone())
+                {
+                    paint.IsStroke = true;
+                    paint.Color = _border.Value;
+                    paint.StrokeWidth = 1;
+
+                    canvas.Translate(0.5f, 0.5f);
+                    canvas.DrawPath(SKSquircle.CreateSquircle(Transform.LocalBounds, cornerRadius), paint);
+                    canvas.Translate(-0.5f, -0.5f);
                 }
 
                 // Inner Shadow

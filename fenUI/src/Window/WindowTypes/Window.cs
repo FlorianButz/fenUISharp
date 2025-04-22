@@ -101,6 +101,7 @@ namespace FenUISharp
         private readonly WndProcDelegate _wndProcDelegate;
         protected bool _alwaysOnTop;
         protected volatile bool _isDirty = false;
+        protected volatile bool _fullRedraw = false;
         volatile bool _isResizing = false;
 
         volatile bool _stopRunningFlag = false;
@@ -183,6 +184,8 @@ namespace FenUISharp
 
         protected virtual void UpdateSysDarkmode()
         {
+            _isDirty = true;
+
             const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
             const int DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 = 19; // Windows 10 1809+
 
@@ -279,13 +282,17 @@ namespace FenUISharp
 
                     OnWindowUpdateCall();
 
-                    if (IsNextFrameRendering() || _isDirty)
+                    if (IsNextFrameRendering())
                     {
+                        if (_fullRedraw)
+                            UiComponents.ForEach(x => x.RecursiveInvalidate());
+
                         OnBeginRender?.Invoke();
                         RenderFrame();
                         OnEndRender?.Invoke();
 
                         _isDirty = false;
+                        _fullRedraw = false;
                         UiComponents.ForEach(x => x.GloballyInvalidated = false);
                     }
 
@@ -317,7 +324,8 @@ namespace FenUISharp
                 using (var clipPath = GetDirtyClipPath())
                     _canvas.ClipPath(clipPath);
 
-                OnRenderFrame(RenderContext.Surface);
+                if(RenderContext.Surface != null)
+                    OnRenderFrame(RenderContext.Surface);
 
                 foreach (var component in OrderUIComponents(UiComponents))
                 {
@@ -341,7 +349,8 @@ namespace FenUISharp
                         _canvas.DrawRect(Bounds, paint);
                 }
 
-                OnAfterRenderFrame(RenderContext.Surface);
+                if(RenderContext.Surface != null)
+                    OnAfterRenderFrame(RenderContext.Surface);
 
                 RenderContext.EndDraw();
             }
@@ -418,6 +427,14 @@ namespace FenUISharp
             }
         }
 
+        public void Redraw() => _isDirty = true;
+        public void FullRedraw()
+        {
+            _isDirty = true;
+            _fullRedraw = true;
+            RenderContext.RecreateSurface();
+        }
+
         public void AddUIComponent(UIComponent component)
         {
             if (component == null) return;
@@ -445,7 +462,7 @@ namespace FenUISharp
 
         public bool IsNextFrameRendering()
         {
-            return UiComponents.Any(x => x.GloballyInvalidated && x.Enabled && x.Visible && x.Transform.Parent == null) || DebugDisplayAreaCache;
+            return UiComponents.Any(x => x.GloballyInvalidated && x.Enabled && x.Visible && x.Transform.Parent == null) || DebugDisplayAreaCache || _isDirty || _fullRedraw;
         }
 
         public List<UIComponent> GetUIComponents() => UiComponents;
@@ -712,8 +729,11 @@ namespace FenUISharp
             if (ptr != IntPtr.Zero)
             {
                 GCHandle gch = GCHandle.FromIntPtr(ptr);
-                var instance = (Window)gch.Target;
-                return instance.WindowsProcedure(hWnd, msg, wParam, lParam);
+
+                if (gch.Target != null) {
+                    var instance = (Window)gch.Target;
+                    return instance.WindowsProcedure(hWnd, msg, wParam, lParam);
+                }
             }
 
             return DefWindowProcW(hWnd, msg, wParam, lParam);
@@ -725,7 +745,7 @@ namespace FenUISharp
             {
                 case (int)WindowMessages.WM_GETMINMAXINFO:
                     {
-                        MINMAXINFO minMaxInfo = (MINMAXINFO)Marshal.PtrToStructure(lParam, typeof(MINMAXINFO));
+                        MINMAXINFO minMaxInfo = Marshal.PtrToStructure<MINMAXINFO>(lParam);
 
                         minMaxInfo.ptMinTrackSize = new POINT() { x = (int)WindowMinSize.x, y = (int)WindowMinSize.y };
                         minMaxInfo.ptMaxTrackSize = new POINT() { x = (int)WindowMaxSize.x, y = (int)WindowMaxSize.y };
@@ -765,6 +785,7 @@ namespace FenUISharp
                     IsWindowFocused = false;
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_SETFOCUS:
+                    _isDirty = true;
                     IsWindowFocused = true;
                     return IntPtr.Zero;
 
@@ -828,7 +849,7 @@ namespace FenUISharp
             return DefWindowProcW(hWnd, msg, wParam, lParam);
         }
 
-        public RECT? GetMonitorRect(int monitorIndex)
+        public RECT GetMonitorRect(int monitorIndex)
         {
             RECT rect = new RECT();
             int count = 0;
@@ -939,7 +960,7 @@ namespace FenUISharp
         protected static extern void AllowDarkModeForWindow(IntPtr hWnd, bool allow);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        protected static extern IntPtr GetModuleHandle(string lpModuleName);
+        protected static extern IntPtr GetModuleHandle(string? lpModuleName);
 
         [DllImport("user32.dll", SetLastError = true)]
         protected static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);

@@ -15,7 +15,7 @@ namespace FenUISharp.Themes
             }
         }
 
-        public event Action ThemeChanged;
+        public event Action? ThemeChanged;
 
         public ThemeManager(Theme initialTheme)
         {

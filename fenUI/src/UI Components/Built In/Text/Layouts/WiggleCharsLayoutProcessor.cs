@@ -1,5 +1,6 @@
 using FenUISharp.Components.Text.Model;
 using FenUISharp.Mathematics;
+using SkiaSharp;
 
 namespace FenUISharp.Components.Text.Layout
 {
@@ -19,14 +20,14 @@ namespace FenUISharp.Components.Text.Layout
 
         float time = 0;
 
-        public override List<Glyph> ProcessModel(TextModel model)
+        public override List<Glyph> ProcessModel(TextModel model, SKRect bounds)
         {
             time += Speed;
 
             if (needsFullRebuild || cachedLayout == null)
             {
                 needsFullRebuild = false;
-                cachedLayout = base.ProcessModel(model);
+                cachedLayout = base.ProcessModel(model, bounds);
             }
 
             var offsetLayout = new List<Glyph>(cachedLayout);

@@ -1,5 +1,6 @@
 
 using FenUISharp.Components.Text.Model;
+using SkiaSharp;
 
 namespace FenUISharp.Components.Text.Layout
 {
@@ -12,9 +13,9 @@ namespace FenUISharp.Components.Text.Layout
             InnerLayout = innerLayout;
         }
 
-        public override List<Glyph> ProcessModel(TextModel model)
+        public override List<Glyph> ProcessModel(TextModel model, SKRect bounds)
         {
-            return InnerLayout.ProcessModel(model);
+            return InnerLayout.ProcessModel(model, bounds);
         }
     }
 }

@@ -44,12 +44,13 @@ namespace FenUISharp
         private UserDragComponent? dragComponent;
         private FScrollBar scrollBar;
 
-        public List<Vector2> ChildLocalPosition { get; private set; }
+        public List<Vector2> ChildLocalPosition { get; private set; } = new();
 
         public StackContentComponent(UIComponent parent, ContentStackType type, ContentStackBehavior behavior, Vector2? startAlign = null) : base(parent)
         {
             StackType = type;
             StackBehavior = behavior;
+            scrollBar = new FScrollBar(Parent.WindowRoot, new Vector2(0, 0), new Vector2(4f, 4f));
 
             scrollComponent = new UserScrollComponent(parent);
             scrollComponent.MouseScroll += OnScroll;
@@ -128,7 +129,6 @@ namespace FenUISharp
         {
             base.ComponentSetup();
 
-            scrollBar = new FScrollBar(Parent.WindowRoot, new Vector2(0, 0), new Vector2(4f, 4f));
             scrollBar.Transform.MarginHorizontal = 8;
             scrollBar.Transform.MarginVertical = 8;
 
@@ -463,6 +463,8 @@ namespace FenUISharp
             layout.ContentFade = false;
             layout.ContentClip = false;
             layout.Parent.Transform.BoundsPadding.SetValue(this, Math.Max((int)Spread, (int)PerpendicularSpread), Math.Max((int)Spread, (int)PerpendicularSpread));
+
+            offsets = new();
         }
 
         public override void Update(StackContentComponent layout, List<Transform> children)

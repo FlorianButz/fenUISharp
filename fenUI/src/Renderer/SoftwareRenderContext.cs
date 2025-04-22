@@ -61,10 +61,11 @@ namespace FenUISharp
 
         public override SKSurface BeginDraw()
         {
-            if (Surface == null || _surfaceDirty)
+            if (Surface == null || _surfaceDirty || _recreateSurfaceFlag)
             {
                 Surface = CreateSurface();
                 _surfaceDirty = false;
+                _recreateSurfaceFlag = false;
             }
 
             // Surface.Canvas.Clear(new SKColor(0, 0, 0, 0));

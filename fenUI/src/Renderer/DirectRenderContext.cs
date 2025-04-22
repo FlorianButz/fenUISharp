@@ -10,13 +10,13 @@ namespace FenUISharp
 {
     public class DirectRenderContext : FRenderContext
     {
-        private SharpDX.Direct3D11.Device _device;
-        private DeviceContext _context;
-        private SwapChain _swapChain;
-        private Texture2D _backBuffer;
-        private RenderTargetView _renderTargetView;
-        private Texture2D _stagingTexture;
-        private SKBitmap _bitmap;
+        private SharpDX.Direct3D11.Device? _device;
+        private DeviceContext? _context;
+        private SwapChain? _swapChain;
+        private Texture2D? _backBuffer;
+        private RenderTargetView? _renderTargetView;
+        private Texture2D? _stagingTexture;
+        private SKBitmap? _bitmap;
 
         public DirectRenderContext(Window windowRoot) : base(windowRoot)
         {
@@ -57,12 +57,12 @@ namespace FenUISharp
             Utilities.Dispose(ref _backBuffer);
             Utilities.Dispose(ref _stagingTexture);
 
-            _backBuffer = _swapChain.GetBackBuffer<Texture2D>(0);
+            _backBuffer = _swapChain?.GetBackBuffer<Texture2D>(0);
             _renderTargetView = new RenderTargetView(_device, _backBuffer);
-            _context.OutputMerger.SetRenderTargets(_renderTargetView);
+            _context?.OutputMerger.SetRenderTargets(_renderTargetView);
 
             Vector2 size = GetSize();
-            _context.Rasterizer.SetViewport(0, 0, (int)size.x, (int)size.y);
+            _context?.Rasterizer.SetViewport(0, 0, (int)size.x, (int)size.y);
 
             _stagingTexture = new Texture2D(_device, new Texture2DDescription
             {
@@ -97,9 +97,10 @@ namespace FenUISharp
         public override SKSurface BeginDraw()
         {
             if (_onEndResizeFlag) OnEndResizeAfterDraw();
-            if (Surface == null || _bitmap == null || _surfaceDirty)
+            if (Surface == null || _bitmap == null || _surfaceDirty || _recreateSurfaceFlag)
             {
                 Surface = CreateSurface();
+                _recreateSurfaceFlag = false;
             }
 
             // Surface.Canvas.Clear(new SKColor(0, 0, 0, 0));
@@ -126,6 +127,8 @@ namespace FenUISharp
             try
             {
                 // Map the staging texture for writing
+                if (_context == null) throw new("_context is null.");
+
                 var dataBox = _context.MapSubresource(_stagingTexture, 0, MapMode.WriteDiscard, SharpDX.Direct3D11.MapFlags.None);
                 if (dataBox.DataPointer == IntPtr.Zero)
                 {
@@ -170,7 +173,7 @@ namespace FenUISharp
             // Present the frame
             try
             {
-                _swapChain.Present(1, PresentFlags.None);
+                _swapChain?.Present(1, PresentFlags.None);
             }
             catch (Exception ex)
             {
@@ -192,7 +195,7 @@ namespace FenUISharp
         private void UpdateViewport()
         {
             // Make sure viewport matches client area exactly
-            _context.Rasterizer.SetViewport(0, 0, (int)WindowRoot.WindowSize.x, (int)WindowRoot.WindowSize.y);
+            _context?.Rasterizer.SetViewport(0, 0, (int)WindowRoot.WindowSize.x, (int)WindowRoot.WindowSize.y);
         }
 
         public override void Dispose()
@@ -227,7 +230,7 @@ namespace FenUISharp
             Utilities.Dispose(ref _stagingTexture);
 
             // Resize swap chain
-            _swapChain.ResizeBuffers(
+            _swapChain?.ResizeBuffers(
                 2,
                 (int)size.x,
                 (int)size.y,

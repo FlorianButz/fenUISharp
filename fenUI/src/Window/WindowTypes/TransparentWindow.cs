@@ -58,7 +58,7 @@ namespace FenUISharp
             Vector2? centeredPos = null;
             if (position == null)
             {
-                var r = GetMonitorRect(0).Value;
+                var r = GetMonitorRect(0);
                 centeredPos = new Vector2((r.right - r.left) / 2 - (WindowSize.x / 2), (r.bottom - r.top) / 2 - (WindowSize.y / 2));
             }
 

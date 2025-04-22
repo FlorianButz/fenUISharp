@@ -71,8 +71,8 @@ namespace FenUISharp
 
             var s = _size;
 
-            var x = (Parent == null) ? sp.Width : ss.Value.x;
-            var y = (Parent == null) ? sp.Height : ss.Value.y;
+            var x = (Parent == null) ? sp.Width : (ss ?? Vector2.Zero).x;
+            var y = (Parent == null) ? sp.Height : (ss ?? Vector2.Zero).y;
 
             if (StretchHorizontal) s.x = x - MarginHorizontal * 2;
             if (StretchVertical) s.y = y - MarginVertical * 2;

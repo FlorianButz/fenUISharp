@@ -7,7 +7,12 @@ namespace FenUISharp
     public class AnimatorComponent : Component
     {
         public float Duration { get; set; } = 1;
-        public float Time => _timePassed;
+        
+        public float Time { get {
+                if (Duration <= 0f) return 1f;
+                return Math.Clamp(_timePassed / Duration, 0f, 1f);
+            }
+        }
 
         private float _timePassed = 0;
         public Action<float>? onValueUpdate;
@@ -53,6 +58,12 @@ namespace FenUISharp
             targetValue = Inverse ? 0f : 1f;
             _timePassed = 0;
             IsRunning = true;
+        }
+
+        public void Break()
+        {
+            _timePassed = 0;
+            IsRunning = false;
         }
 
         public override void ComponentUpdate()
