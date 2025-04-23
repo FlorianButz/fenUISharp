@@ -6,12 +6,14 @@ namespace FenUISharp.Components.Text.Model
 {
     public class TextModelFactory
     {
-        public static TextModel CreateBasic(string text, float textSize = 14, ThemeColor? textColor = null)
+        public static TextModel CreateBasic(string text, float textSize = 14, bool bold = false, bool italic = false, ThemeColor? textColor = null)
         {
             TextStyle style = new()
             {
                 FontSize = textSize,
-                Color = textColor ?? new(SKColors.Gray)
+                Color = textColor ?? new(SKColors.Gray),
+                Weight = bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
+                Slant = italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright
             };
             TextAlign align = new() { HorizontalAlign = TextAlign.AlignType.Middle, VerticalAlign = TextAlign.AlignType.Middle };
 
