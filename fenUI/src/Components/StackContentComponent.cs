@@ -27,7 +27,7 @@ namespace FenUISharp
         public Func<float, float>? SnappingProvider { get; set; } = null;
         public bool ApplySnapSeparately { get; set; } = true;
 
-        private float _scrollSpeed = 0.25f;
+        public float ScrollSpeed { get; set; } = 0.45f;
         private float _scrollPosition = 0f;
         private float _snappedScrollPosition = 0f;
         private float _scrollDisplayPosition = 0f;
@@ -146,7 +146,7 @@ namespace FenUISharp
         private void OnScroll(float delta)
         {
             if (StackBehavior == ContentStackBehavior.Scroll)
-                _scrollPosition += delta * _scrollSpeed;
+                _scrollPosition += delta * ScrollSpeed;
         }
 
         private void OnDrag(Vector2 vector)

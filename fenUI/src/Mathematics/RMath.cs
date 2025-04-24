@@ -110,6 +110,41 @@ namespace FenUISharp.Mathematics
             return intersectLeft < intersectRight && intersectTop < intersectBottom;
         }
 
+        public static bool IsRectPartiallyInside(SKRect rect, SKPath path)
+        {
+            // Check if any corner or midpoint of the rect is inside the path
+            var pointsToCheck = new[]
+            {
+            new SKPoint(rect.Left,     rect.Top),
+            new SKPoint(rect.Right,    rect.Top),
+            new SKPoint(rect.Right,    rect.Bottom),
+            new SKPoint(rect.Left,     rect.Bottom),
+            new SKPoint(rect.MidX,     rect.Top),
+            new SKPoint(rect.Right,    rect.MidY),
+            new SKPoint(rect.MidX,     rect.Bottom),
+            new SKPoint(rect.Left,     rect.MidY),
+            new SKPoint(rect.MidX,     rect.MidY),
+        };
+
+            foreach (var point in pointsToCheck)
+            {
+                if (path.Contains(point.X, point.Y))
+                    return true;
+            }
+
+            using var rectPath = new SKPath();
+            rectPath.AddRect(rect);
+
+            using var intersection = new SKPath();
+            bool intersects = path.Op(rectPath, SKPathOp.Intersect, intersection);
+
+            if (intersects && !intersection.IsEmpty)
+                return true;
+
+            return false;
+        }
+
+
         public static float Remap(float t, float oldMin, float oldMax, float newMin, float newMax)
         {
             if (Math.Abs(oldMax - oldMin) < float.Epsilon)

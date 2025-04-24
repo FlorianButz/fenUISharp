@@ -48,6 +48,7 @@ namespace FenUISharp
         protected int _refreshRate = 60;
         public int RefreshRate { get => _refreshRate; set { _refreshRate = value; RenderContext?.OnWindowPropertyChanged(); } }
         public double DeltaTime { get; private set; }
+        public double Time { get; private set; }
 
         public Vector2 ClientMousePosition
         {
@@ -287,6 +288,8 @@ namespace FenUISharp
                         if (_fullRedraw)
                             UiComponents.ForEach(x => x.RecursiveInvalidate());
 
+                        // Console.WriteLine("test");
+
                         OnBeginRender?.Invoke();
                         RenderFrame();
                         OnEndRender?.Invoke();
@@ -321,14 +324,16 @@ namespace FenUISharp
                 if (_canvas == null) return;
 
                 int notClipped = _canvas.Save();
-                using (var clipPath = GetDirtyClipPath())
-                    _canvas.ClipPath(clipPath);
+                using var clipPath = GetDirtyClipPath();
+                _canvas.ClipPath(clipPath);
 
                 if(RenderContext.Surface != null)
                     OnRenderFrame(RenderContext.Surface);
 
                 foreach (var component in OrderUIComponents(UiComponents))
                 {
+                    if (!RMath.IsRectPartiallyInside(component.Transform.FullBounds, clipPath)) continue;
+
                     int savedBeforeComponent = _canvas.Save();
                     if (component.Enabled && component.Transform.Parent == null)
                         component.DrawToScreen(_canvas);
@@ -368,7 +373,11 @@ namespace FenUISharp
             foreach (var component in UiComponents)
             {
                 if (component.SelfInvalidated)
-                    clipPath.AddRect(component.Transform.FullBounds);
+                {
+                    var bounds = component.Transform.FullBounds;
+                    bounds.Inflate(1, 1);
+                    clipPath.AddRect(bounds);
+                }
             }
 
             return clipPath;
@@ -383,6 +392,8 @@ namespace FenUISharp
         {
             if (!isPaused)
                 OnUpdate?.Invoke();
+
+            Time += DeltaTime;
 
             if (_onEndResizeFlag)
             {
@@ -462,7 +473,7 @@ namespace FenUISharp
 
         public bool IsNextFrameRendering()
         {
-            return UiComponents.Any(x => x.GloballyInvalidated && x.Enabled && x.Visible && x.Transform.Parent == null) || DebugDisplayAreaCache || _isDirty || _fullRedraw;
+            return UiComponents.Any(x => x.GloballyInvalidated && x.Enabled && x.Visible && x.Transform.Parent == null && !x.IsOutsideClip()) || DebugDisplayAreaCache || _isDirty || _fullRedraw;
         }
 
         public List<UIComponent> GetUIComponents() => UiComponents;

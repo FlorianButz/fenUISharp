@@ -17,15 +17,16 @@ namespace FenUISharpTest1
         {
             FenUI.Init();
             FenUI.SetupAppModel("FlorianButz.fenUI");
+            
             FenUI.Demo();
 
-            NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(1200, 800));
-            window.SystemDarkMode = true;
-            window.AllowResizing = true;
-            window.CanMaximize = true;
-            window.CanMinimize = true;
-            window.SetTrayIcon("icons/TrayIcon.ico", "Test");
-            window.SetWindowIcon("icons/TrayIcon.ico");
+            // NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(1200, 800));
+            // window.SystemDarkMode = true;
+            // window.AllowResizing = true;
+            // window.CanMaximize = true;
+            // window.CanMinimize = true;
+            // window.SetTrayIcon("icons/TrayIcon.ico", "Test");
+            // window.SetWindowIcon("icons/TrayIcon.ico");
 
             // window.TrayMouseAction += (MouseInputCode c) =>
             // {

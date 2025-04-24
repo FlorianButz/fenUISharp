@@ -4,8 +4,10 @@ using FenUISharp.Components.Text;
 using FenUISharp.Components.Text.Model;
 using FenUISharp.Mathematics;
 using FenUISharp.WinFeatures;
+using SkiaSharp;
 
-namespace FenUISharp {
+namespace FenUISharp
+{
     public class FenUI
     {
 
@@ -64,6 +66,7 @@ namespace FenUISharp {
             window.AllowResizing = true;
             window.CanMaximize = true;
             window.CanMinimize = true;
+            // window.DebugDisplayAreaCache = true;
 
             window.SetWindowIcon("icons/TrayIcon.ico");
 
@@ -81,6 +84,31 @@ namespace FenUISharp {
             // Setup all components
 
             {
+                FText title = new(window, Vector2.Zero, new Vector2(200, 75), TextModelFactory.CreateBasic("Images", 20, bold: true));
+                title.Transform.SetParent(panel.Transform);
+
+                FPanel subpanel = new(window, Vector2.Zero, new(500, 500), 10, window.WindowThemeManager.GetColor(t => t.Background));
+                subpanel.Transform.SetParent(panel.Transform);
+
+                subpanel.BorderSize = 1;
+                subpanel.BorderColor = window.WindowThemeManager.GetColor(t => t.Surface);
+
+                StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Horizontal, StackContentComponent.ContentStackBehavior.SizeToFitAll);
+
+                FImage img1 = new(window, Vector2.Zero, new(75, 75), Resources.GetImage("test-img"), 15);
+                img1.ScaleMode = FImage.ImageScaleMode.Stretch;
+                img1.Transform.SetParent(subpanel.Transform);
+
+                FImage img3 = new(window, Vector2.Zero, new(133, 75), Resources.GetImage("test-img"), 15);
+                img3.ScaleMode = FImage.ImageScaleMode.Contain;
+                img3.Transform.SetParent(subpanel.Transform);
+
+                FImage img2 = new(window, Vector2.Zero, new(75, 75), Resources.GetImage("test-img"), 15);
+                img2.ScaleMode = FImage.ImageScaleMode.Fit;
+                img2.Transform.SetParent(subpanel.Transform);
+            }
+
+            {
                 FText title = new(window, Vector2.Zero, new Vector2(200, 75), TextModelFactory.CreateBasic("Button Types", 20, bold: true));
                 title.Transform.SetParent(panel.Transform);
 
@@ -96,6 +124,56 @@ namespace FenUISharp {
                 primary.Transform.SetParent(subpanel.Transform);
                 FSimpleButton secondary = new(window, Vector2.Zero, "Secondary", color: window.WindowThemeManager.GetColor(t => t.Secondary), textColor: window.WindowThemeManager.GetColor(t => t.OnSecondary));
                 secondary.Transform.SetParent(subpanel.Transform);
+            }
+
+
+            {
+                FText title = new(window, Vector2.Zero, new Vector2(200, 75), TextModelFactory.CreateBasic("Progress Bars", 20, bold: true));
+                title.Transform.SetParent(panel.Transform);
+
+                FPanel subpanel = new(window, Vector2.Zero, new(500, 500), 10, window.WindowThemeManager.GetColor(t => t.Background));
+                subpanel.Transform.SetParent(panel.Transform);
+
+                subpanel.BorderSize = 1;
+                subpanel.BorderColor = window.WindowThemeManager.GetColor(t => t.Surface);
+
+                StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.SizeToFitAll);
+
+                // Normal
+
+                FProgressBar prog1 = new(window, Vector2.Zero, 600);
+                prog1.Transform.SetParent(subpanel.Transform);
+
+                FProgressBar prog2 = new(window, Vector2.Zero, 600) { Indeterminate = true };
+                prog2.Transform.SetParent(subpanel.Transform);
+
+                // Radial
+
+                FPanel subpanel2 = new(window, Vector2.Zero, new(500, 500), 10, new(SKColors.Transparent));
+                subpanel2.Transform.SetParent(subpanel.Transform);
+
+                StackContentComponent sublayout2 = new(subpanel2, StackContentComponent.ContentStackType.Horizontal, StackContentComponent.ContentStackBehavior.SizeToFitAll);
+                sublayout2.Gap = 75;
+
+                FRadialProgressBar prog3 = new(window, Vector2.Zero, new(100, 100));
+                prog3.Transform.SetParent(subpanel2.Transform);
+
+                FRadialProgressBar prog4 = new(window, Vector2.Zero, new(100, 100)) { Indeterminate = true };
+                prog4.Transform.SetParent(subpanel2.Transform);
+
+                float t = 0;
+                window.OnUpdate += () =>
+                {
+                    t++;
+                    var prog1Value = ((float)Math.Sin(t / 50) + 1) / 2;
+                    prog1.Value = prog1Value;
+                    prog3.Value = 1 - prog1Value;
+                };
+
+                
+                FSimpleButton switchTheme = new(window, new(0, 50), "Switch Theme", color: window.WindowThemeManager.GetColor(t => t.Secondary), textColor: window.WindowThemeManager.GetColor(t => t.OnSecondary));
+                switchTheme.Transform.Alignment = new(0.5f, 0);
+                switchTheme.OnClick += () => { window.SystemDarkMode = !window.SystemDarkMode; window.WindowThemeManager.SetTheme(window.SystemDarkMode ? Resources.GetTheme("default-dark") : Resources.GetTheme("default-light")); };
             }
 
             // Begin

@@ -44,7 +44,7 @@ namespace FenUISharp.Components
             {
                 if (!Enabled || !Visible) return false;
                 if (SelfInvalidated) return true;
-                if (Transform.Children.Any(x => x.ParentComponent._isThisGloballyInvalidated)) return true;
+                if (Transform.Children.Any(x => x.ParentComponent.GloballyInvalidated && !x.ParentComponent.IsOutsideClip())) return true;
                 return false;
             }
             set { _isThisGloballyInvalidated = value; }
@@ -91,8 +91,8 @@ namespace FenUISharp.Components
                                 CurrentlySelected = this;
                                 CurrentlySelected?.Selected();
 
-                                if (oldSelected != this) oldSelected?.Invalidate();
-                                Invalidate();
+                                // if (oldSelected != this) oldSelected?.Invalidate();
+                                // Invalidate();
                             }
 
                             break;
@@ -148,10 +148,16 @@ namespace FenUISharp.Components
             };
         }
 
+        public bool IsOutsideClip()
+        {
+            return Transform.ClipWhenFullyOutsideParent && (Transform.Parent != null && (!RMath.IsRectPartiallyInside(Transform.Parent.Bounds, Transform.Bounds))) ||
+                (!RMath.IsRectPartiallyInside(SKRect.Create(0, 0, WindowRoot.WindowSize.x, WindowRoot.WindowSize.y), Transform.Bounds));
+        }
+
         public void DrawToScreen(SKCanvas canvas)
         {
             if (!Visible || !Enabled) return;
-            if (Transform.Parent != null && Transform.ClipWhenFullyOutsideParent && !RMath.IsRectPartiallyInside(Transform.Parent.Bounds, Transform.Bounds)) return;
+            if (IsOutsideClip()) return;
 
             // Render quality
             float quality = RMath.Clamp(RenderQuality.Value * ((Transform.Parent != null) ? Transform.Parent.ParentComponent.RenderQuality.Value : 1), 0.05f, 2);

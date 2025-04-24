@@ -52,34 +52,34 @@ namespace FenUISharp
 
             var lightTheme = new Theme
             {
-                Primary = new SKColor(54, 89, 174),               // Keep the blue as your brand accent
-                PrimaryVariant = new SKColor(38, 62, 123),        // Slightly deeper shade of primary
+                Primary = new SKColor(54, 89, 174),
+                PrimaryVariant = new SKColor(38, 62, 123),
 
-                Secondary = new SKColor(245, 245, 245),           // Lighter neutral gray
-                SecondaryVariant = new SKColor(200, 200, 200),    // Slightly darker than Secondary
+                Secondary = new SKColor(245, 245, 245),
+                SecondaryVariant = new SKColor(200, 200, 200),
 
-                Background = new SKColor(245, 245, 245),          // Light gray (almost white)
-                Surface = new SKColor(255, 255, 255),             // Pure white for cards/surfaces
-                SurfaceVariant = new SKColor(240, 240, 240),      // Slightly darker white for variation
+                Background = new SKColor(245, 245, 245),
+                Surface = new SKColor(255, 255, 255),
+                SurfaceVariant = new SKColor(240, 240, 240),
 
-                OnPrimary = new SKColor(255, 255, 255),           // White text on blue buttons
-                OnSecondary = new SKColor(0, 0, 0),               // Dark text on lighter gray
-                OnBackground = new SKColor(30, 30, 30),           // Dark text on light background
-                OnSurface = new SKColor(45, 45, 45),              // Slightly softer black for surfaces
+                OnPrimary = new SKColor(255, 255, 255),
+                OnSecondary = new SKColor(0, 0, 0),
+                OnBackground = new SKColor(30, 30, 30),
+                OnSurface = new SKColor(45, 45, 45),
 
-                PrimaryBorder = new SKColor(25, 25, 204),
+                PrimaryBorder = new SKColor(122, 161, 255),
                 SecondaryBorder = new SKColor(204, 204, 204),
 
-                Shadow = new SKColor(0, 0, 0, 20),                // Softer shadow for light theme
+                Shadow = new SKColor(0, 0, 0, 20),
 
-                DisabledMix = new SKColor(200, 200, 200),         // Muted for disabled elements
-                HoveredMix = new SKColor(220, 220, 220),          // Light hover
-                PressedMix = new SKColor(200, 200, 200),          // Slightly darker press
-                SelectedMix = new SKColor(210, 210, 210),         // A bit of highlight
+                DisabledMix = new SKColor(200, 200, 200),
+                HoveredMix = new SKColor(220, 220, 220),
+                PressedMix = new SKColor(200, 200, 200),
+                SelectedMix = new SKColor(210, 210, 210),
 
-                Error = new SKColor(220, 38, 38),                 // Strong red but readable on light
-                Success = new SKColor(16, 185, 129),              // Fresh green tone
-                Warning = new SKColor(250, 204, 21)               // Yellow with warmth
+                Error = new SKColor(220, 38, 38),
+                Success = new SKColor(16, 185, 129),
+                Warning = new SKColor(250, 204, 21)
             };
 
             RegisterTheme(darkTheme, "default-dark");
@@ -130,9 +130,9 @@ namespace FenUISharp
             return image;
         }
 
-        public static SKImage? GetImage(string id)
+        public static SKImage GetImage(string id)
         {
-            return images.ContainsKey(id) ? images[id] : null;
+            return images.ContainsKey(id) ? images[id] : SKImage.Create(SKImageInfo.Empty);
         }
 
         public static Uri ConvertMsAppxToUri(string msAppX)
