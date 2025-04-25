@@ -16,6 +16,7 @@ namespace FenUISharp.Components.Text.Layout
 
         public virtual SKRect GetBoundingRect(TextModel model, SKRect cage, float padding = 1f)
         {
+            cage.Inflate(1, 1);
             List<Glyph> glyphs = ProcessModel(model, cage);
 
             float left = float.MaxValue;

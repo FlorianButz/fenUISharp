@@ -25,7 +25,7 @@ namespace FenUISharp.Components
         public ThemeColor FillColor { get; set; }
         public ThemeColor BorderColor { get; set; }
 
-        public float IndeterminateSpeed { get; set; } = 0.6f;
+        public float IndeterminateSpeed { get; set; } = 0.4f;
         public float IndeterminateArc { get; set; } = 100;
         protected float time = 0;
 

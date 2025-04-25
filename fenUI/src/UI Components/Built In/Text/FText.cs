@@ -29,6 +29,7 @@ namespace FenUISharp.Components.Text
             _renderer = new(this);
             _layout = new WrapLayout(this);
 
+            PixelSnapping = false;
             Transform.BoundsPadding.SetValue(this, 25, 25);
         }
 

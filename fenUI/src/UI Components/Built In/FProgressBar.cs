@@ -15,7 +15,7 @@ namespace FenUISharp.Components
         public float MinValue { get { return _minValue; } set { _minValue = value; Invalidate(); } }
 
         public bool Indeterminate { get; set; } = false;
-        public bool LeftToRight { get; set; } = false;
+        public bool LeftToRight { get; set; } = true;
 
         public Action<float>? OnValueChanged { get; set; }
 

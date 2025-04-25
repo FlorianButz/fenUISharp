@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using FenUISharp.Components;
 using FenUISharp.Components.Text;
+using FenUISharp.Components.Text.Layout;
 using FenUISharp.Components.Text.Model;
 using FenUISharp.Mathematics;
 using FenUISharp.WinFeatures;
@@ -67,6 +68,7 @@ namespace FenUISharp
             window.CanMaximize = true;
             window.CanMinimize = true;
             // window.DebugDisplayAreaCache = true;
+            // window.DebugDisplayBounds = true;
 
             window.SetWindowIcon("icons/TrayIcon.ico");
 
@@ -109,6 +111,54 @@ namespace FenUISharp
             }
 
             {
+                FText title = new(window, Vector2.Zero, new Vector2(200, 75), TextModelFactory.CreateBasic("Text", 20, bold: true));
+                title.Transform.SetParent(panel.Transform);
+
+                FPanel subpanel = new(window, Vector2.Zero, new(500, 500), 10, window.WindowThemeManager.GetColor(t => t.Background));
+                subpanel.Transform.SetParent(panel.Transform);
+
+                subpanel.BorderSize = 1;
+                subpanel.BorderColor = window.WindowThemeManager.GetColor(t => t.Surface);
+
+                StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.SizeToFitAll);
+                sublayout.Gap = 20;
+
+                FText text1 = new(window, Vector2.Zero, new(0, 250), TextModelFactory.CreateBasic("Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est"));
+                text1.Transform.StretchHorizontal = true;
+                text1.Transform.Size = new(0, text1.Layout.GetBoundingRect(text1.Model, SKRect.Create(subpanel.Transform.Size.x, 250)).Height);
+                text1.Transform.SetParent(subpanel.Transform);
+
+                FText text2 = new(window, Vector2.Zero, new(0, 150), TextModelFactory.CreateTest("Multiple text styles in one component!"));
+                text2.Transform.StretchHorizontal = true;
+                text2.Transform.Size = new(0, text2.Layout.GetBoundingRect(text2.Model, SKRect.Create(subpanel.Transform.Size.x, 250)).Height);
+                text2.Transform.SetParent(subpanel.Transform);
+
+                FText text3 = new(window, Vector2.Zero, new(0, 150), TextModelFactory.CreateBasic("Dynamic glyph layout processors"));
+                text3.Layout = new WiggleCharsLayoutProcessor(text3, new WrapLayout(text3));
+                text3.Transform.StretchHorizontal = true;
+                text3.Transform.Size = new(0, text3.Layout.GetBoundingRect(text3.Model, SKRect.Create(subpanel.Transform.Size.x, 250)).Height);
+                text3.Transform.SetParent(subpanel.Transform);
+
+                FText text4 = new(window, Vector2.Zero, new(0, 150), TextModelFactory.CreateBasic("Text change animation (Text 1)"));
+                text4.Layout = new BlurLayoutProcessor(text4, new WrapLayout(text4));
+                text4.Transform.StretchHorizontal = true;
+                text4.Transform.Size = new(0, text4.Layout.GetBoundingRect(text4.Model, SKRect.Create(subpanel.Transform.Size.x, 250)).Height);
+                text4.Transform.SetParent(subpanel.Transform);
+
+                float val = 0;
+                int lastText = 0;
+                window.OnUpdate += () =>
+                {
+                    val = ((float)Math.Sin(window.Time) + 1) / 2 + 1.5f;
+                    
+                    int text = (int)val;
+                    if(lastText != text)
+                        text4.Model = TextModelFactory.CreateBasic($"Text change animation (Text {text})");
+                    lastText = text;
+                };
+            }
+
+            {
                 FText title = new(window, Vector2.Zero, new Vector2(200, 75), TextModelFactory.CreateBasic("Button Types", 20, bold: true));
                 title.Transform.SetParent(panel.Transform);
 
@@ -125,7 +175,6 @@ namespace FenUISharp
                 FSimpleButton secondary = new(window, Vector2.Zero, "Secondary", color: window.WindowThemeManager.GetColor(t => t.Secondary), textColor: window.WindowThemeManager.GetColor(t => t.OnSecondary));
                 secondary.Transform.SetParent(subpanel.Transform);
             }
-
 
             {
                 FText title = new(window, Vector2.Zero, new Vector2(200, 75), TextModelFactory.CreateBasic("Progress Bars", 20, bold: true));
@@ -144,8 +193,13 @@ namespace FenUISharp
                 FProgressBar prog1 = new(window, Vector2.Zero, 600);
                 prog1.Transform.SetParent(subpanel.Transform);
 
+                FProgressBar prog5 = new(window, Vector2.Zero, 600) { LeftToRight = false };
+                prog5.Transform.SetParent(subpanel.Transform);
+
                 FProgressBar prog2 = new(window, Vector2.Zero, 600) { Indeterminate = true };
                 prog2.Transform.SetParent(subpanel.Transform);
+
+                FHorizontalSeparator separator = new(window, subpanel.Transform);
 
                 // Radial
 
@@ -161,20 +215,18 @@ namespace FenUISharp
                 FRadialProgressBar prog4 = new(window, Vector2.Zero, new(100, 100)) { Indeterminate = true };
                 prog4.Transform.SetParent(subpanel2.Transform);
 
-                float t = 0;
                 window.OnUpdate += () =>
                 {
-                    t++;
-                    var prog1Value = ((float)Math.Sin(t / 50) + 1) / 2;
+                    var prog1Value = ((float)Math.Sin(window.Time / 5) + 1) / 2;
                     prog1.Value = prog1Value;
                     prog3.Value = 1 - prog1Value;
+                    prog5.Value = prog1Value;
                 };
-
-                
-                FSimpleButton switchTheme = new(window, new(0, 50), "Switch Theme", color: window.WindowThemeManager.GetColor(t => t.Secondary), textColor: window.WindowThemeManager.GetColor(t => t.OnSecondary));
-                switchTheme.Transform.Alignment = new(0.5f, 0);
-                switchTheme.OnClick += () => { window.SystemDarkMode = !window.SystemDarkMode; window.WindowThemeManager.SetTheme(window.SystemDarkMode ? Resources.GetTheme("default-dark") : Resources.GetTheme("default-light")); };
             }
+
+            FSimpleButton switchTheme = new(window, new(0, 50), "Switch Theme", color: window.WindowThemeManager.GetColor(t => t.Secondary), textColor: window.WindowThemeManager.GetColor(t => t.OnSecondary));
+            switchTheme.Transform.Alignment = new(0.5f, 0);
+            switchTheme.OnClick += () => { window.SystemDarkMode = !window.SystemDarkMode; window.WindowThemeManager.SetTheme(window.SystemDarkMode ? Resources.GetTheme("default-dark") : Resources.GetTheme("default-light")); };
 
             // Begin
 

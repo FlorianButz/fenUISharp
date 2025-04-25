@@ -18,6 +18,8 @@ namespace FenUISharp.Components.Text.Layout
         public float GlyphOffset { get; init; } = 5;
         public float FadeLength { get; init; } = 0.5f;
 
+        public bool LowerQualityOnAnimate = true;
+
         public BlurLayoutProcessor(FText parent, TextLayout innerLayout) : base(parent, innerLayout)
         {
             parent.OnModelChanged += () =>
@@ -30,6 +32,9 @@ namespace FenUISharp.Components.Text.Layout
                 newLayout = null;
                 animatorOut?.Restart();
                 animatorIn?.Break();
+
+                if(LowerQualityOnAnimate)
+                    Parent.RenderQuality.SetValue(this, 0.85f, 25);
             };
 
             animatorOut = new(parent, t => t);
@@ -43,6 +48,8 @@ namespace FenUISharp.Components.Text.Layout
 
             animatorIn.onComplete += OnAnimCompleteIn;
             animatorIn.onValueUpdate += OnAnimValueUpdated;
+
+            animatorIn.onComplete += () => Parent.RenderQuality.DissolveValue(this);
         }
 
         private void OnAnimCompleteOut()

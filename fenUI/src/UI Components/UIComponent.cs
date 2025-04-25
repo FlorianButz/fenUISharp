@@ -16,6 +16,7 @@ namespace FenUISharp.Components
         public bool Enabled { get; set; } = true;
         public bool Visible { get; set; } = true;
         public bool CareAboutInteractions { get; set; } = true;
+        public bool PixelSnapping { get; set; } = true;
 
         public ImageEffect ImageEffect { get; init; }
 
@@ -35,6 +36,7 @@ namespace FenUISharp.Components
             }
         }
 
+        protected bool _isRendering = false;
         protected bool _isMouseHovering { get; private set; } = false;
         private bool _isThisGloballyInvalidated;
         public bool SelfInvalidated => _isThisGloballyInvalidated;
@@ -158,6 +160,7 @@ namespace FenUISharp.Components
         {
             if (!Visible || !Enabled) return;
             if (IsOutsideClip()) return;
+            _isRendering = true;
 
             // Render quality
             float quality = RMath.Clamp(RenderQuality.Value * ((Transform.Parent != null) ? Transform.Parent.ParentComponent.RenderQuality.Value : 1), 0.05f, 2);
@@ -216,7 +219,12 @@ namespace FenUISharp.Components
                     canvas.Scale(1 / quality, 1 / quality); // Scale for proper rendering
 
                     if (Transform.Matrix == null)
-                        canvas.Translate(Transform.Position.x * quality, Transform.Position.y * quality);
+                    {
+                        if (PixelSnapping)
+                            canvas.Translate((float)Math.Round(Transform.Position.x * quality), (float)Math.Round(Transform.Position.y * quality));
+                        else
+                            canvas.Translate(Transform.Position.x * quality, Transform.Position.y * quality);
+                    }
 
                     Components.ForEach(x => x.OnBeforeRenderCache(cachedSurface.Canvas));
 
@@ -227,7 +235,13 @@ namespace FenUISharp.Components
 
                     Components.ForEach(x => x.OnAfterRenderCache(cachedSurface.Canvas));
 
-                    canvas.Translate(-(Transform.Position.x * quality), -(Transform.Position.y * quality)); // Always move back to 0;0. Translate always happen, no matter if rotation matrix is set or not.
+
+                    // Always move back to 0;0. Translate always happen, no matter if rotation matrix is set or not.
+                    if (PixelSnapping)
+                        canvas.Translate(-(float)Math.Round(Transform.Position.x * quality), -(float)Math.Round(Transform.Position.y * quality));
+                    else
+                        canvas.Translate(-Transform.Position.x * quality, -Transform.Position.y * quality);
+
                     canvas.Scale(quality, quality); // Scale back for proper rendering
 
                     snapshot.Dispose();
@@ -239,6 +253,7 @@ namespace FenUISharp.Components
             Components.ForEach(x => x.OnAfterRenderChildren(canvas));
 
             canvas.RestoreToCount(c);
+            _isRendering = false;
         }
 
         public void DrawSelectionEffect(SKCanvas canvas)
@@ -263,6 +278,8 @@ namespace FenUISharp.Components
 
         public void Invalidate()
         {
+            if (_isRendering) { MarkInvalidated(); return; }
+            
             cachedSurface?.Dispose();
             cachedSurface = null; // Mark for redraw
 
