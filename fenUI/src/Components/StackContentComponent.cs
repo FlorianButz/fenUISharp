@@ -192,6 +192,11 @@ namespace FenUISharp
         {
             base.ComponentUpdate();
 
+            if(scrollComponent != null)
+                scrollComponent.Enabled = StackBehavior == ContentStackBehavior.Scroll;
+            if(dragComponent != null)
+                dragComponent.Enabled = StackBehavior == ContentStackBehavior.Scroll;
+
             if (!AllowScrollOverflow || ScrollSpring == null)
                 _scrollPosition = RMath.Clamp(_scrollPosition, -_scrollMax, _scrollMin);
 

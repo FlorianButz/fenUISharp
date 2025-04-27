@@ -30,7 +30,7 @@ namespace FenUISharp.Components
         }
 
         private ThemeColor _border;
-        public ThemeColor Border
+        public ThemeColor BorderColor
         {
             get => _border;
             set

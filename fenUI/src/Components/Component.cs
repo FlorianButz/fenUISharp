@@ -8,13 +8,19 @@ namespace FenUISharp {
         public UIComponent Parent { get; init; }
         private bool _isSetup = false;
 
-        public Component(UIComponent parent){
+        public bool Enabled { get; set; } = true;
+
+        public Component(UIComponent parent)
+        {
             Parent = parent;
             Parent.Components.Add(this);
         }
 
         public void CmpUpdate() {
-            if(!_isSetup) {
+            if (!Enabled) return;
+
+            if (!_isSetup)
+            {
                 _isSetup = true;
                 ComponentSetup();
             }

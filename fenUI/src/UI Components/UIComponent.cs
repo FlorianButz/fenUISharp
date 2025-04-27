@@ -361,8 +361,8 @@ namespace FenUISharp.Components
         public UIComponent? GetTopmostComponentAtPositionWithComponent<T>(Vector2 pos)
         {
             var searchList = WindowRoot.OrderUIComponents(WindowRoot.GetUIComponents());
-            if (!searchList.Any(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos) && x.Components.Any(x => x is T))) return null;
-            return searchList.Last(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos) && x.Components.Any(x => x is T));
+            if (!searchList.Any(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos) && x.Components.Any(x => x is T && x.Enabled))) return null;
+            return searchList.Last(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos) && x.Components.Any(x => x is T && x.Enabled));
         }
 
         public void SetColor(SKColor color)

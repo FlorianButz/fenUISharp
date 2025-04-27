@@ -7,10 +7,25 @@ namespace FenUISharp
     public class AnimatorComponent : Component
     {
         public float Duration { get; set; } = 1;
-        
-        public float Time { get {
+
+        public float Time
+        {
+            get
+            {
                 if (Duration <= 0f) return 1f;
-                return Math.Clamp(_timePassed / Duration, 0f, 1f);
+                float t = Math.Clamp(_timePassed / Duration, 0f, 1f);
+                float easedT = (Inverse) ? inverseEasing(t) : easing(t);
+                return easedT;
+            }
+        }
+
+        public float UneasedTime
+        {
+            get
+            {
+                if (Duration <= 0f) return 1f;
+                float t = Math.Clamp(_timePassed / Duration, 0f, 1f);
+                return t;
             }
         }
 
@@ -32,7 +47,7 @@ namespace FenUISharp
         public AnimatorComponent(UIComponent parent, Func<float, float> easing, Func<float, float>? inverseEasing = null) : base(parent)
         {
             this.easing = easing;
-            if(inverseEasing == null) this.inverseEasing = easing;
+            if (inverseEasing == null) this.inverseEasing = easing;
             else this.inverseEasing = inverseEasing;
 
             // Initialize current value based on the expected default.

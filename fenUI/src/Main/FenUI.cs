@@ -59,7 +59,7 @@ namespace FenUISharp
 
         public static void Demo()
         {
-            NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(1200, 800));
+            NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(900, 800));
 
             window.SystemDarkMode = true;
             // window.WindowThemeManager.SetTheme(Resources.GetTheme("default-light"));
@@ -75,6 +75,7 @@ namespace FenUISharp
             FPanel panel = new(window, Vector2.Zero, Vector2.Zero, 10, window.WindowThemeManager.GetColor(t => t.Background));
             panel.Transform.StretchHorizontal = true;
             panel.Transform.StretchVertical = true;
+            panel.Transform.MarginVertical += 25;
 
             panel.BorderSize = 1;
             panel.BorderColor = window.WindowThemeManager.GetColor(t => t.Surface);
@@ -145,17 +146,17 @@ namespace FenUISharp
                 text4.Transform.Size = new(0, text4.Layout.GetBoundingRect(text4.Model, SKRect.Create(subpanel.Transform.Size.x, 250)).Height);
                 text4.Transform.SetParent(subpanel.Transform);
 
-                float val = 0;
-                int lastText = 0;
-                window.OnUpdate += () =>
-                {
-                    val = ((float)Math.Sin(window.Time) + 1) / 2 + 1.5f;
+                // float val = 0;
+                // int lastText = 0;
+                // window.OnUpdate += () =>
+                // {
+                //     val = ((float)Math.Sin(window.Time) + 1) / 2 + 1.5f;
                     
-                    int text = (int)val;
-                    if(lastText != text)
-                        text4.Model = TextModelFactory.CreateBasic($"Text change animation (Text {text})");
-                    lastText = text;
-                };
+                //     int text = (int)val;
+                //     if(lastText != text)
+                //         text4.Model = TextModelFactory.CreateBasic($"Text change animation (Text {text})");
+                //     lastText = text;
+                // };
             }
 
             {
@@ -174,6 +175,22 @@ namespace FenUISharp
                 primary.Transform.SetParent(subpanel.Transform);
                 FSimpleButton secondary = new(window, Vector2.Zero, "Secondary", color: window.WindowThemeManager.GetColor(t => t.Secondary), textColor: window.WindowThemeManager.GetColor(t => t.OnSecondary));
                 secondary.Transform.SetParent(subpanel.Transform);
+            }
+            
+            {
+                FText title = new(window, Vector2.Zero, new Vector2(200, 75), TextModelFactory.CreateBasic("Toggles", 20, bold: true));
+                title.Transform.SetParent(panel.Transform);
+
+                FPanel subpanel = new(window, Vector2.Zero, new(500, 500), 10, window.WindowThemeManager.GetColor(t => t.Background));
+                subpanel.Transform.SetParent(panel.Transform);
+
+                subpanel.BorderSize = 1;
+                subpanel.BorderColor = window.WindowThemeManager.GetColor(t => t.Surface);
+
+                StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Horizontal, StackContentComponent.ContentStackBehavior.SizeToFitAll);
+
+                FRoundToggle toggle1 = new(window, Vector2.Zero);
+                toggle1.Transform.SetParent(subpanel.Transform);
             }
 
             {
@@ -215,16 +232,16 @@ namespace FenUISharp
                 FRadialProgressBar prog4 = new(window, Vector2.Zero, new(100, 100)) { Indeterminate = true };
                 prog4.Transform.SetParent(subpanel2.Transform);
 
-                window.OnUpdate += () =>
-                {
-                    var prog1Value = ((float)Math.Sin(window.Time / 5) + 1) / 2;
-                    prog1.Value = prog1Value;
-                    prog3.Value = 1 - prog1Value;
-                    prog5.Value = prog1Value;
-                };
+                // window.OnUpdate += () =>
+                // {
+                //     var prog1Value = ((float)Math.Sin(window.Time / 5) + 1) / 2;
+                //     prog1.Value = prog1Value;
+                //     prog3.Value = 1 - prog1Value;
+                //     prog5.Value = prog1Value;
+                // };
             }
 
-            FSimpleButton switchTheme = new(window, new(0, 50), "Switch Theme", color: window.WindowThemeManager.GetColor(t => t.Secondary), textColor: window.WindowThemeManager.GetColor(t => t.OnSecondary));
+            FSimpleButton switchTheme = new(window, new(0, 40), "Switch Theme", color: window.WindowThemeManager.GetColor(t => t.Secondary), textColor: window.WindowThemeManager.GetColor(t => t.OnSecondary));
             switchTheme.Transform.Alignment = new(0.5f, 0);
             switchTheme.OnClick += () => { window.SystemDarkMode = !window.SystemDarkMode; window.WindowThemeManager.SetTheme(window.SystemDarkMode ? Resources.GetTheme("default-dark") : Resources.GetTheme("default-light")); };
 
