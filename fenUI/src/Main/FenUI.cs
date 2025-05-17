@@ -11,8 +11,8 @@ namespace FenUISharp
 {
     public class FenUI
     {
-
-        public static Version FenUIVersion => new(0, 0, 1);
+        public static string ResourceLibName => "fenUI";
+        public static Version FenUIVersion => new(0, 0, 1, 0);
 
         [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         static extern int SetCurrentProcessExplicitAppUserModelID(string AppID);
@@ -70,7 +70,8 @@ namespace FenUISharp
             // window.DebugDisplayAreaCache = true;
             // window.DebugDisplayBounds = true;
 
-            window.SetWindowIcon("icons/TrayIcon.ico");
+            string iconPath = Resources.ExtractResourceToTempFile<FenUI>($"{FenUI.ResourceLibName}.icons.TrayIcon.ico");
+            window.SetWindowIcon(iconPath);
 
             FPanel panel = new(window, Vector2.Zero, Vector2.Zero, 10, window.WindowThemeManager.GetColor(t => t.Background));
             panel.Transform.StretchHorizontal = true;
@@ -83,6 +84,9 @@ namespace FenUISharp
             // Setup panel layout
 
             StackContentComponent layout = new(panel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
+
+            FInputField f = new(window, Vector2.Zero);
+            f.Transform.SetParent(panel.Transform);
 
             // Setup all components
 
@@ -146,17 +150,17 @@ namespace FenUISharp
                 text4.Transform.Size = new(0, text4.Layout.GetBoundingRect(text4.Model, SKRect.Create(subpanel.Transform.Size.x, 250)).Height);
                 text4.Transform.SetParent(subpanel.Transform);
 
-                // float val = 0;
-                // int lastText = 0;
-                // window.OnUpdate += () =>
-                // {
-                //     val = ((float)Math.Sin(window.Time) + 1) / 2 + 1.5f;
+                float val = 0;
+                int lastText = 0;
+                window.OnUpdate += () =>
+                {
+                    val = ((float)Math.Sin(window.Time) + 1) / 2 + 1.5f;
                     
-                //     int text = (int)val;
-                //     if(lastText != text)
-                //         text4.Model = TextModelFactory.CreateBasic($"Text change animation (Text {text})");
-                //     lastText = text;
-                // };
+                    int text = (int)val;
+                    if(lastText != text)
+                        text4.Model = TextModelFactory.CreateBasic($"Text change animation (Text {text})");
+                    lastText = text;
+                };
             }
 
             {

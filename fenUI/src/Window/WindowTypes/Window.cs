@@ -1,11 +1,11 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using System.Text;
 using FenUISharp.Components;
 using FenUISharp.Mathematics;
 using FenUISharp.Themes;
 using FenUISharp.WinFeatures;
-using FenUISharpTest1;
 using SkiaSharp;
 
 namespace FenUISharp
@@ -92,6 +92,8 @@ namespace FenUISharp
         public Action<Vector2> OnWindowMoved { get; set; }
         public Action OnWindowClose { get; set; }
         public Action OnWindowDestroy { get; set; }
+
+        public Action<char> Char { get; set; }
 
         #endregion
 
@@ -395,6 +397,9 @@ namespace FenUISharp
 
             Time += DeltaTime;
 
+            foreach (char c in _queuedInputChars) Char?.Invoke(c);
+            _queuedInputChars.Clear();
+
             if (_onEndResizeFlag)
             {
                 _onEndResizeFlag = false;
@@ -494,7 +499,7 @@ namespace FenUISharp
                 cbSize = (uint)Marshal.SizeOf(typeof(WNDCLASSEX)),
                 style = 0x0020,
                 lpfnWndProc = _wndProcDelegate,
-                hInstance = Marshal.GetHINSTANCE(typeof(Program).Module),
+                hInstance = Marshal.GetHINSTANCE(typeof(FenUI).Module),
                 lpszClassName = className
             };
 
@@ -750,10 +755,16 @@ namespace FenUISharp
             return DefWindowProcW(hWnd, msg, wParam, lParam);
         }
 
+        private Queue<char> _queuedInputChars = new();
+
         protected IntPtr WindowsProcedure(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
             switch (msg)
             {
+                case 0x0102:
+                    _queuedInputChars.Enqueue((char)wParam);
+                    break;
+
                 case (int)WindowMessages.WM_GETMINMAXINFO:
                     {
                         MINMAXINFO minMaxInfo = Marshal.PtrToStructure<MINMAXINFO>(lParam);

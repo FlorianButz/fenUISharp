@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
+<PropertyGroup>
+    <OutputType>Library</OutputType>
   <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
   <UseWindowsSDKContracts>true</UseWindowsSDKContracts>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -20,7 +20,8 @@
     <PackageReference Include="SkiaSharp.Views" Version="3.116.1" />
     <PackageReference Include="SkiaSharp.Views.Desktop.Common" Version="1.68.1" />
     <PackageReference Include="SkiaSharp" Version="2.88.6" /> 
-    <None Include="icons\**\*">
+
+    <!-- <None Include="icons\**\*">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="images\**\*">
@@ -28,7 +29,13 @@
     </None>
     <None Include="fonts\**\*">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </None> -->
+
+  
+  <EmbeddedResource Include="images\**\*.*" />
+  <EmbeddedResource Include="icons\**\*.*" />
+  <EmbeddedResource Include="fonts\**\*.*" />
+
   </ItemGroup>
 
 </Project>

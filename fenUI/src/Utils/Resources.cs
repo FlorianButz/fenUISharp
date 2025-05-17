@@ -16,7 +16,9 @@ namespace FenUISharp
             // RegisterTypeface("fonts/Inter-VariableFont_opsz,wght.ttf", "inter-variable");
             RegisterTypeface("Segoe UI Variable", "segoe-ui");
 
-            RegisterImage(LoadImage("images/test_img.png"), "test-img");
+            var asm = typeof(Resources).Assembly;
+
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.test_img.png")), "test-img");
 
             var darkTheme = new Theme
             {
@@ -86,10 +88,22 @@ namespace FenUISharp
             RegisterTheme(lightTheme, "default-light");
         }
 
+        public static string ExtractResourceToTempFile<T>(string resourceName)
+        {
+            var asm = typeof(T).Assembly;
+            using var stream = asm.GetManifestResourceStream(resourceName);
+            if (stream == null) throw new Exception($"Resource not found: {resourceName}");
+
+            var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.ico");
+            using var fileStream = File.Create(tempPath);
+            stream.CopyTo(fileStream);
+            return tempPath;
+        }
+
         public static FTypeface RegisterTypeface(string familyName, string withId)
         {
             if (typefaces.Keys.Contains(withId)) return typefaces[withId];
-            
+
             var typeface = new FTypeface(familyName);
             typefaces.Add(withId, typeface);
             return typeface;

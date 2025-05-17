@@ -91,7 +91,8 @@ namespace FenUISharp
 
             Parent.AddChild(this);
             Parent.ParentComponent.RenderQuality.onValueUpdated += ParentComponent.OnRenderQualityUpdated;
-
+            
+            // ParentComponent.WindowRoot.RemoveUIComponent(ParentComponent);
             // UpdateLayout();
         }
 
@@ -105,6 +106,7 @@ namespace FenUISharp
             Parent?.RemoveChild(this);
             Parent = null;
 
+            // ParentComponent.WindowRoot.AddUIComponent(ParentComponent);
             // UpdateLayout();
         }
 

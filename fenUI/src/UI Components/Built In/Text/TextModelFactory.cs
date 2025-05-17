@@ -6,7 +6,7 @@ namespace FenUISharp.Components.Text.Model
 {
     public class TextModelFactory
     {
-        public static TextModel CreateBasic(string text, float textSize = 14, bool bold = false, bool italic = false, ThemeColor? textColor = null)
+        public static TextModel CreateBasic(string text, float textSize = 14, bool bold = false, bool italic = false, ThemeColor? textColor = null, TextAlign align = null)
         {
             TextStyle style = new()
             {
@@ -15,9 +15,9 @@ namespace FenUISharp.Components.Text.Model
                 Weight = bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
                 Slant = italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright
             };
-            TextAlign align = new() { HorizontalAlign = TextAlign.AlignType.Middle, VerticalAlign = TextAlign.AlignType.Middle };
+            TextAlign algn = align ?? new() { HorizontalAlign = TextAlign.AlignType.Middle, VerticalAlign = TextAlign.AlignType.Middle };
 
-            return new(new List<TextSpan>() { new TextSpan(text, style) }, align, FTypeface.Default);
+            return new(new List<TextSpan>() { new TextSpan(text, style) }, algn, FTypeface.Default);
         }
 
         public static TextModel CreateTest(string text)

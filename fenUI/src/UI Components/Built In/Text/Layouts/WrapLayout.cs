@@ -74,15 +74,13 @@ namespace FenUISharp.Components.Text.Layout
 
                     if (line.LineWidth + wordWidth > bounds.Width)
                     {
-                        // NO LINEBREAK mode?
                         if (!AllowLinebreakOnOverflow)
                         {
                             AppendEllipsis(line, font, part, bounds.Width, returnList, baselineOff);
-                            stopProcessing = true;    // mark that we're done laying out
+                            stopProcessing = true;
                         }
                         else
                         {
-                            // —— existing linebreak + mid‐word splitting logic —— 
                             if (line.Glyphs.Count > 0)
                             {
                                 currentLineY += lineHeight;
@@ -101,7 +99,7 @@ namespace FenUISharp.Components.Text.Layout
 
                             foreach (char c in word)
                             {
-                                if (stopProcessing) break;  // bail if we've already ellipsized
+                                if (stopProcessing) break; 
 
                                 float charWidth = font.MeasureText(c.ToString()) + part.CharacterSpacing;
 
