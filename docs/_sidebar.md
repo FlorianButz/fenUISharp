@@ -20,6 +20,7 @@
     * [Easing](docs/utils/easing.md)
 
 * Utils
+    * [Resources](docs/utils/resources.md)
     * [Mouse Input Code](docs/utils/mouse-input-code.md)
     * [Cursor](docs/utils/cursor.md)
 
