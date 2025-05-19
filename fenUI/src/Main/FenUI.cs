@@ -12,7 +12,7 @@ namespace FenUISharp
     public class FenUI
     {
         public static string ResourceLibName => "fenUI";
-        public static Version FenUIVersion => new(0, 0, 1, 0);
+        public static Version FenUIVersion => new(0, 0, 1, 1);
 
         [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         static extern int SetCurrentProcessExplicitAppUserModelID(string AppID);

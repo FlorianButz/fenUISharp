@@ -35,6 +35,12 @@
             yd = new Vector2(0, 0);
         }
 
+        public void ResetVector(Vector2 resetValue)
+        {
+            xp = resetValue;
+            yd = resetValue;
+            y  = resetValue;
+        }
 
         public void SetValues(float f = 2f, float z = 0.4f, float r = 0.1f)
         {

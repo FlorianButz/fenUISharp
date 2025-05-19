@@ -16,8 +16,8 @@ namespace FenUISharp.Components
         protected SKColor currentBackground;
         public Spring AnimationSpring { get; set; }
 
-        const int WIDTH = 50;
-        const int HEIGHT = 30;
+        const int WIDTH = 40;
+        const int HEIGHT = 25;
 
         protected AnimatorComponent toggleAnimator;
 

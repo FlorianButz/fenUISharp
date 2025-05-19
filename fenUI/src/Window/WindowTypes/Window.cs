@@ -329,7 +329,9 @@ namespace FenUISharp
                 using var clipPath = GetDirtyClipPath();
                 _canvas.ClipPath(clipPath);
 
-                if(RenderContext.Surface != null)
+                ClearCanvasArea(clipPath, _canvas);
+
+                if (RenderContext.Surface != null)
                     OnRenderFrame(RenderContext.Surface);
 
                 foreach (var component in OrderUIComponents(UiComponents))
@@ -363,6 +365,12 @@ namespace FenUISharp
             }
         }
 
+        public void ClearCanvasArea(SKPath path, SKCanvas canvas)
+        {
+            var paint = new SKPaint { BlendMode = SKBlendMode.Clear };
+            canvas.DrawPath(path, paint);
+        }
+
         public SKPath GetDirtyClipPath()
         {
             var clipPath = new SKPath();
@@ -377,7 +385,7 @@ namespace FenUISharp
                 if (component.SelfInvalidated)
                 {
                     var bounds = component.Transform.FullBounds;
-                    bounds.Inflate(1, 1);
+                    bounds.Inflate(2, 2);
                     clipPath.AddRect(bounds);
                 }
             }

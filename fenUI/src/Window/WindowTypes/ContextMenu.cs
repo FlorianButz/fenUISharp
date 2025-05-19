@@ -145,7 +145,7 @@ namespace FenUISharp
             size += padding * 2;
 
             SetWindowSize(size);
-            Console.WriteLine(size);
+            // Console.WriteLine(size);
 
             layout = new StackContentComponent(mainPanel, StackContentComponent.ContentStackType.Vertical, contentS.y > size.y ? StackContentComponent.ContentStackBehavior.Scroll : StackContentComponent.ContentStackBehavior.SizeToFit);
             layout.Pad = padding;
