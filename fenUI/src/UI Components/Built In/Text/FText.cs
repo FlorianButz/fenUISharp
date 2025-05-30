@@ -9,7 +9,7 @@ namespace FenUISharp.Components.Text
     public class FText : UIComponent
     {
         protected TextModel _model;
-        public TextModel Model { get { return _model; } set { _model = value; OnModelChanged?.Invoke(); OnAnyChange?.Invoke(); Invalidate(); } }
+        public TextModel Model { get { return _model; } set { var lastModel = _model; _model = value; if(lastModel != _model) { OnModelChanged?.Invoke(); OnAnyChange?.Invoke(); Invalidate(); } } }
 
         protected TextRenderer _renderer;
         public TextRenderer Renderer { get { return _renderer; } set { _renderer = value; OnRendererChanged?.Invoke(); OnAnyChange?.Invoke(); Invalidate(); } }
@@ -30,7 +30,15 @@ namespace FenUISharp.Components.Text
             _layout = new WrapLayout(this);
 
             PixelSnapping = false;
-            Transform.BoundsPadding.SetValue(this, 25, 25);
+            Transform.BoundsPadding.SetValue(this, 5, 15);
+        }
+
+        public void SilentSetModel(TextModel model)
+        {
+            var lastModel = this._model;
+            this._model = model;
+
+            if (lastModel.TextParts != this._model.TextParts) Invalidate();
         }
 
         protected override void DrawToSurface(SKCanvas canvas)

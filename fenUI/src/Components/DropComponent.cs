@@ -55,6 +55,8 @@ namespace FenUISharp
             Parent.WindowRoot.DropTarget.dragEnter += DragEnter;
             Parent.WindowRoot.DropTarget.dragLeave += DragLeave;
 
+            if (Parent.WindowRoot.DropTarget.IsDragDropActionInProgress) DragEnter(Parent.WindowRoot.DropTarget.lastDropData);
+
             // Don't use drag over, it runs on different thread. Should use cutom drag over
         }
 

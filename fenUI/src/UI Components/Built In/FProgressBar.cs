@@ -7,7 +7,7 @@ namespace FenUISharp.Components
     public class FProgressBar : UIComponent
     {
         protected float _value = 0f;
-        public float Value { get { return _value; } set { _value = RMath.Remap(value, _minValue, _maxValue, 0, 1); OnValueChanged?.Invoke(value); Invalidate(); } }
+        public float Value { get { return _value; } set { var lastValue = _value; _value = RMath.Remap(value, _minValue, _maxValue, 0, 1); if(lastValue != _value) { OnValueChanged?.Invoke(value); Invalidate(); } } }
 
         protected float _maxValue = 1f;
         public float MaxValue { get { return _maxValue; } set { _maxValue = value; Invalidate(); } }

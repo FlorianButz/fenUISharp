@@ -11,6 +11,7 @@ namespace FenUISharp
         public enum ContentStackBehavior { Overflow, SizeToFit, SizeToFitAll, Scroll }
 
         public Vector2 StartAlignment { get; set; }
+        public Vector2 AlignInside { get; set; }
         public float Gap { get; set; } = 10;
         public float Pad { get; set; } = 15;
 
@@ -22,7 +23,7 @@ namespace FenUISharp
         public ContentStackType StackType { get; set; }
         public ContentStackBehavior StackBehavior { get; set; }
 
-        public ContentClipBehaviorProvider? ContentClipBehaviorProvider;
+        public ContentClipBehaviorProvider? ContentClipBehaviorProvider { get; set; }
 
         public Func<float, float>? SnappingProvider { get; set; } = null;
         public bool ApplySnapSeparately { get; set; } = true;
@@ -46,7 +47,7 @@ namespace FenUISharp
 
         public List<Vector2> ChildLocalPosition { get; private set; } = new();
 
-        public StackContentComponent(UIComponent parent, ContentStackType type, ContentStackBehavior behavior, Vector2? startAlign = null) : base(parent)
+        public StackContentComponent(UIComponent parent, ContentStackType type, ContentStackBehavior behavior, Vector2? startAlign = null, Vector2? alignInside = null) : base(parent)
         {
             StackType = type;
             StackBehavior = behavior;
@@ -68,6 +69,17 @@ namespace FenUISharp
             {
                 StartAlignment = startAlign.Value;
             }
+
+            if (alignInside == null)
+            {
+                AlignInside = new Vector2(0.5f, 0.5f);
+            }
+            else
+            {
+                AlignInside = alignInside.Value;
+            }
+
+
         }
 
         private int? _fadeLayerSaveCount = null;
@@ -120,7 +132,7 @@ namespace FenUISharp
                 canvas.DrawRect(Parent.Transform.Bounds, maskPaint);
             }
 
-            if(_fadeLayerSaveCount != null)
+            if (_fadeLayerSaveCount != null)
                 canvas.RestoreToCount(_fadeLayerSaveCount.Value);
             _fadeLayerSaveCount = null;
         }
@@ -192,9 +204,9 @@ namespace FenUISharp
         {
             base.ComponentUpdate();
 
-            if(scrollComponent != null)
+            if (scrollComponent != null)
                 scrollComponent.Enabled = StackBehavior == ContentStackBehavior.Scroll;
-            if(dragComponent != null)
+            if (dragComponent != null)
                 dragComponent.Enabled = StackBehavior == ContentStackBehavior.Scroll;
 
             if (!AllowScrollOverflow || ScrollSpring == null)
@@ -219,12 +231,17 @@ namespace FenUISharp
                 _scrollPosition = SnappingProvider.Invoke(_scrollPosition);
 
             if (StackBehavior == ContentStackBehavior.Scroll)
-                {
-                    if (StackType == ContentStackType.Horizontal)
-                        Parent.Transform.ChildOffset = new Vector2(_scrollDisplayPosition, 0);
-                    else if (StackType == ContentStackType.Vertical)
-                        Parent.Transform.ChildOffset = new Vector2(0, _scrollDisplayPosition);
-                }
+            {
+                if (StackType == ContentStackType.Horizontal)
+                    Parent.Transform.ChildOffset = new Vector2(_scrollDisplayPosition, 0);
+                else if (StackType == ContentStackType.Vertical)
+                    Parent.Transform.ChildOffset = new Vector2(0, _scrollDisplayPosition);
+
+                if(_contentSize < _pageSize)
+                    Parent.Transform.ChildOffset += new Vector2(
+                        RMath.Lerp(-_pageSize / 2 +_contentSize / 2, _pageSize / 2 - _contentSize / 2, AlignInside.x),
+                        RMath.Lerp(-_pageSize / 2 +_contentSize / 2, _pageSize / 2 - _contentSize / 2, AlignInside.y));
+            }
 
             if (Math.Round(_lastScrollDisplayPosition) != Math.Round(_scrollDisplayPosition))
             {
@@ -284,7 +301,8 @@ namespace FenUISharp
                 else
                     childList[c].LocalPosition = new Vector2(0, currentPos);
 
-                ChildLocalPosition.Insert(c, childList[c].LocalPositionExcludeBounds);
+                if (!(childList.Count <= c || ChildLocalPosition.Capacity <= c))
+                    ChildLocalPosition.Insert(c, childList[c].LocalPositionExcludeBounds);
 
                 currentPos += lastItemSize / 2;
                 contentSize += lastItemSize / 2;
@@ -321,7 +339,8 @@ namespace FenUISharp
                 ContentClipBehaviorProvider.Update(this, childList);
                 for (int i = 0; i < childList.Count; i++)
                 {
-                    if (childList[i].ParentIgnoreLayout) continue;
+                    if (i >= childList.Count || i >= ChildLocalPosition.Count) break;
+                    if (childList[i].ParentIgnoreLayout || childList[i] == null || ChildLocalPosition[i] == null) continue;
                     childList[i].LocalPosition = ChildLocalPosition[i];
 
                     GetClipFactors(childList[i], ContentClipBehaviorProvider.ClipStart, ContentClipBehaviorProvider.ClipLength, out float startFactor, out float endFactor);

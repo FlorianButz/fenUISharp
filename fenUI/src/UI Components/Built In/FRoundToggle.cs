@@ -6,7 +6,8 @@ namespace FenUISharp.Components
 {
     public class FRoundToggle : UIComponent
     {
-        public bool IsOn { get; set; } = false;
+        private bool _isOn = false;
+        public bool IsOn { get => _isOn; set { _isOn = value; AnimationSpring.ResetVector(new(_isOn ? 1 : 0, 0)); Invalidate(); OnStateChanged?.Invoke(IsOn); } }
 
         public ThemeColor BackgroundColor { get; set; }
         public ThemeColor EnabledFillColor { get; set; }
@@ -36,6 +37,8 @@ namespace FenUISharp.Components
 
             Transform.BoundsPadding.SetValue(this, 5, 25);
             AnimationSpring = new(2f, 1.75f);
+
+            CanInteractVisualIndicator = true;
         }
 
         float _width = HEIGHT;
@@ -90,12 +93,11 @@ namespace FenUISharp.Components
 
             if (inputCode.button == (int)MouseInputButton.Left && inputCode.state == (int)MouseInputState.Up)
             {
-                IsOn = !IsOn;
+                _isOn = !_isOn;
+                OnStateChanged?.Invoke(IsOn);
                 toggleAnimator.Restart();
 
                 _isMouseDown = false;
-
-                OnStateChanged?.Invoke(IsOn);
             }
             else if (inputCode.button == (int)MouseInputButton.Left && inputCode.state == (int)MouseInputState.Down)
                 _isMouseDown = true;

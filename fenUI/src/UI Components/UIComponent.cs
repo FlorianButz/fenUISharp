@@ -16,12 +16,16 @@ namespace FenUISharp.Components
         public bool Enabled { get; set; } = true;
         public bool Visible { get; set; } = true;
         public bool CareAboutInteractions { get; set; } = true;
+        public bool CanInteractVisualIndicator { get; set; } = false;
         public bool PixelSnapping { get; set; } = true;
 
         public ImageEffect ImageEffect { get; init; }
 
+        public SKPath? ChildClipPath { get; set; }
+
         public static UIComponent? CurrentlySelected { get; set; } = null;
 
+        protected float GRenderQuality => RenderQuality.Value * ((Transform.Parent != null) ? Transform.Parent.ParentComponent.GRenderQuality : 1);
         public MultiAccess<float> RenderQuality = new MultiAccess<float>(1);
         protected SKImageInfo? cachedImageInfo = null;
         protected SKSurface? cachedSurface = null;
@@ -163,7 +167,7 @@ namespace FenUISharp.Components
             _isRendering = true;
 
             // Render quality
-            float quality = RMath.Clamp(RenderQuality.Value * ((Transform.Parent != null) ? Transform.Parent.ParentComponent.RenderQuality.Value : 1), 0.05f, 2);
+            float quality = RMath.Clamp(GRenderQuality, 0.05f, 2);
             var bounds = Transform.FullBounds;
 
             int c = canvas.Save();
@@ -249,7 +253,15 @@ namespace FenUISharp.Components
             }
 
             Components.ForEach(x => x.OnBeforeRenderChildren(canvas));
-            Transform.OrderTransforms(Transform.Children).ForEach(c => c.ParentComponent.DrawToScreen(canvas));
+            Transform.OrderTransforms(Transform.Children).ForEach(c =>
+            {
+                int save = canvas.Save();
+                if (c.IgnoreCustomParentMatrix) canvas.ResetMatrix();
+
+                if (ChildClipPath != null) canvas.ClipPath(ChildClipPath, antialias: true);
+                c.ParentComponent.DrawToScreen(canvas);
+                canvas.RestoreToCount(save);
+            }); 
             Components.ForEach(x => x.OnAfterRenderChildren(canvas));
 
             canvas.RestoreToCount(c);
@@ -279,7 +291,7 @@ namespace FenUISharp.Components
         public void Invalidate()
         {
             if (_isRendering) { MarkInvalidated(); return; }
-            
+
             cachedSurface?.Dispose();
             cachedSurface = null; // Mark for redraw
 
@@ -317,7 +329,13 @@ namespace FenUISharp.Components
                 }
 
                 OnUpdate();
-                Components.ForEach(x => x.CmpUpdate());
+                Components.ToList().ForEach(x => x.CmpUpdate());
+            }
+
+            if (CanInteractVisualIndicator)
+            {
+                ImageEffect.Opacity = CareAboutInteractions ? 1 : 0.5f;
+                ImageEffect.Saturation = CareAboutInteractions ? 1 : 0.75f;
             }
         }
 
@@ -347,22 +365,27 @@ namespace FenUISharp.Components
             if (WindowRoot.GetUIComponents().Contains(this)) WindowRoot.RemoveUIComponent(this);
 
             new List<Component>(Components).ForEach(x => x.Dispose());
+            new List<Transform>(Transform.Children).ForEach(x => x.ParentComponent.Dispose());
 
             Transform.Dispose();
         }
 
         public UIComponent? GetTopmostComponentAtPosition(Vector2 pos)
         {
-            var searchList = WindowRoot.OrderUIComponents(WindowRoot.GetUIComponents());
-            if (!searchList.Any(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos))) return null;
-            return searchList.Last(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos));
+            var searchList = WindowRoot.OrderUIComponents(WindowRoot.GetUIComponents()).ToList();
+
+            return searchList
+                .Where(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos))
+                .LastOrDefault();
         }
 
         public UIComponent? GetTopmostComponentAtPositionWithComponent<T>(Vector2 pos)
         {
-            var searchList = WindowRoot.OrderUIComponents(WindowRoot.GetUIComponents());
-            if (!searchList.Any(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos) && x.Components.Any(x => x is T && x.Enabled))) return null;
-            return searchList.Last(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos) && x.Components.Any(x => x is T && x.Enabled));
+            var searchList = WindowRoot.OrderUIComponents(WindowRoot.GetUIComponents()).ToList();
+
+            return searchList
+                .Where(x => x.Enabled && x.CareAboutInteractions && RMath.ContainsPoint(x.InteractionBounds, pos) && x.Components.Any(x => x is T && x.Enabled))
+                .LastOrDefault();
         }
 
         public void SetColor(SKColor color)

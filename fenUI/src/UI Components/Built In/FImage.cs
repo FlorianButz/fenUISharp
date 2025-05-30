@@ -7,7 +7,7 @@ namespace FenUISharp.Components
     public class FImage : FPanel
     {
         public SKImage Image { get; set; }
-        public SKBlendMode TintBlendMode { get; set; } = SKBlendMode.Multiply;
+        public SKBlendMode TintBlendMode { get; set; } = SKBlendMode.Modulate;
 
         public ThemeColor TintColor { get; set; }
 
@@ -20,6 +20,7 @@ namespace FenUISharp.Components
             _drawBasePanel = drawBackground;
 
             TintColor = new ThemeColor(SKColors.White);
+            Transform.BoundsPadding.SetValue(this, 10, 15);
         }
 
         protected override void DrawToSurface(SKCanvas canvas)
@@ -31,6 +32,17 @@ namespace FenUISharp.Components
 
             using (var roundRect = new SKRoundRect(Transform.LocalBounds, CornerRadius))
             {
+
+                using (var dropShadow = SKImageFilter.CreateDropShadowOnly(0, 0, DropShadowRadius, DropShadowRadius, ShadowColor.Value))
+                    SkPaint.ImageFilter = dropShadow;
+
+                if (UseSquircle)
+                    canvas.DrawPath(SKSquircle.CreateSquircle(rect, CornerRadius), SkPaint);
+                else
+                    canvas.DrawRoundRect(roundRect, SkPaint);
+
+                SkPaint.ImageFilter = null;
+
                 if (UseSquircle)
                     canvas.ClipPath(SKSquircle.CreateSquircle(rect, CornerRadius), antialias: true);
                 else
@@ -73,19 +85,18 @@ namespace FenUISharp.Components
                         }
                 }
 
-                canvas.DrawImage(Image, bounds ?? Transform.LocalBounds, SkPaint);
+                using (var cFilter = SKColorFilter.CreateBlendMode(TintColor.Value, TintBlendMode))
+                    SkPaint.ColorFilter = cFilter;
 
-                SkPaint.ImageFilter = null;
-                SkPaint.Color = TintColor.Value;
-                SkPaint.BlendMode = TintBlendMode;
+                canvas.DrawImage(Image, bounds ?? Transform.LocalBounds, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), SkPaint);
 
-                roundRect.Deflate(0.5f, 0.5f);
-                rect.Inflate(-1f, -1f);
+                // roundRect.Deflate(0.5f, 0.5f);
+                // rect.Inflate(-1f, -1f);
 
-                if (UseSquircle)
-                    canvas.DrawPath(SKSquircle.CreateSquircle(rect, CornerRadius), SkPaint);
-                else
-                    canvas.DrawRoundRect(roundRect, SkPaint);
+                // if (UseSquircle)
+                //     canvas.DrawPath(SKSquircle.CreateSquircle(rect, CornerRadius), SkPaint);
+                // else
+                //     canvas.DrawRoundRect(roundRect, SkPaint);
             }
         }
     }

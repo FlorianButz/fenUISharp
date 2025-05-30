@@ -7,7 +7,7 @@ using SkiaSharp;
 
 namespace FenUISharp
 {
-    internal class ContextMenu : TransparentWindow
+    public class ContextMenu : TransparentWindow
     {
         static ContextMenu? _instance;
         float _renderSize = 0f;
@@ -30,7 +30,7 @@ namespace FenUISharp
             _isDirty = true; // Render initial frame, regardless of ui components
             _instance = this;
 
-            var panel = new FPanel(this, new Vector2(0, 0), new Vector2(0, 0), 10, WindowThemeManager.GetColor(t => t.Background));
+            var panel = new FPanel(this, new Vector2(0, 0), new Vector2(0, 0), 7.5f, WindowThemeManager.GetColor(t => t.Background));
             mainPanel = panel;
 
             panel.ShadowColor = new ThemeColor(SKColors.Black.WithAlpha(100));
@@ -115,6 +115,9 @@ namespace FenUISharp
                 position.y = globMousePos.y - WindowSize.y + _insideMargin;
             }
             else position.y -= _insideMargin;
+
+            position.x -= 20;
+            position.y -= 10;
 
             WindowPosition = position;
         }

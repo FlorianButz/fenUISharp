@@ -33,7 +33,7 @@ namespace FenUISharp.Components.Text.Layout
                 bottom = Math.Max(bottom, x.Position.Y + x.Size.Height);
             });
 
-            return SKRect.Create(0 - padding, 0 - padding, right - left + padding * 2, bottom - top + padding * 2);
+            return SKRect.Create(left - padding, top - padding, right - left + padding * 2, bottom - top + padding * 2);
         }
     }
 }

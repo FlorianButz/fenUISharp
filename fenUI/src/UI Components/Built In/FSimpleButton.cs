@@ -110,6 +110,7 @@ namespace FenUISharp.Components
             Transform.BoundsPadding.SetValue(this, 10, 100);
 
             Components.Add(animatorComponent);
+            CanInteractVisualIndicator = true;
         }
 
         void UpdateColors()
@@ -137,7 +138,7 @@ namespace FenUISharp.Components
             var measuredText = Label.Layout.GetBoundingRect(Label.Model, SKRect.Create(0, 0, maxWidth, 1000));
 
             float width = RMath.Clamp(measuredText.Width, minWidth, maxWidth);
-            float height = RMath.Clamp(measuredText.Height, 25, 100);
+            float height = RMath.Clamp(measuredText.Height, 20, 100);
 
             Label.Transform.Size = new Vector2(width, height);
             Label.Invalidate();

@@ -32,6 +32,7 @@ namespace FenUISharp
         public float Rotation { get; set; } = 0;
 
         public float InteractionPadding { get; set; } = 0;
+        public bool IgnoreCustomParentMatrix = false;
 
         public float MarginHorizontal { get; set; } = 15;
         public float MarginVertical { get; set; } = 15;

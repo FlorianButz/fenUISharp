@@ -122,8 +122,10 @@ namespace FenUISharp
             SKColorFilter? finalColorFilter = null;
 
             if (BlurRadius > 0)
-                using (var blur = SKImageFilter.CreateBlur(BlurRadius, BlurRadius))
-                    finalImageFilter = ComposeImageFilter(finalImageFilter, blur);
+            {
+                var blur = SKImageFilter.CreateBlur(BlurRadius, BlurRadius);
+                finalImageFilter = ComposeImageFilter(finalImageFilter, blur);
+            }
 
             if (finalImageFilter != null)
                 paint.ImageFilter = finalImageFilter;

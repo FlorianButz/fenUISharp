@@ -101,11 +101,14 @@ namespace FenUISharp
 
         public MultiAccess<DROPEFFECT> dropEffect { get; set; } = new MultiAccess<DROPEFFECT>(DROPEFFECT.None);
 
+        public bool IsDragDropActionInProgress { get; set; } = false;
+
         public void DragEnter([In] IntPtr pDataObj, [In] uint grfKeyState, [In] POINT pt, [In, Out] ref uint pdwEffect)
         {
             pdwEffect = (uint)dropEffect.Value; // Temporarily disallow drag drop operations.
 
             lastDropData = HandleDropAction(pDataObj);
+            IsDragDropActionInProgress = true;
             dragEnter?.Invoke(lastDropData);
         }
 
@@ -113,11 +116,14 @@ namespace FenUISharp
         {
             pdwEffect = (uint)dropEffect.Value;
 
+            IsDragDropActionInProgress = true;
             dragOver?.Invoke(lastDropData);
         }
 
         void IDropTarget.DragLeave()
         {
+            IsDragDropActionInProgress = false;
+
             dragLeave?.Invoke();
         }
 

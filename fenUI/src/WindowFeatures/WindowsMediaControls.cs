@@ -12,26 +12,43 @@ namespace FenUISharp.WinFeatures
 {
     public struct PlaybackInfo
     {
-        public bool isActiveSession = false;
+        public bool isActiveSession;
 
-        public bool? isShuffling = false;
-        public GlobalSystemMediaTransportControlsSessionPlaybackStatus? playbackState = GlobalSystemMediaTransportControlsSessionPlaybackStatus.Stopped;
-        public MediaPlaybackAutoRepeatMode? repeatMode = MediaPlaybackAutoRepeatMode.None;
-        public MediaPlaybackType? mediaType = MediaPlaybackType.Unknown;
+        public bool? isShuffling;
+        public GlobalSystemMediaTransportControlsSessionPlaybackStatus? playbackState;
+        public MediaPlaybackAutoRepeatMode? repeatMode;
+        public MediaPlaybackType? mediaType;
 
-        public string title = "";
-        public string album = "";
-        public string artist = "";
-        public string albumArtist = "";
+        public string title;
+        public string album;
+        public string artist;
+        public string albumArtist;
 
         public string? sourceAppModelId;
 
-        public double duration = 0;
-        public double position = 0;
+        public double duration;
+        public double position;
 
         public SKImage? thumbnail;
 
-        public PlaybackInfo() { }
+        public PlaybackInfo() : this(false) { }
+
+        public PlaybackInfo(bool init)
+        {
+            isActiveSession = false;
+            isShuffling = false;
+            playbackState = GlobalSystemMediaTransportControlsSessionPlaybackStatus.Stopped;
+            repeatMode = MediaPlaybackAutoRepeatMode.None;
+            mediaType = MediaPlaybackType.Unknown;
+            title = "";
+            album = "";
+            artist = "";
+            albumArtist = "";
+            sourceAppModelId = null;
+            duration = 0;
+            position = 0;
+            thumbnail = null;
+        }
     }
 
     public class WindowsMediaControls
@@ -39,8 +56,8 @@ namespace FenUISharp.WinFeatures
         static GlobalSystemMediaTransportControlsSessionManager? globSessionManager;
         static GlobalSystemMediaTransportControlsSession? currentSession;
 
-        static PlaybackInfo cachedInfo;
-        public static PlaybackInfo CachedInfo { get => cachedInfo; }
+        static PlaybackInfo cachedInfo = new PlaybackInfo();
+        public static PlaybackInfo CachedInfo => cachedInfo;
 
         public static Action? onMediaUpdated { get; set; }
         public static Action? onThumbnailUpdated { get; set; }
@@ -49,37 +66,52 @@ namespace FenUISharp.WinFeatures
         static bool continousPolling = true;
         public static bool ContinousPolling
         {
-            get { return continousPolling; }
+            get => continousPolling;
             set
             {
-                continousPolling = value;
-                if (globSessionManager != null)
+                if (globSessionManager != null && continousPolling != value)
                 {
-                    if (continousPolling)
-                        globSessionManager.SessionsChanged -= (s, e) => TrySubscribeToCurrentSession();
+                    if (value)
+                        globSessionManager.SessionsChanged -= SessionChangedHandler;
                     else
-                        globSessionManager.SessionsChanged += (s, e) => TrySubscribeToCurrentSession();
+                        globSessionManager.SessionsChanged += SessionChangedHandler;
                 }
+                continousPolling = value;
             }
         }
 
         public WindowsMediaControls()
         {
             InitWindowsMediaControls();
-            Task.Run(() => PollMediaInfoAsync());
+            PollMediaInfoThread();
         }
 
-        static async Task PollMediaInfoAsync()
+        static void PollMediaInfoThread()
         {
-            while (true)
+            var thread = new Thread(() =>
             {
-                currentSession = globSessionManager?.GetCurrentSession();
-                if (currentSession != null && ContinousPolling)
+                while (true)
                 {
-                    await UpdateInfo();
+                    if (ContinousPolling)
+                    {
+                        currentSession = globSessionManager?.GetCurrentSession();
+                        if (currentSession != null)
+                        {
+                            try
+                            {
+                                UpdateInfo().Wait();
+                            } catch(Exception e) { continue; }
+                        }
+                        Thread.Sleep(500);
+                    }
+                    else
+                    {
+                        Thread.Sleep(1000);
+                    }
                 }
-                await Task.Delay(2000);
-            }
+            });
+            thread.IsBackground = true;
+            thread.Start();
         }
 
         private static async void InitWindowsMediaControls()
@@ -88,72 +120,68 @@ namespace FenUISharp.WinFeatures
 
             if (!ContinousPolling)
             {
-                globSessionManager.SessionsChanged += (s, e) =>
-                {
-                    TrySubscribeToCurrentSession();
-                };
-
-                TrySubscribeToCurrentSession();
+                globSessionManager.SessionsChanged += SessionChangedHandler;
             }
 
+            TrySubscribeToCurrentSession();
             await UpdateInfo();
+        }
+
+        private static void SessionChangedHandler(GlobalSystemMediaTransportControlsSessionManager sender, SessionsChangedEventArgs args)
+        {
+            TrySubscribeToCurrentSession();
         }
 
         public static async Task UpdateInfo()
         {
+            currentSession ??= globSessionManager?.GetCurrentSession();
+
             if (currentSession != null)
             {
-                var info = await currentSession?.TryGetMediaPropertiesAsync();
-                var playbackInfo = currentSession?.GetPlaybackInfo();
+                var info = await currentSession.TryGetMediaPropertiesAsync();
+                var playbackInfo = currentSession.GetPlaybackInfo();
+                var timelineProperties = currentSession.GetTimelineProperties();
 
-                if (info.Title != cachedInfo.title || info.Artist != cachedInfo.artist)
-                {
-                    cachedInfo.title = info.Title;
-                    cachedInfo.artist = info.Artist;
-                    cachedInfo.album = info.AlbumTitle;
-                    cachedInfo.albumArtist = info.AlbumArtist;
+                bool infoChanged = info.Title != cachedInfo.title || info.Artist != cachedInfo.artist;
 
-                    cachedInfo.sourceAppModelId = currentSession?.SourceAppUserModelId;
-
-                    if (playbackInfo != null)
-                    {
-                        cachedInfo.isShuffling = playbackInfo.IsShuffleActive;
-                        cachedInfo.repeatMode = playbackInfo.AutoRepeatMode;
-                    }
-
-                    var thumbnail = info.Thumbnail;
-                    if (thumbnail != null)
-                    {
-                        using (IRandomAccessStreamWithContentType stream = await thumbnail.OpenReadAsync())
-                        {
-                            cachedInfo.thumbnail = ConvertThumbnailToSkImage(stream);
-                            onThumbnailUpdated?.Invoke();
-                        }
-                    }
-
-                    if (ContinousPolling) onMediaUpdated?.Invoke();
-                }
+                cachedInfo.title = info.Title;
+                cachedInfo.artist = info.Artist;
+                cachedInfo.album = info.AlbumTitle;
+                cachedInfo.albumArtist = info.AlbumArtist;
+                cachedInfo.sourceAppModelId = currentSession.SourceAppUserModelId;
 
                 if (playbackInfo != null)
                 {
-                    cachedInfo.mediaType = playbackInfo.PlaybackType;
+                    cachedInfo.isShuffling = playbackInfo.IsShuffleActive;
+                    cachedInfo.repeatMode = playbackInfo.AutoRepeatMode;
                     cachedInfo.playbackState = playbackInfo.PlaybackStatus;
+                    cachedInfo.mediaType = playbackInfo.PlaybackType;
                 }
 
-                var timelineProperties = currentSession?.GetTimelineProperties();
                 if (timelineProperties != null)
                 {
                     TimeSpan duration = timelineProperties.EndTime - timelineProperties.StartTime;
-
-                    bool isUpdatedTimeline = false;
-                    if (cachedInfo.duration != duration.TotalSeconds || cachedInfo.position != timelineProperties.Position.TotalSeconds) isUpdatedTimeline = true;
+                    bool isUpdatedTimeline = cachedInfo.duration != duration.TotalSeconds ||
+                                             cachedInfo.position != timelineProperties.Position.TotalSeconds;
                     cachedInfo.duration = duration.TotalSeconds;
                     cachedInfo.position = timelineProperties.Position.TotalSeconds;
+                    cachedInfo.isActiveSession = true;
 
                     if (isUpdatedTimeline && ContinousPolling)
                         onTimelineUpdated?.Invoke();
+                }
 
-                    cachedInfo.isActiveSession = true;
+                if (infoChanged && ContinousPolling)
+                {
+                    var thumbnail = info.Thumbnail;
+                    if (thumbnail != null)
+                    {
+                        using var stream = await thumbnail.OpenReadAsync();
+                        cachedInfo.thumbnail = ConvertThumbnailToSkImage(stream);
+                        onThumbnailUpdated?.Invoke();
+                    }
+
+                    onMediaUpdated?.Invoke();
                 }
             }
             else
@@ -162,31 +190,33 @@ namespace FenUISharp.WinFeatures
             }
         }
 
-        // Returns thumbnail as 128x128 SKImage
+        private const int THUMBNAIL_SIZE = 512;
+
         private static SKImage? ConvertThumbnailToSkImage(IRandomAccessStreamWithContentType thumbnailStream)
         {
-            using (var skStream = new SKManagedStream(thumbnailStream.AsStream()))
-            {
-                var originalBitmap = SKBitmap.Decode(skStream);
-                if (originalBitmap == null) return null;
+            using var skStream = new SKManagedStream(thumbnailStream.AsStream());
+            var originalBitmap = SKBitmap.Decode(skStream);
+            if (originalBitmap == null) return null;
 
-                var resizedBitmap = originalBitmap.Resize(new SKImageInfo(128, 128), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
-                originalBitmap.Dispose();
+            var resizedBitmap = originalBitmap.Resize(new SKImageInfo(THUMBNAIL_SIZE, THUMBNAIL_SIZE), SKFilterQuality.High);
+            originalBitmap.Dispose();
 
-                using (resizedBitmap) { return SKImage.FromBitmap(resizedBitmap); }
-                ;
-            }
+            return resizedBitmap != null ? SKImage.FromBitmap(resizedBitmap) : null;
         }
 
         static void TrySubscribeToCurrentSession()
         {
-            if (currentSession != null && globSessionManager?.GetCurrentSession() != null)
+            var newSession = globSessionManager?.GetCurrentSession();
+
+            if (newSession == currentSession) return;
+
+            if (currentSession != null)
             {
                 currentSession.MediaPropertiesChanged -= MediaPropertiesChangedHandler;
                 currentSession.PlaybackInfoChanged -= PlaybackInfoChangedHandler;
             }
 
-            currentSession = globSessionManager?.GetCurrentSession();
+            currentSession = newSession;
 
             if (currentSession != null)
             {
@@ -197,62 +227,55 @@ namespace FenUISharp.WinFeatures
 
         private static async void MediaPropertiesChangedHandler(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args)
         {
-            var mediaProps = await sender.TryGetMediaPropertiesAsync();
-            await UpdateInfo(); onMediaUpdated?.Invoke();
+            await UpdateInfo();
+            onMediaUpdated?.Invoke();
         }
 
-        private static void PlaybackInfoChangedHandler(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args)
+        private static async void PlaybackInfoChangedHandler(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args)
         {
-            var playbackInfo = sender.GetPlaybackInfo();
-            Task.Run(async () => { await UpdateInfo(); onTimelineUpdated?.Invoke(); });
+            await UpdateInfo();
+            onTimelineUpdated?.Invoke();
         }
-
-
 
         public static void TriggerMediaControl(MediaControlTrigger trigger)
         {
             Task.Run(async () =>
             {
+                if (currentSession == null) return;
+
+                var playbackInfo = currentSession.GetPlaybackInfo();
                 switch (trigger)
                 {
                     case MediaControlTrigger.Play:
-                        await currentSession?.TryPlayAsync();
+                        await currentSession.TryPlayAsync();
                         break;
                     case MediaControlTrigger.Stop:
-                        await currentSession?.TryStopAsync();
+                        await currentSession.TryStopAsync();
                         break;
                     case MediaControlTrigger.PlayPauseToggle:
-                        await currentSession?.TryTogglePlayPauseAsync();
+                        await currentSession.TryTogglePlayPauseAsync();
                         break;
                     case MediaControlTrigger.SkipNext:
-                        await currentSession?.TrySkipNextAsync();
+                        await currentSession.TrySkipNextAsync();
                         break;
                     case MediaControlTrigger.SkipPrevious:
-                        await currentSession?.TrySkipPreviousAsync();
+                        await currentSession.TrySkipPreviousAsync();
                         break;
                     case MediaControlTrigger.ToggleShuffle:
-                        var pIs = currentSession?.GetPlaybackInfo();
-                        if (pIs != null)
-                            await currentSession?.TryChangeShuffleActiveAsync(!pIs.IsShuffleActive.GetValueOrDefault());
+                        if (playbackInfo != null)
+                            await currentSession.TryChangeShuffleActiveAsync(!playbackInfo.IsShuffleActive.GetValueOrDefault());
                         break;
                     case MediaControlTrigger.SwapLoopMode:
-                        var pIl = currentSession?.GetPlaybackInfo();
-                        if (pIl != null)
-                            switch (cachedInfo.repeatMode)
+                        if (playbackInfo != null)
+                        {
+                            MediaPlaybackAutoRepeatMode nextMode = playbackInfo.AutoRepeatMode switch
                             {
-                                case MediaPlaybackAutoRepeatMode.None:
-                                    currentSession?.TryChangeAutoRepeatModeAsync(MediaPlaybackAutoRepeatMode.Track);
-                                    cachedInfo.repeatMode = MediaPlaybackAutoRepeatMode.Track;
-                                    break;
-                                case MediaPlaybackAutoRepeatMode.Track:
-                                    currentSession?.TryChangeAutoRepeatModeAsync(MediaPlaybackAutoRepeatMode.List);
-                                    cachedInfo.repeatMode = MediaPlaybackAutoRepeatMode.List;
-                                    break;
-                                case MediaPlaybackAutoRepeatMode.List:
-                                    currentSession?.TryChangeAutoRepeatModeAsync(MediaPlaybackAutoRepeatMode.None);
-                                    cachedInfo.repeatMode = MediaPlaybackAutoRepeatMode.None;
-                                    break;
-                            }
+                                MediaPlaybackAutoRepeatMode.None => MediaPlaybackAutoRepeatMode.Track,
+                                MediaPlaybackAutoRepeatMode.Track => MediaPlaybackAutoRepeatMode.List,
+                                _ => MediaPlaybackAutoRepeatMode.None
+                            };
+                            await currentSession.TryChangeAutoRepeatModeAsync(nextMode);
+                        }
                         break;
                 }
 
@@ -264,9 +287,7 @@ namespace FenUISharp.WinFeatures
     public enum MediaControlTrigger
     {
         Play, PlayPauseToggle, Stop,
-
         SkipNext, SkipPrevious,
-
         ToggleShuffle, SwapLoopMode
     }
 }

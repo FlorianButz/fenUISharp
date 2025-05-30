@@ -51,6 +51,7 @@ namespace FenUISharp.Components
             dragComponent.OnDrag += OnDrag;
             dragComponent.OnDragEnd += OnDragEnd;
             dragComponent.OnDragStart += OnDragStart;
+            CanInteractVisualIndicator = true;
         }
 
         protected override void OnUpdate()

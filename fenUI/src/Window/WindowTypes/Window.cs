@@ -5,6 +5,7 @@ using System.Text;
 using FenUISharp.Components;
 using FenUISharp.Mathematics;
 using FenUISharp.Themes;
+using FenUISharp.Views;
 using FenUISharp.WinFeatures;
 using SkiaSharp;
 
@@ -23,6 +24,8 @@ namespace FenUISharp
 
         public Vector2 WindowMinSize { get; set; } = new Vector2(100, 100);
         public Vector2 WindowMaxSize { get; set; } = new Vector2(float.MaxValue, float.MaxValue);
+
+        public ModelViewPane ViewPane { get; protected set; }
 
         protected bool _allowResize = true;
         public bool AllowResizing { get => _allowResize; set { _allowResize = value; UpdateAllowResize(_allowResize); } }
@@ -172,9 +175,21 @@ namespace FenUISharp
 
             SetTaskbarIconVisibility(!hideTaskbarIcon);
             RecalcClientBounds();
+
+            ViewPane = new(this, null, Vector2.Zero, Vector2.Zero);
+            ViewPane.Transform.StretchHorizontal = true;
+            ViewPane.Transform.StretchVertical = true;
+
+            ViewPane.Transform.MarginHorizontal = 0;
+            ViewPane.Transform.MarginVertical = 0;
         }
 
         #endregion
+
+        public void SetView(View model)
+        {
+            ViewPane.ViewModel = model;
+        }
 
         public virtual void CreateAndUpdateRenderContext(RenderContextType type)
         {
@@ -395,7 +410,7 @@ namespace FenUISharp
 
         public List<UIComponent> OrderUIComponents(List<UIComponent> uiComponents)
         {
-            return uiComponents.AsEnumerable().OrderBy(e => e.Transform.ZIndex).ThenBy(e => e.Transform.CreationIndex).ToList();
+            return uiComponents.AsEnumerable().OrderBy(e => { if (e != null) return e.Transform.ZIndex; else return -99; }).ThenBy(e => { if (e != null) return e.Transform.CreationIndex; else return -99; }).ToList();
         }
 
         private void OnWindowUpdateCall(bool isPaused = false)
@@ -663,7 +678,7 @@ namespace FenUISharp
         }
 
         // UI Thread methods
-        protected virtual void WindowMoved() { }
+        protected virtual void WindowMoved() {}
 
         protected virtual void OnEndResize()
         {
