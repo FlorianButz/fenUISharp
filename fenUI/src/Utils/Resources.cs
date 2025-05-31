@@ -57,7 +57,7 @@ namespace FenUISharp
                 Primary = new SKColor(54, 89, 174),
                 PrimaryVariant = new SKColor(38, 62, 123),
 
-                Secondary = new SKColor(245, 245, 245),
+                Secondary = new SKColor(235, 235, 235),
                 SecondaryVariant = new SKColor(200, 200, 200),
 
                 Background = new SKColor(245, 245, 245),

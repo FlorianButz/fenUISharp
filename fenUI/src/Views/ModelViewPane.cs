@@ -41,14 +41,14 @@ namespace FenUISharp.Views
         private void SetViewAnimated(View? view)
         {
             if (view == null) return;
-            if (!AnimateViewModelSwap)
-                SilentSetView(view);
 
+            _viewTransitionComponent.Duration = AnimateViewModelSwap ? 0.25f : 0f;
             _viewTransitionComponent.Inverse = false;
             _viewTransitionComponent.onComplete = () =>
             {
                 SilentSetView(view);
-                RecursiveInvalidate(); Transform.UpdateLayout();
+                RecursiveInvalidate();
+                Transform.UpdateLayout();
 
                 _viewTransitionComponent.onComplete = () => { _viewTransitionComponent.onComplete = null; RecursiveInvalidate(); Transform.UpdateLayout(); };
 

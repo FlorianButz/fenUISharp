@@ -1,14 +1,12 @@
+using FenUISharp.Components.Buttons;
 using FenUISharp.Mathematics;
 using FenUISharp.Themes;
 using SkiaSharp;
 
 namespace FenUISharp.Components
 {
-    public class FRoundToggle : UIComponent
+    public class FRoundToggle : SelectableButton
     {
-        private bool _isOn = false;
-        public bool IsOn { get => _isOn; set { _isOn = value; AnimationSpring.ResetVector(new(_isOn ? 1 : 0, 0)); Invalidate(); OnStateChanged?.Invoke(IsOn); } }
-
         public ThemeColor BackgroundColor { get; set; }
         public ThemeColor EnabledFillColor { get; set; }
         public ThemeColor KnobColor { get; set; }
@@ -21,8 +19,6 @@ namespace FenUISharp.Components
         const int HEIGHT = 25;
 
         protected AnimatorComponent toggleAnimator;
-
-        public Action<bool>? OnStateChanged { get; set; }
 
         public FRoundToggle(Window rootWindow, Vector2 position) : base(rootWindow, position, new(WIDTH, HEIGHT))
         {
@@ -39,6 +35,10 @@ namespace FenUISharp.Components
             AnimationSpring = new(2f, 1.75f);
 
             CanInteractVisualIndicator = true;
+
+            OnSelectionChangedSilent += (x) => AnimationSpring.ResetVector(new(x ? 1 : 0, 0));
+            OnSelectionChanged += (x) => toggleAnimator.Restart();
+            OnUserSelectionChanged += (x) => toggleAnimator.Restart();
         }
 
         float _width = HEIGHT;
@@ -48,6 +48,7 @@ namespace FenUISharp.Components
 
         float _animTime = 0;
         float _lastAnimTime = 0;
+
         void AnimatorValueUpdate(float t)
         {
             UpdateColors();
@@ -58,7 +59,7 @@ namespace FenUISharp.Components
         {
             base.OnUpdate();
 
-            float uT = IsOn ? 1 : 0;
+            float uT = IsSelected ? 1 : 0;
 
             var t = AnimationSpring.Update((float)WindowRoot.DeltaTime, new(uT, 0));
             _animTime = (float)(Math.Round(t.x * 100) / 100);
@@ -76,14 +77,14 @@ namespace FenUISharp.Components
             if (toggleAnimator.IsRunning)
             {
                 float t = toggleAnimator.Time;
-                if (!IsOn) t = 1 - t;
+                if (!IsSelected) t = 1 - t;
                 t = Math.Clamp(t, 0, 1);
 
                 currentBackground = RMath.Lerp(BackgroundColor.Value, EnabledFillColor.Value, t);
             }
             else
             {
-                currentBackground = RMath.Lerp(BackgroundColor.Value, EnabledFillColor.Value, IsOn ? 1 : 0);
+                currentBackground = RMath.Lerp(BackgroundColor.Value, EnabledFillColor.Value, IsSelected ? 1 : 0);
             }
         }
 
@@ -92,13 +93,7 @@ namespace FenUISharp.Components
             base.MouseAction(inputCode);
 
             if (inputCode.button == (int)MouseInputButton.Left && inputCode.state == (int)MouseInputState.Up)
-            {
-                _isOn = !_isOn;
-                OnStateChanged?.Invoke(IsOn);
-                toggleAnimator.Restart();
-
                 _isMouseDown = false;
-            }
             else if (inputCode.button == (int)MouseInputButton.Left && inputCode.state == (int)MouseInputState.Down)
                 _isMouseDown = true;
         }

@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using FenUISharp.Components;
+using FenUISharp.Components.Buttons;
 using FenUISharp.Components.Text;
 using FenUISharp.Components.Text.Layout;
 using FenUISharp.Components.Text.Model;
@@ -164,6 +165,22 @@ namespace FenUISharp
             }
 
             {
+                FText title = new(window, Vector2.Zero, new Vector2(200, 75), TextModelFactory.CreateBasic("Sliders", 20, bold: true));
+                title.Transform.SetParent(panel.Transform);
+
+                FPanel subpanel = new(window, Vector2.Zero, new(500, 500), 10, window.WindowThemeManager.GetColor(t => t.Background));
+                subpanel.Transform.SetParent(panel.Transform);
+
+                subpanel.BorderSize = 1;
+                subpanel.BorderColor = window.WindowThemeManager.GetColor(t => t.Surface);
+
+                StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Horizontal, StackContentComponent.ContentStackBehavior.SizeToFitAll);
+
+                FSlider slider1 = new(window, Vector2.Zero, 200);
+                slider1.Transform.SetParent(subpanel.Transform);
+            }
+
+            {
                 FText title = new(window, Vector2.Zero, new Vector2(200, 75), TextModelFactory.CreateBasic("Button Types", 20, bold: true));
                 title.Transform.SetParent(panel.Transform);
 
@@ -195,6 +212,92 @@ namespace FenUISharp
 
                 FRoundToggle toggle1 = new(window, Vector2.Zero);
                 toggle1.Transform.SetParent(subpanel.Transform);
+            }
+
+            {
+                FText title = new(window, Vector2.Zero, new Vector2(200, 75), TextModelFactory.CreateBasic("Button Groups", 20, bold: true));
+                title.Transform.SetParent(panel.Transform);
+
+                {
+                    FPanel subpanel = new(window, Vector2.Zero, new(500, 500), 10, window.WindowThemeManager.GetColor(t => t.Background));
+                    subpanel.Transform.SetParent(panel.Transform);
+
+                    subpanel.BorderSize = 1;
+                    subpanel.BorderColor = window.WindowThemeManager.GetColor(t => t.Surface);
+
+                    StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Horizontal, StackContentComponent.ContentStackBehavior.SizeToFitAll);
+
+                    FRoundToggle toggle1 = new(window, Vector2.Zero);
+                    toggle1.Transform.SetParent(subpanel.Transform);
+
+                    FRoundToggle toggle2 = new(window, Vector2.Zero);
+                    toggle2.Transform.SetParent(subpanel.Transform);
+
+                    FRoundToggle toggle3 = new(window, Vector2.Zero);
+                    toggle3.Transform.SetParent(subpanel.Transform);
+
+                    FButtonGroup btnGroup = new();
+                    btnGroup.Add(toggle1);
+                    btnGroup.Add(toggle2);
+                    btnGroup.Add(toggle3);
+
+                    btnGroup.AllowMultiSelect = false;
+                    btnGroup.AlwaysMustSelectOne = true;
+                }
+
+                {
+                    FPanel subpanel = new(window, Vector2.Zero, new(500, 500), 10, window.WindowThemeManager.GetColor(t => t.Background));
+                    subpanel.Transform.SetParent(panel.Transform);
+
+                    subpanel.BorderSize = 1;
+                    subpanel.BorderColor = window.WindowThemeManager.GetColor(t => t.Surface);
+
+                    StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Horizontal, StackContentComponent.ContentStackBehavior.SizeToFitAll);
+
+                    FRoundToggle toggle1 = new(window, Vector2.Zero);
+                    toggle1.Transform.SetParent(subpanel.Transform);
+
+                    FRoundToggle toggle2 = new(window, Vector2.Zero);
+                    toggle2.Transform.SetParent(subpanel.Transform);
+
+                    FRoundToggle toggle3 = new(window, Vector2.Zero);
+                    toggle3.Transform.SetParent(subpanel.Transform);
+
+                    FButtonGroup btnGroup = new();
+                    btnGroup.Add(toggle1);
+                    btnGroup.Add(toggle2);
+                    btnGroup.Add(toggle3);
+
+                    btnGroup.AllowMultiSelect = true;
+                    btnGroup.AlwaysMustSelectOne = true;
+                }
+                
+                {
+                    FPanel subpanel = new(window, Vector2.Zero, new(500, 500), 10, window.WindowThemeManager.GetColor(t => t.Background));
+                    subpanel.Transform.SetParent(panel.Transform);
+
+                    subpanel.BorderSize = 1;
+                    subpanel.BorderColor = window.WindowThemeManager.GetColor(t => t.Surface);
+
+                    StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Horizontal, StackContentComponent.ContentStackBehavior.SizeToFitAll);
+
+                    FRoundToggle toggle1 = new(window, Vector2.Zero);
+                    toggle1.Transform.SetParent(subpanel.Transform);
+
+                    FRoundToggle toggle2 = new(window, Vector2.Zero);
+                    toggle2.Transform.SetParent(subpanel.Transform);
+
+                    FRoundToggle toggle3 = new(window, Vector2.Zero);
+                    toggle3.Transform.SetParent(subpanel.Transform);
+
+                    FButtonGroup btnGroup = new();
+                    btnGroup.Add(toggle1);
+                    btnGroup.Add(toggle2);
+                    btnGroup.Add(toggle3);
+
+                    btnGroup.AllowMultiSelect = false;
+                    btnGroup.AlwaysMustSelectOne = false;
+                }
             }
 
             {

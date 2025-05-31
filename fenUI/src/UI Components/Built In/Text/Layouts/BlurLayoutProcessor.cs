@@ -113,7 +113,7 @@ namespace FenUISharp.Components.Text.Layout
                         oldLayout[i].Style.Opacity = RMath.Clamp(easedTimeNonInversed * 2, 0, 1);
                     }
 
-                    if (i < newLayout.Count && animatorIn.IsRunning)
+                    if (i < newLayout.Count && newLayout[i] != null && animatorIn.IsRunning)
                     {
                         var easedTime = easingOut(1 - charProgress);
                         var easedTimeNonInversed = easingIn(charProgress);

@@ -30,6 +30,10 @@ namespace FenUISharp.Themes
         public SKColor Error { get; set; }
         public SKColor Success { get; set; }
         public SKColor Warning { get; set; }
-    }
 
+        public Theme Clone()
+        {
+            return (Theme)this.MemberwiseClone();
+        }
+    }
 }

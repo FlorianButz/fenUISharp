@@ -160,7 +160,7 @@ namespace FenUISharp
                 }
 
                 _context.UnmapSubresource(_stagingTexture, 0);
-                _context.ClearRenderTargetView(_renderTargetView, new SharpDX.Mathematics.Interop.RawColor4(0, 0, 0, 0));  // Clear with transparency
+                _context.ClearRenderTargetView(_renderTargetView, new SharpDX.Mathematics.Interop.RawColor4(1, 1, 1, 0));  // Clear with transparency
 
                 // Copy from staging texture to the back buffer
                 _context.CopyResource(_stagingTexture, _backBuffer);

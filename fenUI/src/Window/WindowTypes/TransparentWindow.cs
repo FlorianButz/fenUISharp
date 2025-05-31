@@ -12,7 +12,7 @@ namespace FenUISharp
             string title, string className, RenderContextType type, Vector2? windowSize, Vector2? windowPosition) :
             base(title, className, type, windowSize, windowPosition, true, true)
         {
-            if (type == RenderContextType.DirectX) throw new ArgumentException("DirectX is currently not supported with transparent windows.");
+            if (type == RenderContextType.DirectX) throw new ArgumentException("DirectX is not supported with transparent windows.");
 
             AllowResizing = false;
         }

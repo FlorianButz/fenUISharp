@@ -7,20 +7,24 @@ using SkiaSharp;
 
 namespace FenUISharp
 {
-    public class ContextMenu : TransparentWindow
+    public class ContextMenu : NativeWindow
     {
         static ContextMenu? _instance;
         float _renderSize = 0f;
-        const float _insideMargin = 10f;
+        const float _insideMargin = 1f;
 
         private Vector2 instantiatedPosition;
         private FPanel mainPanel;
         private StackContentComponent? layout;
 
-        public ContextMenu(Vector2 size) : base("ContextMenu", "fenUICtxMenu", RenderContextType.Software, size + _insideMargin * 2, null)
+        public ContextMenu(Vector2 size) : base("ContextMenu", "fenUICtxMenu", RenderContextType.Software, size + _insideMargin * 2, null, true, true, false)
         {
-            AllowResizing = false;
+            AllowResizing = true;
             ShowInTaskbar = false;
+
+            UseMica = true;
+            IsMicaMainWindow = true;
+            SystemDarkMode = true;
 
             this.OnFocusLost += () =>
             {
@@ -30,19 +34,19 @@ namespace FenUISharp
             _isDirty = true; // Render initial frame, regardless of ui components
             _instance = this;
 
-            var panel = new FPanel(this, new Vector2(0, 0), new Vector2(0, 0), 7.5f, WindowThemeManager.GetColor(t => t.Background));
+            var panel = new FPanel(this, new Vector2(0, -2), new Vector2(0, 0), 5f, new(SKColors.Transparent));
             mainPanel = panel;
 
-            panel.ShadowColor = new ThemeColor(SKColors.Black.WithAlpha(100));
-            panel.DropShadowRadius = 5;
+            // panel.ShadowColor = new ThemeColor(SKColors.Black.WithAlpha(100));
+            panel.DropShadowRadius = 0;
 
             panel.Transform.StretchHorizontal = true;
             panel.Transform.StretchVertical = true;
             panel.Transform.MarginHorizontal = _insideMargin;
             panel.Transform.MarginVertical = _insideMargin;
 
-            panel.BorderSize = 1f;
-            panel.BorderColor = new ThemeColor(new SKColor(150, 150, 150, 100));
+            panel.BorderSize = 0f;
+            // panel.BorderColor = new ThemeColor(new SKColor(150, 150, 150, 100));
 
             AnimatorComponent anim = new AnimatorComponent(panel, Easing.EaseOutBack);
             anim.Duration = 0.3f;
@@ -116,10 +120,10 @@ namespace FenUISharp
             }
             else position.y -= _insideMargin;
 
-            position.x -= 20;
-            position.y -= 10;
+            position.x -= 10;
+            // position.y -= 5;
 
-            WindowPosition = position;
+            this.SetWindowPosition(position);
         }
 
         public void CalcContextSize()
@@ -129,11 +133,11 @@ namespace FenUISharp
 
             const float padding = 5f;
 
-            if(layout != null) layout.Dispose();
+            if (layout != null) layout.Dispose();
 
             UiComponents.ForEach(x =>
             {
-                if(x.Transform.Parent != mainPanel.Transform) return;
+                if (x.Transform.Parent != mainPanel.Transform) return;
                 if (!x.Transform.StretchHorizontal)
                     size.x = Math.Max(size.x, x.Transform.LocalBounds.Width);
                 if (!x.Transform.StretchVertical)
@@ -147,6 +151,9 @@ namespace FenUISharp
             size.y = Math.Clamp(size.y, 0, monitorBounds.Height - (monitorBounds.bottom - GlobalHooks.MousePosition.y)) - 1 - padding;
             size += padding * 2;
 
+            size += 15;
+            size.y += 2;
+
             SetWindowSize(size);
             // Console.WriteLine(size);
 
@@ -155,6 +162,9 @@ namespace FenUISharp
             layout.Gap = padding;
 
             SetMenuPosition();
+
+            WindowMinSize = size;
+            WindowMaxSize = size;
         }
 
         protected RECT GetCurrentMonitorBounds()

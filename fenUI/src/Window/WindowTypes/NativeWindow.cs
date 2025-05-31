@@ -45,7 +45,7 @@ namespace FenUISharp
                 IntPtr.Zero,
                 wndClass.hInstance,
                 IntPtr.Zero);
-
+            
             UpdateMica();
 
             return hWnd;

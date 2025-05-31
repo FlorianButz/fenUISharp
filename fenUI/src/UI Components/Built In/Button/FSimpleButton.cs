@@ -5,9 +5,9 @@ using FenUISharp.Mathematics;
 using FenUISharp.Themes;
 using SkiaSharp;
 
-namespace FenUISharp.Components
+namespace FenUISharp.Components.Buttons
 {
-    public class FSimpleButton : UIComponent
+    public class FSimpleButton : Button
     {
         public FText Label { get; protected set; }
 
@@ -58,10 +58,9 @@ namespace FenUISharp.Components
         float maxWidth = 0;
         float cornerRadius = 6f;
 
-        public Action? OnClick { get; set; }
 
         public FSimpleButton(Window root, Vector2 position, string text, Action? onClick = null, float minWidth = 25, float maxWidth = 175,
-            ThemeColor? color = null, ThemeColor? textColor = null) : base(root, position, new Vector2(0, 0))
+            ThemeColor? color = null, ThemeColor? textColor = null) : base(root, position, new Vector2(0, 0), onClick)
         {
             this.OnClick = onClick;
             Label = new FText(root, new Vector2(0, 0), new Vector2(0, 0), TextModelFactory.CreateBasic(text));
@@ -173,8 +172,6 @@ namespace FenUISharp.Components
             {
                 animatorComponent.Inverse = false;
                 animatorComponent.Start();
-
-                OnClick?.Invoke();
             }
         }
 
