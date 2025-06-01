@@ -1,98 +1,54 @@
-using System.ComponentModel;
 using FenUISharp.Mathematics;
+using FenUISharp.Themes;
 using SkiaSharp;
 
 namespace FenUISharp.Components
 {
     public class FBlurPane : FPanel
     {
-        private SKPaint dropShadowPaint;
-        private SKPaint blurPaint;
+        public bool HighQualityBlur { get; set; } = true;
 
-        private float _blurAmount;
-        public float BlurAmount { get => _blurAmount; set => _blurAmount = value; }
-
-        public FBlurPane(Window root, Vector2 position, Vector2 size, float cornerRadius, float blurAmount)
-            : base(root, position, size, cornerRadius, null)
+        public FBlurPane(Window root, Vector2 position, Vector2 size, float cornerRadius = 10, ThemeColor? backgroundColor = null) : base(root, position, size, cornerRadius, backgroundColor ?? new(SKColors.Transparent))
         {
-            _blurAmount = blurAmount;
-            Transform.BoundsPadding.SetValue(this, 60, 35);
-            this._drawBasePanel = false;
-
-            using (var blur = SKImageFilter.CreateBlur(1f, 1f))
-            {
-                {
-                    blurPaint = SkPaint.Clone();
-
-                    float[] alphaMatrix = new float[]
-                    {
-                        1, 0, 0, 0, 0,  // Red
-                        0, 1, 0, 0, 0,  // Green
-                        0, 0, 1, 0, 0,  // Blue
-                        0, 0, 0, 100, 0  // Alpha
-                    };
-
-                    using (var alphaOne = SKColorFilter.CreateColorMatrix(alphaMatrix))
-                        blurPaint.ImageFilter = SKImageFilter.CreateCompose(SKImageFilter.CreateColorFilter(alphaOne), blur);
-                }
-            }
-
-            using (var drop = SKImageFilter.CreateDropShadowOnly(2, 2, 15, 15, SKColors.Black.WithAlpha(165)))
-            {
-                dropShadowPaint = SkPaint.Clone();
-                dropShadowPaint.ImageFilter = drop;
-            }
-        }
-
-        protected override void ComponentDestroy()
-        {
-            base.ComponentDestroy();
-
-            blurPaint.Dispose();
-            dropShadowPaint.Dispose();
+            this.BorderColor = root.WindowThemeManager.GetColor(t => t.OnSurface.WithAlpha(50));
+            this.BorderSize = 1;
         }
 
         protected override void OnUpdate()
         {
             base.OnUpdate();
 
-            GloballyInvalidated = false;
-            if (WindowRoot.IsNextFrameRendering())
-            {
-                Invalidate();
-            }
+            if (!WindowRoot.IsNextFrameRendering()) return;
+            Invalidate();
         }
 
         protected override void DrawToSurface(SKCanvas canvas)
         {
             base.DrawToSurface(canvas);
 
-            var bounds = Transform.FullBounds;
-            var pad = 60;
-            var rect = new SKRoundRect(Transform.LocalBounds, CornerRadius);
-            var captureArea = new SKRect(bounds.Left - pad, bounds.Top - pad, bounds.Right + pad, bounds.Bottom + pad);
-
-            float scaleFactor = RMath.Clamp(1 / _blurAmount, 0.05f, 1f);
-
-            using (var capture = WindowRoot.RenderContext.CaptureWindowRegion(captureArea, scaleFactor))
+            using (var windowArea = WindowRoot.RenderContext.CaptureWindowRegion(Transform.Bounds, HighQualityBlur ? 0.15f : 0.02f))
+            using (var panelPath = GetPanelPath())
             {
-                // Save for clipping
-                int c = canvas.Save();
+                if (windowArea == null) return;
 
-                if (UseSquircle)
-                    canvas.ClipPath(SKSquircle.CreateSquircle(Transform.LocalBounds, CornerRadius), antialias: true);
-                else
-                    canvas.ClipRoundRect(rect, antialias: true);
+                using (var clearPaint = SkPaint.Clone())
+                {
+                    clearPaint.BlendMode = SKBlendMode.Src;
+                    clearPaint.Color = new(1, 0, 0, 1);
+                    WindowRoot.RenderContext.Surface?.Canvas?.DrawPath(panelPath, clearPaint);
+                }
 
-                canvas.Translate(-pad + Transform.BoundsPadding.Value * 2, -pad + Transform.BoundsPadding.Value * 2);
-                canvas.Scale(1 / scaleFactor);
-                canvas.DrawImage(capture, 0, 0, new SKSamplingOptions(SKFilterMode.Linear), blurPaint);
-                canvas.Scale(scaleFactor);
-                canvas.Translate(pad - Transform.BoundsPadding.Value * 2, pad - Transform.BoundsPadding.Value * 2);
+                var paint = SkPaint.Clone();
+                paint.Color = SKColors.White;
 
-                canvas.RestoreToCount(c);
+                using(var blur = SKImageFilter.CreateBlur(HighQualityBlur ? 15 : 5, HighQualityBlur ? 15 : 5))
+                    paint.ImageFilter = blur;
+
+                canvas.ClipPath(panelPath, antialias: true);
+                canvas.DrawImage(windowArea, Transform.LocalBounds, sampling: new(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+
+                paint.Dispose();
             }
-            rect.Dispose();
         }
     }
 }

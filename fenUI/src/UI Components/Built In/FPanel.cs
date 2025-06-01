@@ -32,17 +32,13 @@ namespace FenUISharp.Components
         protected override void DrawToSurface(SKCanvas canvas)
         {
             SkPaint.Color = PanelColor.Value;
+            var panelPath = GetPanelPath();
 
             using (var dropShadow = SKImageFilter.CreateDropShadow(0, 2, DropShadowRadius, DropShadowRadius, ShadowColor.Value))
                 SkPaint.ImageFilter = dropShadow;
-                
+
             if (_drawBasePanel)
-            {
-                if (UseSquircle)
-                    canvas.DrawPath(SKSquircle.CreateSquircle(Transform.LocalBounds, CornerRadius), SkPaint);
-                else
-                    canvas.DrawRoundRect(Transform.LocalBounds, CornerRadius, CornerRadius, SkPaint);
-            }
+                canvas.DrawPath(panelPath, SkPaint);
 
             using (var strokePaint = SkPaint.Clone())
             {
@@ -54,12 +50,22 @@ namespace FenUISharp.Components
                 strokePaint.StrokeJoin = SKStrokeJoin.Round;
 
                 var strokeRect = SKRect.Create((float)Math.Round(Transform.LocalBounds.Left) + 0.5f, (float)Math.Round(Transform.LocalBounds.Top) + 0.5f, Transform.LocalBounds.Width, Transform.LocalBounds.Height);
-
-                if (UseSquircle)
-                    canvas.DrawPath(SKSquircle.CreateSquircle(strokeRect, CornerRadius), strokePaint);
-                else
-                    canvas.DrawRoundRect(strokeRect, CornerRadius, CornerRadius, strokePaint);
+                canvas.DrawPath(panelPath, strokePaint);
             }
+
+            panelPath.Dispose();
+        }
+
+        public SKPath GetPanelPath()
+        {
+            SKPath path = new();
+
+            if (UseSquircle)
+                path = SKSquircle.CreateSquircle(Transform.LocalBounds, CornerRadius);
+            else
+                path.AddRoundRect(Transform.LocalBounds, CornerRadius, CornerRadius);
+
+            return path;
         }
     }
 }
