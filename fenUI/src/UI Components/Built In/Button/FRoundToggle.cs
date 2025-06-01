@@ -39,6 +39,8 @@ namespace FenUISharp.Components
             OnSelectionChangedSilent += (x) => AnimationSpring.ResetVector(new(x ? 1 : 0, 0));
             OnSelectionChanged += (x) => toggleAnimator.Restart();
             OnUserSelectionChanged += (x) => toggleAnimator.Restart();
+
+            PixelSnapping = false;
         }
 
         float _width = HEIGHT;

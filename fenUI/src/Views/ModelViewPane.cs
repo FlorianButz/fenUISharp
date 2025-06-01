@@ -16,6 +16,9 @@ namespace FenUISharp.Views
 
         private AnimatorComponent _viewTransitionComponent;
 
+        public float AnimOutDuration { get; set; } = 0.25f;
+        public float AnimInDuration { get; set; } = 0.25f;
+
         public ModelViewPane(Window rootWindow, View? model, Vector2 position, Vector2 size) : base(rootWindow, position, size)
         {
             this._model = model;
@@ -42,7 +45,7 @@ namespace FenUISharp.Views
         {
             if (view == null) return;
 
-            _viewTransitionComponent.Duration = AnimateViewModelSwap ? 0.25f : 0f;
+            _viewTransitionComponent.Duration = AnimateViewModelSwap ? AnimOutDuration : 0f;
             _viewTransitionComponent.Inverse = false;
             _viewTransitionComponent.onComplete = () =>
             {
@@ -50,7 +53,13 @@ namespace FenUISharp.Views
                 RecursiveInvalidate();
                 Transform.UpdateLayout();
 
-                _viewTransitionComponent.onComplete = () => { _viewTransitionComponent.onComplete = null; RecursiveInvalidate(); Transform.UpdateLayout(); };
+                _viewTransitionComponent.onComplete = () =>
+                {
+                    _viewTransitionComponent.Duration = AnimateViewModelSwap ? AnimInDuration : 0f;
+                    _viewTransitionComponent.onComplete = null;
+                    RecursiveInvalidate();
+                    Transform.UpdateLayout();
+                };
 
                 _viewTransitionComponent.Inverse = true;
                 _viewTransitionComponent.Restart();

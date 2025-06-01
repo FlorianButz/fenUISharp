@@ -80,6 +80,8 @@ namespace FenUISharp
             Transform.BoundsPadding.SetValue(this, 50, 50);
 
             KnobPositionSpring = new(5f, 1.4f);
+
+            PixelSnapping = false;
         }
 
         public void SilentSetValue(float value)

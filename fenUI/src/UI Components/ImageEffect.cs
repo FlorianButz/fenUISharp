@@ -28,6 +28,13 @@ namespace FenUISharp
             set { _opacity = value; }
         }
 
+        public float ThisOpacity
+        {
+            get => _opacity;
+            set { _opacity = value; }
+        }
+
+
         private float _brightness = 1f;
         public float Brightness
         {
@@ -78,11 +85,11 @@ namespace FenUISharp
             SKImageFilter? finalImageFilter = null;
             SKColorFilter? finalColorFilter = null;
 
-            if (Opacity != 1)
-            {
-                var opacityColor = OpacityColor(Opacity);
-                finalColorFilter = ComposeColorFilter(finalColorFilter, opacityColor);
-            }
+            // if (Opacity != 1)
+            // {
+            //     var opacityColor = OpacityColor(Opacity);
+            //     finalColorFilter = ComposeColorFilter(finalColorFilter, opacityColor);
+            // }
 
             if (Brightness != 1)
             {
@@ -149,16 +156,16 @@ namespace FenUISharp
             else return SKColorFilter.CreateCompose(inner, outer);
         }
 
-        static SKColorFilter OpacityColor(float value)
-        {
-            return SKColorFilter.CreateColorMatrix(new float[]
-            {
-                1, 0, 0, 0, 0,
-                0, 1, 0, 0, 0,
-                0, 0, 1, 0, 0,
-                0, 0, 0, value, 0
-            });
-        }
+        // static SKColorFilter OpacityColor(float value)
+        // {
+        //     return SKColorFilter.CreateColorMatrix(new float[]
+        //     {
+        //         1, 0, 0, 0, 0,
+        //         0, 1, 0, 0, 0,
+        //         0, 0, 1, 0, 0,
+        //         0, 0, 0, value, 0
+        //     });
+        // }
 
         static SKColorFilter ContrastFilter(float value)
         {

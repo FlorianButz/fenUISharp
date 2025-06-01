@@ -39,25 +39,34 @@
         {
             xp = resetValue;
             yd = resetValue;
-            y  = resetValue;
+            y = resetValue;
         }
 
         public void SetValues(float speed = 2f, float springy = 0.4f)
         {
             springy = 1f / springy;
-            var r = 0.1f;            
-            
+            var r = 0.1f;
+
             k1 = (float)(springy / (Math.PI * speed));
             k2 = (float)(1 / ((2 * Math.PI * speed) * (2 * Math.PI * speed)));
             k3 = (float)(r * springy / (2 * Math.PI * speed));
         }
 
-        public Vector2 Update(float T, Vector2 x)
+        public Vector2 Update(float deltaTime, Vector2 x)
         {
-            T = 0.0165f;
-            float k2_stable = (float)Math.Max(k2, Math.Max(T * T / 2 + T * k1 / 2, T * k1));
-            y = y + new Vector2(T, T) * yd;
-            yd = yd + T * (x + new Vector2(k3, k3) - y - (k1 * yd)) / k2_stable;
+            const float fixedDelta = 0.016f; // Stable timestep
+            const int maxSteps = 5; // Avoid locking up on huge spikes
+            float t = 0f;
+
+            int steps = (int)MathF.Min(MathF.Ceiling(deltaTime / fixedDelta), maxSteps);
+            float stepSize = deltaTime / steps;
+
+            for (int i = 0; i < steps; i++)
+            {
+                float k2_stable = MathF.Max(k2, MathF.Max(stepSize * stepSize / 2 + stepSize * k1 / 2, stepSize * k1));
+                y += yd * stepSize;
+                yd += stepSize * (x + new Vector2(k3, k3) - y - (k1 * yd)) / k2_stable;
+            }
 
             y.x = RMath.LimitDecimalPoints(y.x, 1);
             y.y = RMath.LimitDecimalPoints(y.y, 1);

@@ -215,6 +215,8 @@ namespace FenUISharp.Components
                 }
             }
 
+            int opacityLayerRestore = 0;
+
             if (cachedSurface != null)
             {
                 // Draw the cached surface onto the main canvas
@@ -234,11 +236,15 @@ namespace FenUISharp.Components
 
                     using (var effectPaint = ImageEffect.ApplyImageEffect(new SKPaint() { Color = SKColors.White, IsAntialias = true }))
                     {
+                        // Applying a faster opacity effect. Avoid using color matrix to speed up render time
+                        if (ImageEffect.ThisOpacity != 1)
+                            opacityLayerRestore = canvas.SaveLayer(new() { Color = new(255, 255, 255, (byte)(Math.Clamp(ImageEffect.Opacity * 255, 0, 255))) });
+
+                        // Drawing the cached image
                         canvas.DrawImage(snapshot, 0, 0, WindowRoot.RenderContext.SamplingOptions, effectPaint);
                     }
 
                     Components.ForEach(x => x.OnAfterRenderCache(cachedSurface.Canvas));
-
 
                     // Always move back to 0;0. Translate always happen, no matter if rotation matrix is set or not.
                     if (PixelSnapping)
@@ -263,6 +269,9 @@ namespace FenUISharp.Components
                 canvas.RestoreToCount(save);
             }); 
             Components.ForEach(x => x.OnAfterRenderChildren(canvas));
+
+            if (ImageEffect.ThisOpacity != 1)
+                canvas.RestoreToCount(opacityLayerRestore);
 
             canvas.RestoreToCount(c);
             _isRendering = false;
