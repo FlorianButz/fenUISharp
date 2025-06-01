@@ -123,9 +123,6 @@ namespace FenUISharp
         private Thread _renderThread;
         private RenderContextType _startWithType;
 
-        private MouseInputCode? mouseInputActionFlag = null;
-        private MouseInputCode? trayMouseActionFlag = null;
-
         #endregion
 
         #region Constructors
@@ -228,7 +225,7 @@ namespace FenUISharp
         {
             // Setup OLE DragDrop
             // Keep a reference to prevent garbage collection
-            DropTarget = new DragDropHandler();
+            DropTarget = new DragDropHandler(this);
 
             // Get COM interface pointer for the drop target
             IntPtr pDropTarget = Marshal.GetComInterfaceForObject(
@@ -246,7 +243,6 @@ namespace FenUISharp
             Marshal.Release(pDropTarget);
 
             // Start render loop and windows proc
-
             _isRunning = true;
             _renderThread = new Thread(() =>
             {
@@ -457,17 +453,6 @@ namespace FenUISharp
                 _isRunning = false;
                 OnWindowClose?.Invoke();
                 Dispose();
-            }
-
-            if (mouseInputActionFlag != null)
-            {
-                MouseAction?.Invoke(mouseInputActionFlag.Value);
-                mouseInputActionFlag = null;
-            }
-            if (trayMouseActionFlag != null)
-            {
-                TrayMouseAction?.Invoke(trayMouseActionFlag.Value);
-                trayMouseActionFlag = null;
             }
         }
 
@@ -806,9 +791,11 @@ namespace FenUISharp
 
                 case (int)WindowMessages.WM_USER + 1:
                     if ((int)lParam == (int)WindowMessages.WM_RBUTTONUP)
-                        trayMouseActionFlag = new MouseInputCode(1, 1);
+                        Dispatcher.Invoke(() => TrayMouseAction?.Invoke(new MouseInputCode(1, 1)));
+
+
                     if ((int)lParam == (int)WindowMessages.WM_LBUTTONUP)
-                        trayMouseActionFlag = new MouseInputCode(0, 1);
+                        Dispatcher.Invoke(() => TrayMouseAction?.Invoke(new MouseInputCode(0, 1)));
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_INITMENUPOPUP:
@@ -856,22 +843,22 @@ namespace FenUISharp
                 case (int)WindowMessages.WM_KEYDOWN:
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_LBUTTONDOWN:
-                    mouseInputActionFlag = new MouseInputCode(0, 0);
+                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(0, 0)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_RBUTTONDOWN:
-                    mouseInputActionFlag = new MouseInputCode(1, 0);
+                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(1, 0)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_MBUTTONDOWN:
-                    mouseInputActionFlag = new MouseInputCode(2, 0);
+                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(2, 0)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_LBUTTONUP:
-                    mouseInputActionFlag = new MouseInputCode(0, 1);
+                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(0, 1)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_RBUTTONUP:
-                    mouseInputActionFlag = new MouseInputCode(1, 1);
+                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(1, 1)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_MBUTTONUP:
-                    mouseInputActionFlag = new MouseInputCode(2, 1);
+                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(2, 1)));
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_SETCURSOR:

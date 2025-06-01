@@ -45,7 +45,7 @@ namespace FenUISharp
             dispatcherCalls.Add(new(action, _currentTick, ticks));
         }
 
-        public void InvokeLater(Action action, int seconds)
+        public void InvokeLater(Action action, float seconds)
         {
             dispatcherCalls.Add(new(action, seconds));
         }
@@ -56,7 +56,7 @@ namespace FenUISharp
         public Action action;
         public DateTime timeAtCall;
 
-        public int sLater = 0;
+        public float sLater = 0;
 
         public ulong tickAtCall = 0;
         public ulong ticksLater = 0;
@@ -70,7 +70,7 @@ namespace FenUISharp
             this.ticksLater = ticksLater;
         }
 
-        public DispatcherCall(Action action, int sLater)
+        public DispatcherCall(Action action, float sLater)
         {
             this.action = action;
             this.timeAtCall = DateTime.Now;

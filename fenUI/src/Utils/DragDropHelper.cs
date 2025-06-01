@@ -92,6 +92,9 @@ namespace FenUISharp
     [ClassInterface(ClassInterfaceType.None)]
     public class DragDropHandler : IDropTarget
     {
+        public DragDropHandler(Window root) => WindowRoot = root;
+        private Window WindowRoot { get; set; }
+
         public Action<FDropData?>? dragEnter { get; set; }
         public Action<FDropData?>? dragOver { get; set; }
         public Action? dragLeave { get; set; }
@@ -109,7 +112,7 @@ namespace FenUISharp
 
             lastDropData = HandleDropAction(pDataObj);
             IsDragDropActionInProgress = true;
-            dragEnter?.Invoke(lastDropData);
+            WindowRoot.Dispatcher.Invoke(() => dragEnter?.Invoke(lastDropData));
         }
 
         void IDropTarget.DragOver(uint grfKeyState, POINT pt, ref uint pdwEffect)
@@ -117,20 +120,20 @@ namespace FenUISharp
             pdwEffect = (uint)dropEffect.Value;
 
             IsDragDropActionInProgress = true;
-            dragOver?.Invoke(lastDropData);
+            WindowRoot.Dispatcher.Invoke(() => dragOver?.Invoke(lastDropData));
         }
 
         void IDropTarget.DragLeave()
         {
             IsDragDropActionInProgress = false;
 
-            dragLeave?.Invoke();
+            WindowRoot.Dispatcher.Invoke(() => dragLeave?.Invoke());
         }
 
         public void Drop([In] IntPtr pDataObj, [In] uint grfKeyState, [In] POINT pt, [In, Out] ref uint pdwEffect)
         {
             lastDropData = HandleDropAction(pDataObj);
-            dragDrop?.Invoke(lastDropData);
+            WindowRoot.Dispatcher.Invoke(() => dragDrop?.Invoke(lastDropData));
         }
 
         const int DV_E_FORMATETC = unchecked((int)0x80040064);
