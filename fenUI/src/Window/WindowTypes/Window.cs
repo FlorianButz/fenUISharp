@@ -78,6 +78,8 @@ namespace FenUISharp
         public DragDropHandler DropTarget { get; private set; }
         public FRenderContext RenderContext { get; private set; }
 
+        public Dispatcher Dispatcher { get; private set; }
+
         #endregion
 
         #region Actions
@@ -141,6 +143,7 @@ namespace FenUISharp
         )
         {
             if (!FenUI.HasBeenInitialized) throw new Exception("FenUI has to be initialized before creating a window.");
+            Dispatcher = new();
 
             WindowTitle = title;
             WindowClass = className;
@@ -417,6 +420,8 @@ namespace FenUISharp
         {
             if (!isPaused)
                 OnUpdate?.Invoke();
+
+            Dispatcher.UpdateQueue();
 
             Time += DeltaTime;
 

@@ -56,14 +56,14 @@ namespace FenUISharp.Components
             panelPath.Dispose();
         }
 
-        public SKPath GetPanelPath()
+        public SKPath GetPanelPath(SKRect? rect = null)
         {
             SKPath path = new();
 
             if (UseSquircle)
-                path = SKSquircle.CreateSquircle(Transform.LocalBounds, CornerRadius);
+                path = SKSquircle.CreateSquircle(rect ?? Transform.LocalBounds, CornerRadius);
             else
-                path.AddRoundRect(Transform.LocalBounds, CornerRadius, CornerRadius);
+                path.AddRoundRect(rect ?? Transform.LocalBounds, CornerRadius, CornerRadius);
 
             return path;
         }

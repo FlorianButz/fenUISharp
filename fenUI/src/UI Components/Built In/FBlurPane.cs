@@ -26,26 +26,37 @@ namespace FenUISharp.Components
         {
             base.DrawToSurface(canvas);
 
-            using (var windowArea = WindowRoot.RenderContext.CaptureWindowRegion(Transform.Bounds, HighQualityBlur ? 0.15f : 0.02f))
+            int padding = 25;
+            var captureArea = Transform.Bounds;
+            captureArea.Inflate(padding, padding);
+
+            using (var windowArea = WindowRoot.RenderContext.CaptureWindowRegion(captureArea, HighQualityBlur ? 0.15f : 0.02f))
             using (var panelPath = GetPanelPath())
             {
                 if (windowArea == null) return;
 
-                using (var clearPaint = SkPaint.Clone())
+                using (var clearPaint = new SKPaint { BlendMode = SKBlendMode.Clear, IsAntialias = true })
                 {
-                    clearPaint.BlendMode = SKBlendMode.Src;
-                    clearPaint.Color = new(1, 0, 0, 1);
-                    WindowRoot.RenderContext.Surface?.Canvas?.DrawPath(panelPath, clearPaint);
+                    WindowRoot.RenderContext.Surface?.Canvas?.DrawPath(this.GetPanelPath(Transform.Bounds), clearPaint);
                 }
 
                 var paint = SkPaint.Clone();
+
+                SkPaint.Color = PanelColor.Value;
+                canvas.DrawPath(panelPath, SkPaint);
+
                 paint.Color = SKColors.White;
 
-                using(var blur = SKImageFilter.CreateBlur(HighQualityBlur ? 15 : 5, HighQualityBlur ? 15 : 5))
+                using (var blur = SKImageFilter.CreateBlur(HighQualityBlur ? 15 : 5, HighQualityBlur ? 15 : 5))
                     paint.ImageFilter = blur;
 
+                var displayArea = Transform.LocalBounds;
+                displayArea.Inflate(padding, padding);
+
                 canvas.ClipPath(panelPath, antialias: true);
-                canvas.DrawImage(windowArea, Transform.LocalBounds, sampling: new(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+                canvas.DrawImage(windowArea, displayArea, sampling: new(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+
+                canvas.DrawPath(panelPath, SkPaint);
 
                 paint.Dispose();
             }

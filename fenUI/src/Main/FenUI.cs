@@ -89,6 +89,10 @@ namespace FenUISharp
             FInputField f = new(window, Vector2.Zero);
             f.Transform.SetParent(panel.Transform);
 
+            FSimpleButton p = new(window, Vector2.Zero, "Open Panel", color: window.WindowThemeManager.GetColor(t => t.Secondary), textColor: window.WindowThemeManager.GetColor(t => t.OnSecondary));
+            p.OnClick += () => FInternalMessageBox.Create(window, "Test Popup!", "Is this window visible?");
+            p.Transform.SetParent(panel.Transform);
+
             // Setup all components
 
             {
@@ -156,9 +160,9 @@ namespace FenUISharp
                 window.OnUpdate += () =>
                 {
                     val = ((float)Math.Sin(window.Time) + 1) / 2 + 1.5f;
-                    
+
                     int text = (int)val;
-                    if(lastText != text)
+                    if (lastText != text)
                         text4.Model = TextModelFactory.CreateBasic($"Text change animation (Text {text})");
                     lastText = text;
                 };
@@ -197,7 +201,7 @@ namespace FenUISharp
                 FSimpleButton secondary = new(window, Vector2.Zero, "Secondary", color: window.WindowThemeManager.GetColor(t => t.Secondary), textColor: window.WindowThemeManager.GetColor(t => t.OnSecondary));
                 secondary.Transform.SetParent(subpanel.Transform);
             }
-            
+
             {
                 FText title = new(window, Vector2.Zero, new Vector2(200, 75), TextModelFactory.CreateBasic("Toggles", 20, bold: true));
                 title.Transform.SetParent(panel.Transform);
@@ -271,7 +275,7 @@ namespace FenUISharp
                     btnGroup.AllowMultiSelect = true;
                     btnGroup.AlwaysMustSelectOne = true;
                 }
-                
+
                 {
                     FPanel subpanel = new(window, Vector2.Zero, new(500, 500), 10, window.WindowThemeManager.GetColor(t => t.Background));
                     subpanel.Transform.SetParent(panel.Transform);
