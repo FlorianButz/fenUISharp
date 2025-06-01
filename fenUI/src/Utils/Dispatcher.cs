@@ -21,7 +21,7 @@ namespace FenUISharp
                         }
                         break;
                     case 1:
-                        if (DateTime.Now.Subtract(x.timeAtCall).Seconds >= x.sLater)
+                        if (DateTime.Now.Subtract(x.timeAtCall).TotalSeconds >= x.sLater)
                         {
                             x.action.Invoke();
                             dispatcherCalls.Remove(x);
