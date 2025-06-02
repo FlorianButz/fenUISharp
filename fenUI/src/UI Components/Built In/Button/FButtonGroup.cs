@@ -31,6 +31,7 @@ namespace FenUISharp.Components.Buttons
             else if (AlwaysMustSelectOne && Buttons.Where(x => x.IsSelected).Count() != 0 && !AllowMultiSelect) button.SetSelected(false);
 
             button.OnUserSelectionChanged += (x) => OnButtonChanged(x, button);
+            button.ButtonGroup = this;
         }
 
         void OnButtonChanged(bool isSelected, SelectableButton button)
