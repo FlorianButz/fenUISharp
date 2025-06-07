@@ -9,8 +9,8 @@
     * [Theme Color](docs/themes/theme-color.md)
     * [Theme Manager](docs/themes/theme-manager.md)
 
-* Components
-    * [Introduction](docs/components/component-introduction.md)
+* Behavior Components
+    * [Introduction](docs/components/bcomponent-introduction.md)
     * [User Drag Component](docs/components/user-drag-component.md)
     * [User Scroll Component](docs/components/user-scroll-component.md)
     * [Cursor Component](docs/components/cursor-component.md)

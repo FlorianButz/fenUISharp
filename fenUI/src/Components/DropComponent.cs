@@ -4,7 +4,7 @@ using FenUISharp.Components;
 namespace FenUISharp
 {
 
-    public class DropComponent : Component
+    public class DropComponent : BehaviorComponent
     {
         public DropType DropType { get; set; }
         public DROPEFFECT DropEffect { get; set; }

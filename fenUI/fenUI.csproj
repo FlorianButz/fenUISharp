@@ -20,7 +20,7 @@
     <PackageReference Include="SkiaSharp" Version="3.116.1" />
     <PackageReference Include="SkiaSharp.Views" Version="3.116.1" />
     <PackageReference Include="SkiaSharp.Views.Desktop.Common" Version="1.68.1" />
-    <PackageReference Include="SkiaSharp" Version="2.88.6" /> 
+    <PackageReference Include="SkiaSharp" Version="2.88.6" />
 
     <!-- <None Include="icons\**\*">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

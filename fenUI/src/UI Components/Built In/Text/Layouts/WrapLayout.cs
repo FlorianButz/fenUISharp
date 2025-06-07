@@ -99,7 +99,7 @@ namespace FenUISharp.Components.Text.Layout
 
                             foreach (char c in word)
                             {
-                                if (stopProcessing) break; 
+                                if (stopProcessing) break;
 
                                 float charWidth = font.MeasureText(c.ToString()) + part.CharacterSpacing;
 
@@ -133,8 +133,7 @@ namespace FenUISharp.Components.Text.Layout
             }
 
             ApplyHorizontalAlign(model, bounds, lines);
-            ApplyVerticalAlign(model, currentLineY, lineHeight, bounds, lines);
-
+            ApplyVerticalAlign(model, bounds, lines);
             return returnList;
         }
 
@@ -154,11 +153,11 @@ namespace FenUISharp.Components.Text.Layout
             }
         }
 
-        protected virtual void ApplyVerticalAlign(TextModel model, float currentLineY, float lineHeight, SKRect bounds, List<TextLine> lines)
+        protected virtual void ApplyVerticalAlign(TextModel model, SKRect bounds, List<TextLine> lines)
         {
             if (model.Align.VerticalAlign != TextAlign.AlignType.Start)
             {
-                float fullHeight = currentLineY + lineHeight;
+                float fullHeight = lines.Sum(l => l.LineHeight);
 
                 float offsetY = model.Align.VerticalAlign == TextAlign.AlignType.Middle
                     ? (bounds.Height - fullHeight) / 2

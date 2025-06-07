@@ -4,7 +4,7 @@ using FenUISharp.Components;
 namespace FenUISharp
 {
 
-    public class AnimatorComponent : Component
+    public class AnimatorComponent : BehaviorComponent
     {
         public float Duration { get; set; } = 1;
 

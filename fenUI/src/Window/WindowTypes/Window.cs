@@ -74,6 +74,7 @@ namespace FenUISharp
         public SKRect Bounds { get; private set; }
 
         public IntPtr hWnd { get; private set; }
+        private IntPtr devicesChangedHandle;
 
         public DragDropHandler DropTarget { get; private set; }
         public FRenderContext RenderContext { get; private set; }
@@ -90,6 +91,8 @@ namespace FenUISharp
         public Action OnBeginRender { get; set; }
         public Action OnEndRender { get; set; }
         public Action OnUpdate { get; set; }
+
+        public Action OnDevicesChanged { get; set; }
 
         public Action OnFocusLost { get; set; }
         public Action OnFocusGained { get; set; }
@@ -372,7 +375,7 @@ namespace FenUISharp
                         _canvas.DrawRect(Bounds, paint);
                 }
 
-                if(RenderContext.Surface != null)
+                if (RenderContext.Surface != null)
                     OnAfterRenderFrame(RenderContext.Surface);
 
                 RenderContext.EndDraw();
@@ -668,7 +671,7 @@ namespace FenUISharp
         }
 
         // UI Thread methods
-        protected virtual void WindowMoved() {}
+        protected virtual void WindowMoved() { }
 
         protected virtual void OnEndResize()
         {
@@ -759,7 +762,8 @@ namespace FenUISharp
             {
                 GCHandle gch = GCHandle.FromIntPtr(ptr);
 
-                if (gch.Target != null) {
+                if (gch.Target != null)
+                {
                     var instance = (Window)gch.Target;
                     return instance.WindowsProcedure(hWnd, msg, wParam, lParam);
                 }
@@ -776,6 +780,10 @@ namespace FenUISharp
             {
                 case 0x0102:
                     _queuedInputChars.Enqueue((char)wParam);
+                    break;
+
+                case (int)WindowMessages.WM_DEVICECHANGE:
+                    Dispatcher.Invoke(() => OnDevicesChanged?.Invoke());
                     break;
 
                 case (int)WindowMessages.WM_GETMINMAXINFO:
@@ -884,6 +892,43 @@ namespace FenUISharp
                     return IntPtr.Zero;
             }
             return DefWindowProcW(hWnd, msg, wParam, lParam);
+        }
+
+        private const int DEVICE_NOTIFY_WINDOW_HANDLE = 0x00000000;
+        private const int DBT_DEVTYP_DEVICEINTERFACE = 0x00000005;
+
+        private static readonly Guid GUID_DEVINTERFACE_AUDIO_RENDER =
+            new Guid("E6327CAD-DCEC-4949-AE8A-991E976A79D2");
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr RegisterDeviceNotification(IntPtr hRecipient, IntPtr notificationFilter, int flags);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct DEV_BROADCAST_DEVICEINTERFACE
+        {
+            public int dbcc_size;
+            public int dbcc_devicetype;
+            public int dbcc_reserved;
+            public Guid dbcc_classguid;
+            public short dbcc_name;
+        }
+
+        public void RegisterForDeviceNotifications()
+        {
+            var dbi = new DEV_BROADCAST_DEVICEINTERFACE
+            {
+                dbcc_size = Marshal.SizeOf(typeof(DEV_BROADCAST_DEVICEINTERFACE)),
+                dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE,
+                dbcc_classguid = GUID_DEVINTERFACE_AUDIO_RENDER
+            };
+
+            IntPtr buffer = Marshal.AllocHGlobal(Marshal.SizeOf(dbi));
+            Marshal.StructureToPtr(dbi, buffer, false);
+
+            devicesChangedHandle = RegisterDeviceNotification(hWnd, buffer,
+                DEVICE_NOTIFY_WINDOW_HANDLE);
+
+            Marshal.FreeHGlobal(buffer);
         }
 
         public RECT GetMonitorRect(int monitorIndex)
@@ -1285,6 +1330,7 @@ namespace FenUISharp
     public enum WindowMessages : uint
     {
         WM_SETTINGCHANGE = 0x001A,
+        WM_DEVICECHANGE = 0x0219,
         WM_INITMENUPOPUP = 0x0117,
         WM_NCHITTEST = 0x0084,
 

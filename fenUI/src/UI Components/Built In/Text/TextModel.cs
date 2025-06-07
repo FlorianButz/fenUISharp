@@ -5,6 +5,16 @@ namespace FenUISharp.Components.Text.Model
 {
     public class TextModel
     {
+        public string Text
+        {
+            get
+            {
+                string text = "";
+                TextParts.ForEach(x => text += x.Content);
+                return text;
+            }
+        }
+
         public List<TextSpan> TextParts { get; init; }
         public FTypeface Typeface { get; init; }
         public TextAlign Align { get; init; }

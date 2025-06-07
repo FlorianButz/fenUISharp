@@ -3,14 +3,14 @@ using FenUISharp.Mathematics;
 using SkiaSharp;
 
 namespace FenUISharp {
-    public abstract class Component : IDisposable
+    public abstract class BehaviorComponent : IDisposable
     {
         public UIComponent Parent { get; init; }
         private bool _isSetup = false;
 
         public bool Enabled { get; set; } = true;
 
-        public Component(UIComponent parent)
+        public BehaviorComponent(UIComponent parent)
         {
             Parent = parent;
             Parent.Components.Add(this);

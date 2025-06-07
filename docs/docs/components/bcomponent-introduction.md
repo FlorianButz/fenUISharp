@@ -1,12 +1,12 @@
-# Introduction to Components
+# Introduction to BehaviorComponent
 
-Components are a way to extend the behaivor of a `UIComponent`. Components are stored in a list inside every UIComponent. `Component` implements the `IDisposable` interface.
+Behavior components are a way to extend the behaivor of a `UIComponent`. Components are stored in a list inside every UIComponent. `BehaviorComponent` implements the `IDisposable` interface.
 
-!> A `Component` always need a `UIComponent` as parent in order to work. This also means every Component automatically adds itself to the Components list inside the parent UIComponent. It also automatically removes itself from the list when it gets disposed.
+!> A `BehaviorComponent` always need a `UIComponent` as parent in order to work. This also means every BehaviorComponent automatically adds itself to the BehaviorComponents list inside the parent UIComponent. It also automatically removes itself from the list when it gets disposed.
 
 ## Constructors
 
-`Component(UIComponent parent)`
+`BehaviorComponent(UIComponent parent)`
 
 ## Virtual Methods
 

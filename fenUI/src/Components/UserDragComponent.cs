@@ -4,7 +4,7 @@ using FenUISharp.WinFeatures;
 
 namespace FenUISharp
 {
-    public class UserDragComponent : Component
+    public class UserDragComponent : BehaviorComponent
     {
         public Action? OnDragStart { get; set; }
         public Action? OnDragEnd { get; set; }

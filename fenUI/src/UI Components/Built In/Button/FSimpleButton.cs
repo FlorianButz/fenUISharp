@@ -56,7 +56,7 @@ namespace FenUISharp.Components.Buttons
         float padding = 7.5f;
         float minWidth = 0;
         float maxWidth = 0;
-        float cornerRadius = 6f;
+        float cornerRadius = 10f;
 
 
         public FSimpleButton(Window root, Vector2 position, string text, Action? onClick = null, float minWidth = 25, float maxWidth = 175,
@@ -88,7 +88,7 @@ namespace FenUISharp.Components.Buttons
             currenthighlight = highlight.Value;
 
             animatorComponent = new AnimatorComponent(this, Easing.EaseOutCubic);
-            animatorComponent.Duration = 0.2f;
+            animatorComponent.Duration = 0.15f;
 
             animatorComponent.onValueUpdate += (t) =>
             {

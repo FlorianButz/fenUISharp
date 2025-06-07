@@ -11,7 +11,10 @@ namespace FenUISharp.Components
         public Transform Transform { get; set; }
         public SKPaint SkPaint { get; set; }
 
-        internal List<Component> Components { get; private set; } = new List<Component>();
+        internal List<BehaviorComponent> Components { get; private set; } = new List<BehaviorComponent>();
+
+        private bool _forceDisableInvalidation = false;
+        public bool ForceDisableInvalidation { get => _forceDisableInvalidation || ((Transform.Parent != null) ? Transform.Parent.ParentComponent.ForceDisableInvalidation : false); set => _forceDisableInvalidation = value; }
 
         public bool Enabled { get; set; } = true;
         public bool Visible { get; set; } = true;
@@ -240,8 +243,12 @@ namespace FenUISharp.Components
                         if (ImageEffect.ThisOpacity != 1)
                             opacityLayerRestore = canvas.SaveLayer(new() { Color = new(255, 255, 255, (byte)(Math.Clamp(ImageEffect.Opacity * 255, 0, 255))) });
 
-                        // Drawing the cached image
-                        canvas.DrawImage(snapshot, 0, 0, WindowRoot.RenderContext.SamplingOptions, effectPaint);
+                        try
+                        {
+                            // Drawing the cached image
+                            canvas.DrawImage(snapshot, 0, 0, WindowRoot.RenderContext.SamplingOptions, effectPaint);
+                        }
+                        catch (Exception e) {}
                     }
 
                     Components.ForEach(x => x.OnAfterRenderCache(cachedSurface.Canvas));
@@ -267,7 +274,7 @@ namespace FenUISharp.Components
                 if (ChildClipPath != null) canvas.ClipPath(ChildClipPath, antialias: true);
                 c.ParentComponent.DrawToScreen(canvas);
                 canvas.RestoreToCount(save);
-            }); 
+            });
             Components.ForEach(x => x.OnAfterRenderChildren(canvas));
 
             if (ImageEffect.ThisOpacity != 1)
@@ -299,6 +306,7 @@ namespace FenUISharp.Components
 
         public void Invalidate()
         {
+            if (ForceDisableInvalidation) { GloballyInvalidated = true; return; }
             if (_isRendering) { MarkInvalidated(); return; }
 
             cachedSurface?.Dispose();
@@ -344,7 +352,7 @@ namespace FenUISharp.Components
             if (CanInteractVisualIndicator)
             {
                 ImageEffect.Opacity = CareAboutInteractions ? 1 : 0.5f;
-                ImageEffect.Saturation = CareAboutInteractions ? 1 : 0.75f;
+                ImageEffect.Saturation =  CareAboutInteractions ? 1 : 0.75f;
             }
         }
 
@@ -373,7 +381,7 @@ namespace FenUISharp.Components
             if (CurrentlySelected == this) CurrentlySelected = null;
             if (WindowRoot.GetUIComponents().Contains(this)) WindowRoot.RemoveUIComponent(this);
 
-            new List<Component>(Components).ForEach(x => x.Dispose());
+            new List<BehaviorComponent>(Components).ForEach(x => x.Dispose());
             new List<Transform>(Transform.Children).ForEach(x => x.ParentComponent.Dispose());
 
             Transform.Dispose();

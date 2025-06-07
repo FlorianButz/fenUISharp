@@ -9,103 +9,65 @@ namespace FenUISharp
         {
             var path = new SKPath();
 
-            // Clamp parameters
-            squircleness = Math.Clamp(squircleness, 0.01f, 1f);
-            cornerRadius = Math.Min(Math.Min(rect.Width, rect.Height) / 2f, cornerRadius) * 2;
+            squircleness = Math.Clamp(squircleness, 0.0f, 1.0f);
+            cornerRadius = Math.Min(cornerRadius, Math.Min(rect.Width, rect.Height) * 0.5f);
 
-            // Calculate dimensions
+            float exponent = 2f + (1f - squircleness) * 2f;
+            int segments = 30;
+
             float left = rect.Left;
             float top = rect.Top;
             float right = rect.Right;
             float bottom = rect.Bottom;
+
             float width = rect.Width;
             float height = rect.Height;
 
-            // Define corner regions
-            float cornerWidth = Math.Min(cornerRadius, width / 2);
-            float cornerHeight = Math.Min(cornerRadius, height / 2);
+            float cornerW = cornerRadius;
+            float cornerH = cornerRadius;
 
-            // Define inner rectangle (where corners meet the straight edges)
-            float innerLeft = left + cornerWidth;
-            float innerTop = top + cornerHeight;
-            float innerRight = right - cornerWidth;
-            float innerBottom = bottom - cornerHeight;
+            float innerLeft = left + cornerW;
+            float innerTop = top + cornerH;
+            float innerRight = right - cornerW;
+            float innerBottom = bottom - cornerH;
 
-            // Exponent for the superellipse (affects the squircleness)
-            // Map 0-1 to ~8-2 (square to circle)
-            float exponent = 2f + (1f - squircleness) * 2f;
-
-            // Number of segments per corner
-            int segments = 30;
-
-            // Top-left corner
-            for (int i = 0; i <= segments; i++)
+            void DrawCorner(float centerX, float centerY, float angleOffset, bool moveTo)
             {
-                float t = (float)i / segments * (float)Math.PI / 2;
-                float cosT = (float)Math.Cos(t + (float)Math.PI);
-                float sinT = (float)Math.Sin(t + (float)Math.PI);
+                for (int i = 0; i <= segments; i++)
+                {
+                    float t = i / (float)segments * (float)Math.PI / 2f;
+                    float cosT = (float)Math.Cos(t + angleOffset);
+                    float sinT = (float)Math.Sin(t + angleOffset);
 
-                float nx = MathF.Sign(cosT) * MathF.Pow(Math.Abs(cosT), 2f / exponent);
-                float ny = MathF.Sign(sinT) * MathF.Pow(Math.Abs(sinT), 2f / exponent);
+                    float nx = MathF.Sign(cosT) * MathF.Pow(Math.Abs(cosT), 2f / exponent);
+                    float ny = MathF.Sign(sinT) * MathF.Pow(Math.Abs(sinT), 2f / exponent);
 
-                float x = innerLeft + nx * cornerWidth;
-                float y = innerTop + ny * cornerHeight;
+                    float x = centerX + nx * cornerW;
+                    float y = centerY + ny * cornerH;
 
-                if (i == 0)
-                    path.MoveTo(x, y);
-                else
-                    path.LineTo(x, y);
+                    if (i == 0 && moveTo)
+                        path.MoveTo(x, y);
+                    else
+                        path.LineTo(x, y);
+                }
             }
 
-            // Top-right corner
-            for (int i = 0; i <= segments; i++)
-            {
-                float t = (float)i / segments * (float)Math.PI / 2;
-                float cosT = (float)Math.Cos(t + (float)Math.PI * 3 / 2);
-                float sinT = (float)Math.Sin(t + (float)Math.PI * 3 / 2);
+            // Top-left corner to top-right
+            DrawCorner(innerLeft, innerTop, (float)Math.PI, true);
+            path.LineTo(innerRight, innerTop - cornerH);
 
-                float nx = MathF.Sign(cosT) * MathF.Pow(Math.Abs(cosT), 2f / exponent);
-                float ny = MathF.Sign(sinT) * MathF.Pow(Math.Abs(sinT), 2f / exponent);
+            // Top-right corner to bottom-right
+            DrawCorner(innerRight, innerTop, 3f * (float)Math.PI / 2f, false);
+            path.LineTo(innerRight + cornerW, innerBottom);
 
-                float x = innerRight + nx * cornerWidth;
-                float y = innerTop + ny * cornerHeight;
+            // Bottom-right corner to bottom-left
+            DrawCorner(innerRight, innerBottom, 0f, false);
+            path.LineTo(innerLeft, innerBottom + cornerH);
 
-                path.LineTo(x, y);
-            }
-
-            // Bottom-right corner
-            for (int i = 0; i <= segments; i++)
-            {
-                float t = (float)i / segments * (float)Math.PI / 2;
-                float cosT = (float)Math.Cos(t);
-                float sinT = (float)Math.Sin(t);
-
-                float nx = MathF.Sign(cosT) * MathF.Pow(Math.Abs(cosT), 2f / exponent);
-                float ny = MathF.Sign(sinT) * MathF.Pow(Math.Abs(sinT), 2f / exponent);
-
-                float x = innerRight + nx * cornerWidth;
-                float y = innerBottom + ny * cornerHeight;
-
-                path.LineTo(x, y);
-            }
-
-            // Bottom-left corner
-            for (int i = 0; i <= segments; i++)
-            {
-                float t = (float)i / segments * (float)Math.PI / 2;
-                float cosT = (float)Math.Cos(t + (float)Math.PI / 2);
-                float sinT = (float)Math.Sin(t + (float)Math.PI / 2);
-
-                float nx = MathF.Sign(cosT) * MathF.Pow(Math.Abs(cosT), 2f / exponent);
-                float ny = MathF.Sign(sinT) * MathF.Pow(Math.Abs(sinT), 2f / exponent);
-
-                float x = innerLeft + nx * cornerWidth;
-                float y = innerBottom + ny * cornerHeight;
-
-                path.LineTo(x, y);
-            }
-
+            // Bottom-left corner to top-left
+            DrawCorner(innerLeft, innerBottom, (float)Math.PI / 2f, false);
             path.Close();
+
             return path;
         }
     }

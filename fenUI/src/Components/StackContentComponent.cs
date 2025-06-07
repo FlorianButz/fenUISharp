@@ -5,7 +5,7 @@ using SkiaSharp;
 
 namespace FenUISharp
 {
-    public class StackContentComponent : Component
+    public class StackContentComponent : BehaviorComponent
     {
         public enum ContentStackType { Horizontal, Vertical }
         public enum ContentStackBehavior { Overflow, SizeToFit, SizeToFitAll, Scroll }
@@ -51,7 +51,6 @@ namespace FenUISharp
         {
             StackType = type;
             StackBehavior = behavior;
-            scrollBar = new FScrollBar(Parent.WindowRoot, new Vector2(0, 0), new Vector2(4f, 4f));
 
             scrollComponent = new UserScrollComponent(parent);
             scrollComponent.MouseScroll += OnScroll;
@@ -141,6 +140,7 @@ namespace FenUISharp
         {
             base.ComponentSetup();
 
+            scrollBar = new FScrollBar(Parent.WindowRoot, new Vector2(0, 0), new Vector2(4f, 4f));
             scrollBar.Transform.MarginHorizontal = 8;
             scrollBar.Transform.MarginVertical = 8;
 

@@ -5,7 +5,7 @@ using FenUISharp.WinFeatures;
 
 namespace FenUISharp
 {
-    public class UserScrollComponent : Component
+    public class UserScrollComponent : BehaviorComponent
     {
         public Action<float>? MouseScroll { get; set; }
         private volatile float _lastDelta = 0f;
@@ -28,7 +28,7 @@ namespace FenUISharp
 
         private void OnGlobalHooks_onMouseScroll(float delta)
         {
-            if (!Parent.WindowRoot.IsWindowFocused) return;
+            // if (!Parent.WindowRoot.IsWindowFocused) return; // Technically not needed, user wants to scroll when unfocussed
             if (RMath.ContainsPoint(Parent.Transform.Bounds, Parent.WindowRoot.ClientMousePosition) &&
                 Parent.GetTopmostComponentAtPositionWithComponent<UserScrollComponent>(Parent.WindowRoot.ClientMousePosition) == Parent)
             {

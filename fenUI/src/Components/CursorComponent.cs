@@ -3,7 +3,7 @@ using FenUISharp.Components;
 
 namespace FenUISharp
 {
-    public class CursorComponent : Component
+    public class CursorComponent : BehaviorComponent
     {
         public Cursor CursorOnHover { get; set; }
 

@@ -20,6 +20,22 @@ namespace FenUISharp.Components.Text.Model
             return new(new List<TextSpan>() { new TextSpan(text, style) }, algn, FTypeface.Default);
         }
 
+        public static TextModel CopyBasic(TextModel old, float? textSize = null, bool? bold = null, bool? italic = null, ThemeColor? textColor = null, TextAlign? align = null)
+        {
+            List<TextSpan> spans = new();
+
+            foreach (var span in old.TextParts)
+            {
+                span.Style.Color = textColor ?? span.Style.Color;
+                span.Style.Weight = (bold != null) ? (bold.Value ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal) : span.Style.Weight;
+                span.Style.Slant = (italic != null) ? (italic.Value ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright) : span.Style.Slant;
+                span.Style.FontSize = textSize ?? span.Style.FontSize;
+                spans.Add(span);
+            }
+
+            return new(spans, align ?? old.Align, FTypeface.Default);
+        }
+
         public static TextModel CreateTest(string text)
         {
             TextAlign align = new() { HorizontalAlign = TextAlign.AlignType.Middle, VerticalAlign = TextAlign.AlignType.Middle };
@@ -36,13 +52,13 @@ namespace FenUISharp.Components.Text.Model
                     (byte)(Random.Shared.NextSingle() * 255),
                     255));
 
-                if(Random.Shared.NextSingle() > 0.5f)
+                if (Random.Shared.NextSingle() > 0.5f)
                     style.Weight = SKFontStyleWeight.Bold;
 
-                if(Random.Shared.NextSingle() > 0.5f)
+                if (Random.Shared.NextSingle() > 0.5f)
                     style.Slant = SKFontStyleSlant.Italic;
 
-                if(Random.Shared.NextSingle() > 0.5f)
+                if (Random.Shared.NextSingle() > 0.5f)
                     style.Underlined = true;
 
                 spans.Add(new TextSpan(part + ' ', style));
