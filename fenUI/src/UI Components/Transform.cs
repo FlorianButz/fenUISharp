@@ -18,7 +18,8 @@ namespace FenUISharp
 
         public SKMatrix? Matrix { get; private set; }
 
-        public Vector2 Position { get { var pos = _localPosition; if (Parent != null && !IgnoreParentOffset) pos += Parent.ChildOffset; return GetGlobalPosition(pos); } }
+        public Vector2 GlobalPosition { get { var pos = _localPosition; if (Parent != null && !IgnoreParentOffset) pos += Parent.ChildOffset; return GetGlobalPosition(pos); } }
+        public Vector2 Position { get { var pos = _localPosition; if (Parent != null && !IgnoreParentOffset) pos += Parent.ChildOffset; return GetDrawGlobalPosition(pos); } }
         public Vector2 LocalPosition { get => _localPosition + BoundsPadding.Value; set => _localPosition = value; }
         public Vector2 LocalPositionExcludeBounds { get => _localPosition; set => _localPosition = value; }
         private Vector2 _localPosition { get; set; }
@@ -148,7 +149,7 @@ namespace FenUISharp
             return returnList;
         }
 
-        private Vector2 GetGlobalPosition(Vector2 localPosition)
+        private Vector2 GetDrawGlobalPosition(Vector2 localPosition)
         {
             var pBounds = (Parent != null) ? Parent.Bounds : ParentComponent.WindowRoot.Bounds;
             var padding = BoundsPadding.Value;
@@ -157,6 +158,33 @@ namespace FenUISharp
                         pBounds.Left + pBounds.Width * Alignment.x + localPosition.x - Size.x * Anchor.x - padding,
                         pBounds.Top + pBounds.Height * Alignment.y + localPosition.y - Size.y * Anchor.y - padding
                     );
+        }
+
+        private Vector2 GetGlobalPosition(Vector2 localPosition)
+        {
+            var pos = localPosition;
+
+            // Apply local transform (alignment, anchor, size, padding)
+            var padding = BoundsPadding.Value;
+            pos -= Size * Anchor;
+            pos -= new Vector2(padding, padding);
+            pos += GetAlignedOffset();
+
+            // Climb up the hierarchy
+            Transform? current = Parent;
+            while (current != null)
+            {
+                pos += current.GetAlignedOffset();
+                current = current.Parent;
+            }
+
+            return pos;
+        }
+
+        private Vector2 GetAlignedOffset()
+        {
+            var pBounds = (Parent != null) ? Parent.Bounds : ParentComponent.WindowRoot.Bounds;
+            return new Vector2(pBounds.Width * Alignment.x, pBounds.Height * Alignment.y);
         }
 
         private SKRect GetBounds(int id)

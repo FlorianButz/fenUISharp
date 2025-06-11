@@ -24,16 +24,24 @@ namespace FenUISharp.Components.Text.Layout
         {
             parent.OnModelChanged += () =>
             {
-                oldLayout = newLayout;
+                if (newLayout == null)
+                    return;
 
-                oldLayoutPositions = new();
-                oldLayout?.ForEach(x => oldLayoutPositions.Add(x.Position));
+                animatorIn?.Break();
+                animatorOut?.Break();
+
+                oldLayout = newLayout.ToList();
+                oldLayoutPositions = new(newLayout.Count); // pre-alloc
+
+                foreach (var x in newLayout)
+                    oldLayoutPositions.Add(x.Position);
 
                 newLayout = null;
+
                 animatorOut?.Restart();
                 animatorIn?.Break();
 
-                if(LowerQualityOnAnimate)
+                if (LowerQualityOnAnimate)
                     Parent.RenderQuality.SetValue(this, 0.85f, 25);
             };
 

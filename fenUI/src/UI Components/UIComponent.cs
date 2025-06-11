@@ -240,7 +240,7 @@ namespace FenUISharp.Components
                     using (var effectPaint = ImageEffect.ApplyImageEffect(new SKPaint() { Color = SKColors.White, IsAntialias = true }))
                     {
                         // Applying a faster opacity effect. Avoid using color matrix to speed up render time
-                        if (ImageEffect.ThisOpacity != 1)
+                        if (ImageEffect.Opacity != 1)
                             opacityLayerRestore = canvas.SaveLayer(new() { Color = new(255, 255, 255, (byte)(Math.Clamp(ImageEffect.Opacity * 255, 0, 255))) });
 
                         try
@@ -248,7 +248,10 @@ namespace FenUISharp.Components
                             // Drawing the cached image
                             canvas.DrawImage(snapshot, 0, 0, WindowRoot.RenderContext.SamplingOptions, effectPaint);
                         }
-                        catch (Exception e) {}
+                        catch (Exception e) { }
+
+                        if (ImageEffect.Opacity != 1)
+                            canvas.RestoreToCount(opacityLayerRestore);
                     }
 
                     Components.ForEach(x => x.OnAfterRenderCache(cachedSurface.Canvas));
@@ -277,8 +280,8 @@ namespace FenUISharp.Components
             });
             Components.ForEach(x => x.OnAfterRenderChildren(canvas));
 
-            if (ImageEffect.ThisOpacity != 1)
-                canvas.RestoreToCount(opacityLayerRestore);
+            // if (ImageEffect.ThisOpacity != 1)
+            //     canvas.RestoreToCount(opacityLayerRestore);
 
             canvas.RestoreToCount(c);
             _isRendering = false;

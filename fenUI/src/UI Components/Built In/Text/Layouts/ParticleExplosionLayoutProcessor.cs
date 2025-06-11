@@ -18,6 +18,7 @@ namespace FenUISharp.Components.Text.Layout
 
         public float Duration { get; init; } = 1.2f;
         public int ParticlesPerGlyph { get; init; } = 12;
+        public float BlurMultiplier { get; init; } = 1f;
         public float ExplosionRadius { get; init; } = 80f;
         public float ParticleStartSize { get; init; } = 1f;
         public float ParticleEndSize { get; init; } = 4f;
@@ -261,7 +262,7 @@ namespace FenUISharp.Components.Text.Layout
                     {
                         FontSize = currentSize,
                         Opacity = particle.Life * 0.8f,
-                        BlurRadius = (1f - particle.Life) * 2f
+                        BlurRadius = ((1f - particle.Life) * 2f) * BlurMultiplier
                     },
                     new SKSize(currentSize, currentSize)
                 );
@@ -303,7 +304,7 @@ namespace FenUISharp.Components.Text.Layout
                     {
                         FontSize = currentSize,
                         Opacity = particle.Life * 0.9f,
-                        BlurRadius = (1f - particle.Life) * 2f + 1.5f
+                        BlurRadius = ((1f - particle.Life) * 2f + 1.5f) * BlurMultiplier
                     },
                     new SKSize(currentSize, currentSize)
                 );
@@ -322,7 +323,7 @@ namespace FenUISharp.Components.Text.Layout
                     new TextStyle(cluster.SourceGlyph.Style)
                     {
                         Opacity = RMath.Clamp((easedT - 0.7f) / 0.3f, 0f, 1f),
-                        BlurRadius = (1f - easedT) * 4f
+                        BlurRadius = ((1f - easedT) * 4f) * BlurMultiplier
                     },
                     cluster.SourceGlyph.Size
                 );

@@ -33,6 +33,22 @@
             return c3 * x * x * x - c1 * x * x;
         }
 
+        public static float EaseOutBackDramatic(float x)
+        {
+            const float c1 = 4.70158f;
+            const float c3 = c1 + 1;
+
+            return (float)(1 + c3 * Math.Pow(x - 1, 3) + c1 * Math.Pow(x - 1, 2));
+        }
+
+        public static float EaseInBackDramatic(float x)
+        {
+            float c1 = 4.70158f;
+            float c3 = c1 + 1;
+
+            return c3 * x * x * x - c1 * x * x;
+        }
+
         public static float EaseOutIn(float x)
         {
             const float c1 = 1.70158f;
@@ -143,6 +159,16 @@
             : x == 1
             ? 1
             : -Math.Pow(2, 10 * x - 10) * Math.Sin((x * 10 - 10.75) * c4));
+        }
+
+        public static float EaseOutExpo(float x)
+        {
+            return x == 1 ? 1 : 1 - (float)Math.Pow(2, -10 * x);
+        }
+
+        public static float EaseInExpo(float x)
+        {
+            return x == 0 ? 0 : (float)Math.Pow(2, 10 * x - 10);
         }
     }
 }

@@ -93,6 +93,8 @@ namespace FenUISharp
             p.OnClick += () => FInternalMessageBox.Create(window, "Test Popup!", "Is this window visible?");
             p.Transform.SetParent(panel.Transform);
 
+            // FGlass g = new(window, Vector2.Zero, new(100, 100), 50);
+
             // Setup all components
 
             {

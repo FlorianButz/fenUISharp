@@ -15,8 +15,10 @@ namespace FenUISharp.Components
         protected SKColor currentBackground;
         public Spring AnimationSpring { get; set; }
 
-        const int WIDTH = 40;
-        const int HEIGHT = 25;
+        FGlass glassKnob;
+
+        const int WIDTH = 55;
+        const int HEIGHT = 22;
 
         protected AnimatorComponent toggleAnimator;
 
@@ -40,11 +42,22 @@ namespace FenUISharp.Components
             OnSelectionChanged += (x) => toggleAnimator.Restart();
             OnUserSelectionChanged += (x) => toggleAnimator.Restart();
 
+            glassKnob = new(rootWindow, new(0, 0), new(0, 0), 25);
+
+            glassKnob.IOR = 1.5f;
+            glassKnob.Strength = 0f;
+            glassKnob.Transform.SetParent(this.Transform);
+            glassKnob.CareAboutInteractions = false;
+            glassKnob.PixelSnapping = false;
+
+            glassKnob.Transform.ClipWhenFullyOutsideParent = false;
+
             PixelSnapping = false;
         }
 
         float _width = HEIGHT;
         float _lastWidth = HEIGHT;
+        Vector2 _lastSize = Vector2.Zero;
 
         bool _isMouseDown = false;
 
@@ -66,12 +79,30 @@ namespace FenUISharp.Components
             var t = AnimationSpring.Update((float)WindowRoot.DeltaTime, new(uT, 0));
             _animTime = (float)(Math.Round(t.x * 100) / 100);
 
-            _width = RMath.Lerp(_width, _isMouseDown ? HEIGHT + 5 : HEIGHT, (float)WindowRoot.DeltaTime * 5f);
+            // _width = RMath.Lerp(_width, _isMouseDown ? WIDTH / 2f + 5 : WIDTH / 2f, (float)WindowRoot.DeltaTime * 5f);
+            _width = RMath.Lerp(_width, WIDTH / 2f, (float)WindowRoot.DeltaTime * 5f);
             _width = (float)(Math.Round(_width * 10) / 10);
 
-            if (_lastAnimTime != _animTime || _width != _lastWidth) Invalidate();
+            var bounds = Transform.LocalBounds;
+
+            Vector2 normSize = new(_width, HEIGHT - 4);
+            glassKnob.Transform.Size = Vector2.Lerp(glassKnob.Transform.Size, Vector2.Lerp(normSize, normSize * 1.25f, _isMouseDown ? 1 : 0), (float)WindowRoot.DeltaTime * 25f);
+            glassKnob.Strength = RMath.Lerp(glassKnob.Strength, _isMouseDown ? 1 : 0, (float)WindowRoot.DeltaTime * 15f);
+            Transform.ZIndex = _isMouseDown ? 1555 : 0;
+
+            // glassKnob.Transform.Alignment = new(_animTime, 0.5f);
+            // glassKnob.Transform.Anchor = new(_animTime, 0.5f);
+            // glassKnob.Transform.LocalPosition = new(RMath.Lerp(2, -2, _animTime), 0f);
+            glassKnob.Transform.LocalPosition = new(RMath.Lerp(_width / 2 - 2, -_width / 2 + 2, 1-_animTime), 0f);
+
+            if (_lastAnimTime != _animTime || _width != _lastWidth || _lastSize != glassKnob.Transform.Size)
+            {
+                Invalidate();
+                glassKnob.Invalidate();
+            }
             _lastAnimTime = _animTime;
             _lastWidth = _width;
+            _lastSize = glassKnob.Transform.Size;
         }
 
         void UpdateColors()
@@ -115,13 +146,14 @@ namespace FenUISharp.Components
             var bounds = Transform.LocalBounds;
             using var backgroundRect = new SKRoundRect(bounds, 50);
 
-            float knobLeft = RMath.Lerp(bounds.Left, bounds.Right - _width, _animTime);
-            float knobRight = RMath.Lerp(bounds.Left + _width, bounds.Right, _animTime);
+            // float knobLeft = RMath.Lerp(bounds.Left, bounds.Right - _width, _animTime);
+            // float knobRight = RMath.Lerp(bounds.Left + _width, bounds.Right, _animTime);
 
-            var knobRect = new SKRect(knobLeft, bounds.Top, knobRight, bounds.Bottom);
+            // var knobRect = new SKRect(knobLeft, bounds.Top, knobRight, bounds.Bottom);
 
-            knobRect.Inflate(-2, -2);
-            using var knobRectRound = new SKRoundRect(knobRect, 20);
+            // knobRect.Inflate(-2, -2);
+            // using var knobRectRound = new SKRoundRect(knobRect, 20);
+
             using var shadow = SKImageFilter.CreateDropShadow(0, 2, 5, 5, WindowRoot.WindowThemeManager.GetColor(t => t.Shadow).Value);
 
             paint.Color = currentBackground;
@@ -130,7 +162,7 @@ namespace FenUISharp.Components
 
             paint.ImageFilter = shadow;
             paint.Color = KnobColor.Value;
-            canvas.DrawRoundRect(knobRectRound, paint);
+            // canvas.DrawRoundRect(knobRectRound, paint);
             paint.ImageFilter = null;
 
             paint.Color = BorderColor.Value;

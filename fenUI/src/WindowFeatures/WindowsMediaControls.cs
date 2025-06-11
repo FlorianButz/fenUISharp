@@ -100,7 +100,8 @@ namespace FenUISharp.WinFeatures
                             try
                             {
                                 UpdateInfo().Wait();
-                            } catch(Exception e) { continue; }
+                            }
+                            catch (Exception e) { continue; }
                         }
                         Thread.Sleep(500);
                     }
@@ -116,15 +117,20 @@ namespace FenUISharp.WinFeatures
 
         private static async void InitWindowsMediaControls()
         {
+            CreateSessionManager();
+
+            TrySubscribeToCurrentSession();
+            await UpdateInfo();
+        }
+
+        private static async void CreateSessionManager()
+        {
             globSessionManager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
 
             if (!ContinousPolling)
             {
                 globSessionManager.SessionsChanged += SessionChangedHandler;
             }
-
-            TrySubscribeToCurrentSession();
-            await UpdateInfo();
         }
 
         private static void SessionChangedHandler(GlobalSystemMediaTransportControlsSessionManager sender, SessionsChangedEventArgs args)
@@ -134,12 +140,17 @@ namespace FenUISharp.WinFeatures
 
         public static async Task UpdateInfo()
         {
-            currentSession ??= globSessionManager?.GetCurrentSession();
+            if (globSessionManager == null) CreateSessionManager();
+            if (currentSession == null) currentSession = globSessionManager?.GetCurrentSession();
 
             if (currentSession != null)
             {
                 var info = await currentSession.TryGetMediaPropertiesAsync();
+                if (info == null) return;
+
                 var playbackInfo = currentSession.GetPlaybackInfo();
+                // if (playbackInfo == null) return;
+
                 var timelineProperties = currentSession.GetTimelineProperties();
 
                 bool infoChanged = info.Title != cachedInfo.title || info.Artist != cachedInfo.artist;
@@ -178,9 +189,11 @@ namespace FenUISharp.WinFeatures
                     {
                         using var stream = await thumbnail.OpenReadAsync();
                         cachedInfo.thumbnail = ConvertThumbnailToSkImage(stream);
-                        onThumbnailUpdated?.Invoke();
                     }
+                    else
+                        cachedInfo.thumbnail = null;
 
+                    onThumbnailUpdated?.Invoke();
                     onMediaUpdated?.Invoke();
                 }
             }

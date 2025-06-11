@@ -19,13 +19,15 @@ namespace FenUISharp.Components
             Image = image;
             _drawBasePanel = drawBackground;
 
-            TintColor = new ThemeColor(SKColors.White);
+            TintColor = root.WindowThemeManager.GetColor(t => t.OnSurface);
             Transform.BoundsPadding.SetValue(this, 10, 15);
         }
 
         protected override void DrawToSurface(SKCanvas canvas)
         {
             base.DrawToSurface(canvas);
+
+            if (Image == null) return;
 
             var rect = Transform.LocalBounds;
             rect.Inflate(0.5f, 0.5f);
