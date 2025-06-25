@@ -4,19 +4,13 @@ namespace FenUISharp
 {
     public struct MouseInputCode
     {
-        public int button { get; init; }
-        public int state { get; init; }
-
-        public MouseInputCode(int btn, int state)
-        {
-            this.button = btn;
-            this.state = state;
-        }
+        public MouseInputButton button { get; init; }
+        public MouseInputState state { get; init; }
 
         public MouseInputCode(MouseInputButton btn, MouseInputState state)
         {
-            this.button = (int)btn;
-            this.state = (int)state;
+            this.button = btn;
+            this.state = state;
         }
 
         public override bool Equals([NotNullWhen(true)] object? obj)

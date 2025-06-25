@@ -27,11 +27,5 @@ namespace FenUISharp.Themes
             if(newTheme == CurrentTheme) return;
             CurrentTheme = newTheme;
         }
-
-        public ThemeColor GetColor(Func<Theme, SKColor> selector)
-        {
-            return new ThemeColor(() => selector(CurrentTheme));
-        }
     }
-
 }

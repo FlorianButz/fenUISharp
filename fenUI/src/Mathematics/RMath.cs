@@ -72,21 +72,39 @@ namespace FenUISharp.Mathematics
             return (float)Math.Round(x, 2);
         }
 
-        public static SKImage CreateLowResImage(SKImage sourceImage, float scaleFactor, SKSamplingOptions samplingOptions)
+        public static SKImage? CreateLowResImage(SKImage sourceImage, float scaleFactor, SKSamplingOptions samplingOptions)
         {
+            if (sourceImage == null) return null;
+
             int newWidth = (int)(sourceImage.Width * scaleFactor);
             int newHeight = (int)(sourceImage.Height * scaleFactor);
 
             var info = new SKImageInfo(newWidth, newHeight);
             using (var surface = SKSurface.Create(info))
             {
+                if (surface == null) return sourceImage;
                 var canvas = surface.Canvas;
+                if (canvas == null) return sourceImage;
 
                 // Draw the original image scaled down
                 canvas.DrawImage(sourceImage,
                     SKRect.Create(0, 0, sourceImage.Width, sourceImage.Height),
                     SKRect.Create(0, 0, newWidth, newHeight),
                     samplingOptions);
+
+                return surface.Snapshot();
+            }
+        }
+
+        public static SKImage Combine(SKImage sourceImage1, SKImage sourceImage2, SKSamplingOptions samplingOptions)
+        {
+            var info = new SKImageInfo(sourceImage1.Width, sourceImage1.Height);
+            using (var surface = SKSurface.Create(info))
+            {
+                var canvas = surface.Canvas;
+
+                canvas.DrawImage(sourceImage1, SKRect.Create(0, 0, sourceImage1.Width, sourceImage1.Height), samplingOptions);
+                canvas.DrawImage(sourceImage2, SKRect.Create(0, 0, sourceImage1.Width, sourceImage1.Height), samplingOptions);
 
                 return surface.Snapshot();
             }

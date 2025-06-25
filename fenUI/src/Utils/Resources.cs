@@ -40,7 +40,7 @@ namespace FenUISharp
                 PrimaryBorder = new SKColor(0, 0, 0, 0),
                 SecondaryBorder = new SKColor(0, 0, 0, 0),
 
-                Shadow = new SKColor(0, 0, 0, 45),
+                Shadow = new SKColor(0, 0, 0, 28),
 
                 DisabledMix = new SKColor(255, 255, 255),
                 HoveredMix = new SKColor(150, 150, 150),

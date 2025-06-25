@@ -52,6 +52,8 @@
             k3 = (float)(r * springy / (2 * Math.PI * speed));
         }
 
+        public Vector2 GetLastValue() => y;
+
         public Vector2 Update(float deltaTime, Vector2 x)
         {
             const float fixedDelta = 0.016f; // Stable timestep

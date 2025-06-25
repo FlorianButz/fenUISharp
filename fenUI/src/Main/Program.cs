@@ -1,24 +1,41 @@
 ﻿using System.Reflection;
 using FenUISharp;
-using FenUISharp.Components;
-using FenUISharp.Components.Text;
-using FenUISharp.Components.Text.Layout;
-using FenUISharp.Components.Text.Model;
 using FenUISharp.Mathematics;
+using FenUISharp.Objects;
 using FenUISharp.Themes;
 using SkiaSharp;
 
 namespace FenUISharpTest1
 {
-    class Program
+    class Programw
     {
         [STAThread]
         static void Main()
         {
             FenUI.Init();
             FenUI.SetupAppModel("FlorianButz.fenUI");
-            
-            FenUI.Demo();
+
+            NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(900, 800));
+
+            window.SystemDarkMode = true;
+            // window.WindowThemeManager.SetTheme(Resources.GetTheme("default-light"));
+
+            window.AllowResizing = true;
+            window.CanMaximize = true;
+            window.CanMinimize = true;
+            // window.UseMica = true;
+            // window.DebugDisplayAreaCache = true;
+            // window.DebugDisplayBounds = true;
+
+            string iconPath = Resources.ExtractResourceToTempFile<FenUI>($"{FenUI.ResourceLibName}.icons.TrayIcon.ico");
+            window.SetWindowIcon(iconPath);
+
+            window.WithView(new TestViewPane());
+
+            window.SetWindowVisibility(true);
+            window.BeginWindowLoop();
+
+            // FenUI.Demo();
 
             // NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(1200, 800));
             // window.SystemDarkMode = true;

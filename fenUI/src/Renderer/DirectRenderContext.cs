@@ -220,6 +220,11 @@ namespace FenUISharp
         void OnEndResizeAfterDraw()
         {
             _onEndResizeFlag = false;
+            UpdateSurf();
+        }
+
+        void UpdateSurf()
+        {
             var size = GetSize();
 
             // Dispose old resources first
