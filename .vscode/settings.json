@@ -3,8 +3,7 @@
     "folder-customization.folders": [
         {
             "path": "fenUISharp\\fenUI\\src\\UI Objects\\",
-            "color": "foldercustomization.AnsiColor151",
-            "badge": "🔥"
+            "color": "foldercustomization.AnsiColor151"
         }
     ]
 }
