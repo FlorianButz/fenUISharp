@@ -29,7 +29,7 @@ namespace FenUISharp.Objects
 
         public override void Render(SKCanvas canvas)
         {
-            base.DrawToSurface(canvas);
+            // base.Render(canvas);
 
             if (Image == null) return;
 

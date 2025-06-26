@@ -65,14 +65,24 @@ namespace FenUISharp.Objects
             // var v = new FToggle();
             // new FRoundToggle().Transform.LocalPosition.SetStaticState(new(0, 100));
 
-            var fp = new FPopupPanel(() => new(175, 100));
+            var fp = new FPopupPanel(() => new(150, 125));
+            fp.CornerRadius.SetStaticState(20);
 
-            var toggle = new FRoundToggle();
-            toggle.SetParent(fp);
+            // var toggle = new FRoundToggle();
+            // toggle.SetParent(fp);
             // new FRoundToggle().SetParent(fp);
 
+            var col = new FColorPicker();
+            col.Transform.LocalPosition.SetStaticState(new(0, -150));
+            col.Layout.StretchHorizontal.SetStaticState(true);
+            col.Layout.StretchVertical.SetStaticState(true);
+            col.Layout.MarginHorizontal.SetStaticState(7.5f);
+            col.Layout.MarginVertical.SetStaticState(7.5f);
+            col.SetParent(fp);
 
-
+            var v = new FToggle();
+            v.Transform.LocalPosition.SetStaticState(new(0, 100));
+            // v.Transform.Size.SetStaticState(new(100, 100));
 
             // var s = new FSlider(position: () => new(0, 100));
             // s.SnappingInterval = 0.5f;
@@ -86,8 +96,12 @@ namespace FenUISharp.Objects
 
             // new FImage(() => Resources.GetImage("test-img"), size: () => new(150 * (s.Value + 1), 150), position: () => new(MathF.Sin(FContext.Time / 2) * 300, 0));
 
-            var btn = new FSimpleButton(new Text.FText(TextModelFactory.CreateBasic("Open Pop-up!")), position: () => new(new(0,0)));
+            var btn = new FSimpleButton(new Text.FText(TextModelFactory.CreateBasic("Change Color")), position: () => new(new(-65,50)));
             btn.OnClick += () => fp.Show(() => btn.Transform.LocalToGlobal(btn.Transform.LocalPosition.CachedValue));
+            btn.Layout.Alignment.SetStaticState(new(1, 0));
+            // btn.OnClick += () => col.PickedColor = SKColors.Blue;
+
+            new FImage(() => Resources.GetImage("test-img"), position: () => new(-300, 0)).TintColor.SetResponsiveState(() => col.PickedColor);
 
             return new List<UIObject>() { };
         }

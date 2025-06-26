@@ -19,6 +19,7 @@ namespace FenUISharp
             var asm = typeof(Resources).Assembly;
 
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.test_img.png")), "test-img");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.check.png")), "fenui-builtin-check");
 
             var darkTheme = new Theme
             {
@@ -140,7 +141,9 @@ namespace FenUISharp
 
         public static SKImage RegisterImage(SKImage image, string withId)
         {
-            images.Add(withId, image);
+            if (images.Keys.Contains(withId)) images[withId] = image;
+            else images.Add(withId, image);
+            
             return image;
         }
 

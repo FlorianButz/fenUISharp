@@ -13,18 +13,24 @@ namespace FenUISharp.Objects
         public State<SKColor> EnabledFillColor { get; set; }
         public State<SKColor> CheckColor { get; set; }
 
+        private State<SKColor> highlight;
+
         public float CornerRadius { get; set; } = 5;
-        
-        private SKColor currentBackground;
+
+        private SKColor currenthighlight;
+        private SKColor currentbackground;
 
         private AnimatorComponent toggleAnimator;
 
         public FToggle() : base(position: () => new(0, 0), size: () => new(20, 20))
         {
-            BackgroundColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SurfaceVariant, this);
+            BackgroundColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary, this);
             BorderColor = new(() => BackgroundColor.CachedValue.AddMix(new(25, 25, 25)), this);
             CheckColor = new(() => SKColors.White, this);
             EnabledFillColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary, this);
+
+            highlight = new(() => BackgroundColor.CachedValue.AddMix(new(65, 65, 65)), this);
+            currenthighlight = BackgroundColor.CachedValue.AddMix(new(65, 65, 65));
 
             Padding.SetStaticState(2);
 
@@ -37,8 +43,10 @@ namespace FenUISharp.Objects
             {
                 var hoveredMix = RMath.Lerp((!IsSelected) ? BackgroundColor.CachedValue : EnabledFillColor.CachedValue,
                     FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix, 0.2f);
+                var hoveredHigh = RMath.Lerp(highlight.CachedValue, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix, 0.2f);
 
-                currentBackground = RMath.Lerp((!IsSelected) ? BackgroundColor.CachedValue : EnabledFillColor.CachedValue, hoveredMix, t);
+                currentbackground = RMath.Lerp((!IsSelected) ? BackgroundColor.CachedValue : EnabledFillColor.CachedValue, hoveredMix, t);
+                currenthighlight = RMath.Lerp(highlight.CachedValue, hoveredHigh, t);
 
                 float pixelsAdd = 0.75f;
                 float sx = (Transform.Size.CachedValue.x + pixelsAdd) / Transform.Size.CachedValue.x;
@@ -48,15 +56,29 @@ namespace FenUISharp.Objects
                 Invalidate(Invalidation.SurfaceDirty);
             };
 
-            InteractiveSurface.OnMouseEnter += () => {
+            InteractiveSurface.OnMouseEnter += () =>
+            {
                 toggleAnimator.Inverse = false;
                 toggleAnimator.Restart();
             };
-            
-            InteractiveSurface.OnMouseExit += () => {
+
+            InteractiveSurface.OnMouseExit += () =>
+            {
                 toggleAnimator.Inverse = true;
                 toggleAnimator.Restart();
             };
+
+            Transform.SnapPositionToPixelGrid.SetStaticState(true);
+
+            // Creating checkmark
+
+            FImage image = new(() => Resources.GetImage("fenui-builtin-check"));
+            image.Transform.Size.SetResponsiveState(() => new(Transform.Size.CachedValue.x - 4, Transform.Size.CachedValue.y - 4));
+            image.Transform.LocalPosition.SetStaticState(new(0.5f, 1f));
+            image.Enabled.SetResponsiveState(() => IsSelected);
+            image.SetParent(this);
+
+            UpdateColors();
         }
 
         public override void Dispose()
@@ -67,28 +89,26 @@ namespace FenUISharp.Objects
             BackgroundColor.Dispose();
             CheckColor.Dispose();
             EnabledFillColor.Dispose();
+
+            highlight.Dispose();
         }
 
         void UpdateColors()
         {
-            if (toggleAnimator.IsRunning)
-            {
-                float t = toggleAnimator.Time;
-                if (!IsSelected) t = 1 - t;
-                t = Math.Clamp(t, 0, 1);
+            if (toggleAnimator.IsRunning) return;
+            var baseCol = IsSelected ? EnabledFillColor.CachedValue : BackgroundColor.CachedValue;
 
-                currentBackground = RMath.Lerp(BackgroundColor.CachedValue, EnabledFillColor.CachedValue, t);
-            }
-            else
-            {
-                currentBackground = RMath.Lerp(BackgroundColor.CachedValue, EnabledFillColor.CachedValue, IsSelected ? 1 : 0);
-            }
+            var hoveredMix = RMath.Lerp(baseCol, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix, 0.2f);
+            var hoveredHigh = RMath.Lerp(highlight.CachedValue, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix, 0.2f);
+
+            currentbackground = RMath.Lerp(baseCol, hoveredMix, InteractiveSurface.IsMouseHovering ? 1 : 0);
+            currenthighlight = RMath.Lerp(highlight.CachedValue, hoveredHigh, InteractiveSurface.IsMouseHovering ? 1 : 0);
         }
 
         public override void OnInternalStateChanged<T>(T value)
         {
             base.OnInternalStateChanged(value);
-            
+
             UpdateColors();
         }
 
@@ -121,7 +141,7 @@ namespace FenUISharp.Objects
 
             using var shadow = SKImageFilter.CreateDropShadow(0, 2, 5, 5, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Shadow);
 
-            paint.Color = currentBackground;
+            paint.Color = currentbackground;
             canvas.DrawRoundRect(backgroundRect, paint);
             canvas.ClipRoundRect(backgroundRect, antialias: true);
 
@@ -130,6 +150,21 @@ namespace FenUISharp.Objects
             paint.StrokeWidth = 1;
             canvas.DrawRoundRect(backgroundRect, paint);
             canvas.Translate(-0.5f, -0.5f);
+
+            // Highlight on Top Edge
+            using (var highlightPaint = GetRenderPaint())
+            {
+                highlightPaint.IsAntialias = true;
+                highlightPaint.Shader = SKShader.CreateLinearGradient(
+                    new SKPoint(Shape.LocalBounds.Left, Shape.LocalBounds.Top),
+                    new SKPoint(Shape.LocalBounds.Left, Shape.LocalBounds.Top + 4f),
+                    new SKColor[] { currenthighlight, SKColors.Transparent },
+                    new float[] { 0.0f, 0.4f },
+                    SKShaderTileMode.Clamp
+                );
+                // canvas.DrawRoundRect(roundRect, paint);
+                canvas.DrawPath(SKSquircle.CreateSquircle(Shape.LocalBounds, CornerRadius), highlightPaint);
+            }
         }
     }
 }

@@ -40,14 +40,18 @@ namespace FenUISharp.Objects
         public override void Render(SKCanvas canvas)
         {
             base.Render(canvas);
+            RenderBasePanel(canvas, Shape.LocalBounds);
+        }
 
+        protected virtual void RenderBasePanel(SKCanvas canvas, SKRect rect)
+        {
             if(BorderSize.CachedValue % 2 == 1)
                 canvas.Translate(0.5f, 0.5f);
 
             var paint = GetRenderPaint();
             paint.Color = PanelColor.CachedValue;
 
-            using var panelPath = GetPanelPath();
+            using var panelPath = GetPanelPath(rect);
             using (var dropShadow = SKImageFilter.CreateDropShadow(0, 2, DropShadowRadius.CachedValue, DropShadowRadius.CachedValue, ShadowColor.CachedValue))
                 paint.ImageFilter = dropShadow;
 

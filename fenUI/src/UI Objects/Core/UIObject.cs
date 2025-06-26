@@ -174,6 +174,7 @@ namespace FenUISharp.Objects
 
                     DispatchBehaviorEvent(BehaviorEventType.BeforeTransform);
                     Transform.UpdateTransform();
+                    Children.ForEach(x => x.Invalidate(Invalidation.TransformDirty));
                     DispatchBehaviorEvent(BehaviorEventType.AfterTransform);
                     
                     Shape.UpdateShape(); // Includes updating layout

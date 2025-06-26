@@ -68,8 +68,12 @@ namespace FenUISharp.Objects.Buttons
                 Invalidate(Invalidation.SurfaceDirty);
             };
 
+            Transform.SnapPositionToPixelGrid.SetStaticState(true);
+
             Padding.SetStaticState(10);
             InteractiveSurface.ExtendInteractionRadius.SetStaticState(-10);
+
+            UpdateColors();
         }
 
         public override void OnInternalStateChanged<T>(T value)
@@ -80,6 +84,8 @@ namespace FenUISharp.Objects.Buttons
 
         void UpdateColors()
         {
+            if (animatorComponent.IsRunning) return;
+
             var hoveredMix = RMath.Lerp(BaseColor.CachedValue, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix, 0.2f);
             var hoveredHigh = RMath.Lerp(highlight.CachedValue, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix, 0.2f);
 
@@ -140,6 +146,8 @@ namespace FenUISharp.Objects.Buttons
 
         public override void Render(SKCanvas canvas)
         {
+            base.Render(canvas);
+
             // using (var roundRect = new SKRoundRect(Transform.LocalBounds, cornerRadius, cornerRadius))
             {
                 // Draw base rectangle

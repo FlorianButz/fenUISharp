@@ -61,6 +61,7 @@ namespace FenUISharp.Objects
         public float BarHeight { get => Transform.Size.CachedValue.y; set => Transform.Size.SetStaticState(new(Transform.Size.CachedValue.x, value)); }
 
         public bool DisplayFill { get; set; } = true;
+        public bool ClampKnob { get; set; } = false;
 
         public Action<float>? OnValueChanged { get; set; }
         public Action<float>? OnUserValueChanged { get; set; }
@@ -68,6 +69,7 @@ namespace FenUISharp.Objects
         public FSlider(Func<Vector2>? position = null, float width = 100) : base(position, () => new(width, 3))
         {
             InteractiveSurface.EnableMouseActions.SetStaticState(true);
+            InteractiveSurface.OnMouseAction += MouseAction;
             InteractiveSurface.OnDrag += OnDragSlider;
 
             MinValue = new(() => 0, this);
@@ -83,10 +85,18 @@ namespace FenUISharp.Objects
             KnobShadow = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Shadow, this);
             SnappingHandle = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SecondaryVariant, this);
 
-            Padding.SetStaticState(25);
+            Padding.SetStaticState(15);
             InteractiveSurface.ExtendInteractionRadius.SetStaticState(50);
 
             KnobPositionSpring = new(5f, 1.4f);
+        }
+
+        private void MouseAction(MouseInputCode code)
+        {
+            if (code.button == MouseInputButton.Left && code.state == MouseInputState.Down)
+            {
+                SetToPoint(FContext.GetCurrentWindow().ClientMousePosition);
+            }
         }
 
         public override void OnInternalStateChanged<T>(T value)
@@ -134,6 +144,11 @@ namespace FenUISharp.Objects
 
         private void OnDragSlider(Vector2 mousePos)
         {
+            SetToPoint(mousePos);
+        }
+
+        private void SetToPoint(Vector2 pos)
+        {
             var lastValue = GetValue();
 
             Value = Math.Clamp(
@@ -158,43 +173,14 @@ namespace FenUISharp.Objects
 
             using var SkPaint = GetRenderPaint();
 
-            { // Unfilled Bar
-                using var paint = SkPaint.Clone();
+            var bounds = Shape.LocalBounds;
+            bounds.Offset(0.5f, 0.5f);
 
-                paint.Color = Bar.CachedValue;
+            RenderBackground(canvas, bounds);
 
-                SKRect barRect = Shape.LocalBounds;
-                barRect.Offset(0.5f, 0.5f);
-
-                var barRoundRect = new SKRoundRect(barRect, BarCornerRadius);
-                canvas.DrawRoundRect(barRoundRect, paint);
-
-                if (BarBorderSize > 0)
-                {
-                    paint.Color = BarBorder.CachedValue;
-                    paint.IsStroke = true;
-                    paint.StrokeWidth = BarBorderSize;
-
-                    canvas.DrawRoundRect(barRoundRect, paint);
-                }
-
-                barRoundRect.Dispose();
-            }
-
-            if (DisplayFill)
-            { // Filled Bar
-                using var paint = SkPaint.Clone();
-
-                paint.Color = BarFill.CachedValue;
-
-                SKRect barRect = SKRect.Create(Shape.LocalBounds.Left, Shape.LocalBounds.MidY - Transform.Size.CachedValue.y / 2, Shape.LocalBounds.Width * knobPos, Transform.Size.CachedValue.y);
-                barRect.Offset(0.5f, 0.5f);
-
-                var barRoundRect = new SKRoundRect(barRect, BarCornerRadius);
-                canvas.DrawRoundRect(barRoundRect, paint);
-
-                barRoundRect.Dispose();
-            }
+            SKRect barRect = SKRect.Create(Shape.LocalBounds.Left, Shape.LocalBounds.MidY - Transform.Size.CachedValue.y / 2, Shape.LocalBounds.Width * knobPos, Transform.Size.CachedValue.y);
+            barRect.Offset(0.5f, 0.5f);
+            RenderFilledBackground(canvas, barRect);
 
             List<float> hotspots = new();
             if (_snappingHotspots != null) _snappingHotspots.ForEach(x => hotspots.Add(x));
@@ -202,70 +188,121 @@ namespace FenUISharp.Objects
 
             if (hotspots != null)
             { // Snapping indicators and extra hotspots
-                using var paint = SkPaint.Clone();
-
-                canvas.Save();
-                SKRect clip = Shape.LocalBounds;
-                clip.Inflate(2, SnappingHandleSize.y);
-                canvas.ClipRect(clip, antialias: true);
-
-                for (int i = 0; i < hotspots.Count; i++)
-                {
-                    float value = RMath.Remap(hotspots[i], MinValue.CachedValue, MaxValue.CachedValue, 0, 1);
-
-                    if (DisplayFill && _value > value)
-                        paint.Color = BarFill.CachedValue;
-                    else
-                        paint.Color = SnappingHandle.CachedValue;
-
-                    SKRect snapRect = SKRect.Create(
-                        RMath.Lerp(Shape.LocalBounds.Left, Shape.LocalBounds.Right, value) - SnappingHandleSize.x / 2,
-                        Shape.LocalBounds.MidY - SnappingHandleSize.y / 2, SnappingHandleSize.x, SnappingHandleSize.y);
-                    snapRect.Offset(0.5f, 0.5f);
-
-                    var snapRoundRect = new SKRoundRect(snapRect, SnappingHandleCornerRadius);
-                    canvas.DrawRoundRect(snapRoundRect, paint);
-
-                    snapRoundRect.Dispose();
-                }
-
-                canvas.Restore();
+                RenderHotspots(canvas, hotspots);
             }
 
-            { // Knob
-                using var paint = SkPaint.Clone();
+            SKRect knobRect = SKRect.Create(
+                RMath.Lerp(Shape.LocalBounds.Left, Shape.LocalBounds.Right, knobPos) - KnobSize.x / 2,
+                Shape.LocalBounds.MidY - KnobSize.y / 2, KnobSize.x, KnobSize.y);
 
-                paint.Color = KnobFill.CachedValue;
+            if (ClampKnob)
+            {
+                knobRect = SKRect.Create(
+                    RMath.Clamp(RMath.Lerp(Shape.LocalBounds.Left, Shape.LocalBounds.Right, knobPos) - KnobSize.x / 2, Shape.LocalBounds.Left, Shape.LocalBounds.Right - knobRect.Width),
+                    Shape.LocalBounds.MidY - KnobSize.y / 2, KnobSize.x, KnobSize.y
+                );
+            }
 
-                using (var shadow = SKImageFilter.CreateDropShadow(0, 1, 5, 5, KnobShadow.CachedValue))
-                    paint.ImageFilter = shadow;
+            knobRect.Offset(0.5f, 0.5f);
+            RenderKnob(canvas, knobRect);
+        }
 
-                SKRect knobRect = SKRect.Create(
-                    RMath.Lerp(Shape.LocalBounds.Left, Shape.LocalBounds.Right, knobPos) - KnobSize.x / 2,
-                    Shape.LocalBounds.MidY - KnobSize.y / 2, KnobSize.x, KnobSize.y);
-                knobRect.Offset(0.5f, 0.5f);
+        protected virtual void RenderKnob(SKCanvas canvas, SKRect knobRect)
+        {
+            using var paint = GetRenderPaint();
 
-                var knobRoundRect = new SKRoundRect(knobRect, KnobCornerRadius);
+            paint.Color = KnobFill.CachedValue;
+
+            using (var shadow = SKImageFilter.CreateDropShadow(0, 1, 5, 5, KnobShadow.CachedValue))
+                paint.ImageFilter = shadow;
+
+            using var knobRoundRect = new SKRoundRect(knobRect, KnobCornerRadius);
+            canvas.DrawRoundRect(knobRoundRect, paint);
+
+            if (KnobBorderSize > 0)
+            {
+                paint.Color = KnobBorder.CachedValue;
+                paint.IsStroke = true;
+                paint.StrokeWidth = KnobBorderSize;
+
                 canvas.DrawRoundRect(knobRoundRect, paint);
-
-                SkPaint.ImageFilter = null;
-
-                if (KnobBorderSize > 0)
-                {
-                    paint.Color = KnobBorder.CachedValue;
-                    paint.IsStroke = true;
-                    paint.StrokeWidth = KnobBorderSize;
-
-                    canvas.DrawRoundRect(knobRoundRect, paint);
-                }
-
-                knobRoundRect.Dispose();
             }
+
+            knobRoundRect.Dispose();
+        }
+
+        protected virtual void RenderBackground(SKCanvas canvas, SKRect rect)
+        {
+            // Unfilled Bar
+            using var paint = GetRenderPaint();
+
+            paint.Color = Bar.CachedValue;
+
+            using var barRoundRect = new SKRoundRect(rect, BarCornerRadius);
+            canvas.DrawRoundRect(barRoundRect, paint);
+
+            if (BarBorderSize > 0)
+            {
+                paint.Color = BarBorder.CachedValue;
+                paint.IsStroke = true;
+                paint.StrokeWidth = BarBorderSize;
+
+                canvas.DrawRoundRect(barRoundRect, paint);
+            }
+
+            barRoundRect.Dispose();
+        }
+
+        protected virtual void RenderFilledBackground(SKCanvas canvas, SKRect rect)
+        {
+            if (DisplayFill)
+            { // Filled Bar
+                using var paint = GetRenderPaint();
+
+                paint.Color = BarFill.CachedValue;
+
+                using var barRoundRect = new SKRoundRect(rect, BarCornerRadius);
+                canvas.DrawRoundRect(barRoundRect, paint);
+
+                barRoundRect.Dispose();
+            }
+        }
+
+        protected virtual void RenderHotspots(SKCanvas canvas, List<float> hotspots)
+        {
+            using var paint = GetRenderPaint();
+
+            canvas.Save();
+            SKRect clip = Shape.LocalBounds;
+            clip.Inflate(2, SnappingHandleSize.y);
+            canvas.ClipRect(clip, antialias: true);
+
+            for (int i = 0; i < hotspots.Count; i++)
+            {
+                float value = RMath.Remap(hotspots[i], MinValue.CachedValue, MaxValue.CachedValue, 0, 1);
+
+                if (DisplayFill && _value > value)
+                    paint.Color = BarFill.CachedValue;
+                else
+                    paint.Color = SnappingHandle.CachedValue;
+
+                SKRect snapRect = SKRect.Create(
+                    RMath.Lerp(Shape.LocalBounds.Left, Shape.LocalBounds.Right, value) - SnappingHandleSize.x / 2,
+                    Shape.LocalBounds.MidY - SnappingHandleSize.y / 2, SnappingHandleSize.x, SnappingHandleSize.y);
+                snapRect.Offset(0.5f, 0.5f);
+
+                using var snapRoundRect = new SKRoundRect(snapRect, SnappingHandleCornerRadius);
+                canvas.DrawRoundRect(snapRoundRect, paint);
+
+                snapRoundRect.Dispose();
+            }
+
+            canvas.Restore();
         }
 
         private void UpdateHostpots()
         {
-            if(SnappingInterval != 0)
+            if (SnappingInterval != 0)
                 _snappingHotspots = GetSnapHotSpots(MinValue.CachedValue, MaxValue.CachedValue, SnappingInterval);
         }
 
