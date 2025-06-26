@@ -44,10 +44,9 @@ namespace FenUISharp.Objects
 
             LayoutObject layoutObject = new(this);
             layoutObject.IgnoreParentLayout.SetStaticState(true);
-            CornerRadius.SetStaticState(7.5f);
+            CornerRadius.SetStaticState(10f);
 
             Composition.LocalZIndex.SetStaticState(99);
-
         }
 
         public bool IsShowing { get; private set; }
@@ -133,7 +132,6 @@ namespace FenUISharp.Objects
         protected override void LateUpdate()
         {
             base.LateUpdate();
-            GlobalTargetPoint.SetResponsiveState(() => FContext.GetCurrentWindow().ClientMousePosition);
 
             GlobalBounds = FContext.GetCurrentWindow().Bounds;
             Transform.LocalPosition.SetStaticState(GetPanelPosition(Transform.GlobalToLocal(GlobalTargetPoint.CachedValue), Transform.GlobalToLocal(GlobalBounds), DistanceToTarget));

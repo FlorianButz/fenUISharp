@@ -20,8 +20,6 @@ namespace FenUISharp.Objects.Buttons
 
         protected AnimatorComponent toggleAnimator;
 
-        // TODO: For some reason not centered.
-
         public FRoundToggle(Func<Vector2>? position = null) : base(null, null, position, () => new(WIDTH, HEIGHT))
         {
             BackgroundColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SurfaceVariant, this);

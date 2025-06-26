@@ -62,7 +62,7 @@ namespace FenUISharp.Objects
             Padding = new(() => 0, (x) => Invalidate(Invalidation.SurfaceDirty));
 
             Transform.LocalPosition.Value = position ?? (() => Vector2.Zero);
-            Transform.Size.Value = size ?? (() => Vector2.Zero);
+            Transform.Size.Value = size ?? (() => new(100, 100));
 
             _objectSurface = new(RenderToSurface);
             _childSurface = new(DrawChildren);

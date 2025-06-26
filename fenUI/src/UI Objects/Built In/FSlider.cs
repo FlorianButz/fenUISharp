@@ -13,10 +13,12 @@ namespace FenUISharp.Objects
             get => GetValue();
             set
             {
-                var lastValue = _value;
-                _value = RMath.Remap(value, MinValue.CachedValue, MaxValue.CachedValue, 0, 1);
-                if (lastValue != _value)
+                var lastValue = GetValue();
+                var val = GetValue(RMath.Remap(value, MinValue.CachedValue, MaxValue.CachedValue, 0, 1));
+                if (lastValue != val)
                 {
+                    _value = val;
+
                     OnValueChanged?.Invoke(value);
                     Invalidate(Invalidation.SurfaceDirty);
                 }
@@ -26,12 +28,10 @@ namespace FenUISharp.Objects
         public State<float> MaxValue { get; init; }
         public State<float> MinValue { get; init; }
 
-        // TODO: Remove snapping provider. Add snap interval. Make extra hotspots also snappable
-
         private List<float>? _snappingHotspots;
-        private Func<float, float>? _snappingProvider;
-        public Func<float, float>? SnappingProvider { get => _snappingProvider; set { _snappingProvider = value; UpdateHostpots(); } }
-        public bool Use01RangeForSnappingProvider { get; set; } = false;
+
+        private float _snappingInterval = 0;
+        public float SnappingInterval { get => _snappingInterval; set { _snappingInterval = value; UpdateHostpots(); } }
         public int MaxSnapIndicators { get; set; } = 50;
 
         public List<float> ExtraHotspots { get; set; } = new();
@@ -108,17 +108,17 @@ namespace FenUISharp.Objects
             KnobPositionSpring.ResetVector(new(_value * 100, 0));
         }
 
-        public float GetValue()
+        public float GetValue(float? c = null)
         {
-            if (SnappingProvider != null)
+            if (SnappingInterval != 0)
             {
-                if (Use01RangeForSnappingProvider)
-                    return RMath.Remap(SnappingProvider(_value), 0, 1, MinValue.CachedValue, MaxValue.CachedValue);
-                else
-                    return SnappingProvider(RMath.Remap(_value, 0, 1, MinValue.CachedValue, MaxValue.CachedValue));
+                List<float> hotspots = _snappingHotspots ?? new();
+                hotspots.AddRange(ExtraHotspots);
+
+                return hotspots.OrderBy(x => Math.Abs(x - RMath.Remap(c ?? _value, 0, 1, MinValue.CachedValue, MaxValue.CachedValue))).First();
             }
             else
-                return RMath.Remap(_value, 0, 1, MinValue.CachedValue, MaxValue.CachedValue);
+                return RMath.Remap(c ?? _value, 0, 1, MinValue.CachedValue, MaxValue.CachedValue);
         }
 
         protected override void Update()
@@ -134,6 +134,8 @@ namespace FenUISharp.Objects
 
         private void OnDragSlider(Vector2 mousePos)
         {
+            var lastValue = GetValue();
+
             Value = Math.Clamp(
                 RMath.Remap(FContext.GetCurrentWindow().ClientMousePosition.x,
                     Shape.GlobalBounds.Left + Padding.CachedValue,
@@ -141,8 +143,13 @@ namespace FenUISharp.Objects
                 MinValue.CachedValue, MaxValue.CachedValue),
                 MinValue.CachedValue, MaxValue.CachedValue);
 
-            OnValueChanged?.Invoke(Value);
-            OnUserValueChanged?.Invoke(Value);
+            var val = GetValue();
+
+            if (lastValue != val)
+            {
+                OnValueChanged?.Invoke(Value);
+                OnUserValueChanged?.Invoke(Value);
+            }
         }
 
         public override void Render(SKCanvas canvas)
@@ -258,24 +265,17 @@ namespace FenUISharp.Objects
 
         private void UpdateHostpots()
         {
-            if (_snappingProvider != null)
-                _snappingHotspots = GetSnapHotSpots(MinValue.CachedValue, MaxValue.CachedValue, _snappingProvider);
+            if(SnappingInterval != 0)
+                _snappingHotspots = GetSnapHotSpots(MinValue.CachedValue, MaxValue.CachedValue, SnappingInterval);
         }
 
-        private List<float> GetSnapHotSpots(float min, float max, Func<float, float> snapFunc, float sampleStep = 0.1f, float tolerance = 0.01f)
+        private List<float> GetSnapHotSpots(float min, float max, float interval)
         {
             var hotSpots = new List<float>();
 
-            int count = 0;
-            for (float x = min; x <= max; x += sampleStep)
+            for (float i = min; i <= max; i += interval)
             {
-                count++;
-                float snapped = snapFunc(x);
-
-                if (!hotSpots.Any(h => Math.Abs(h - snapped) < tolerance))
-                    hotSpots.Add(snapped);
-
-                if (count > MaxSnapIndicators) break;
+                hotSpots.Add(i);
             }
 
             hotSpots.Sort();

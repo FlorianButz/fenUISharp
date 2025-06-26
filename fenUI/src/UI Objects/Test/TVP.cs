@@ -60,39 +60,36 @@ namespace FenUISharp.Objects
             // l.Gap.SetStaticState(20);
             // l.FullUpdateLayout();
 
+            // return new();
+
+            // var v = new FToggle();
+            // new FRoundToggle().Transform.LocalPosition.SetStaticState(new(0, 100));
 
             var fp = new FPopupPanel(() => new(175, 100));
 
-            var test = new FText(TextModelFactory.CreateBasic("Lorem ipsum dolor sit amet, consetetur sadipscing elitr"));
-            // var test = new FImage(() => Resources.GetImage("test-img"));
-            test.Layout.StretchHorizontal.SetStaticState(true);
-            test.Layout.StretchVertical.SetStaticState(true);
-            test.Layout.MarginHorizontal.SetStaticState(15);
-            test.Layout.MarginVertical.SetStaticState(15);
-            test.SetParent(fp);
-            
             var toggle = new FRoundToggle();
             toggle.SetParent(fp);
-            new FRoundToggle().SetParent(fp);
-            new FRoundToggle().SetParent(fp);
-            new FRoundToggle().SetParent(fp);
-            new FRoundToggle().SetParent(fp);
+            // new FRoundToggle().SetParent(fp);
 
-            var s = new FSlider(position: () => new(0, 100));
-            s.SnappingProvider = (x) => MathF.Round(x * 10) / 10;
-            s.Transform.Size.SetStaticState(new(300, 5));
-            
-            var sDisplay = new FText(TextModelFactory.CreateBasic("Slider Wert: 0"), position: () => new(0, 200), size: () => new(200, 200));
-            sDisplay.LayoutModel = new ParticleExplosionLayoutProcessor(sDisplay, new WrapLayout(sDisplay)) { ExplosionRadius = 200, VelocityRandomness = 75, ParticleEndSize = 16, ParticleStartSize = 10, PreDelay = -1 };
-            sDisplay.Padding.SetStaticState(200);
-            s.OnValueChanged += (x) => sDisplay.Model = TextModelFactory.CreateBasic("Slider Wert: " + x);
-            
-            new FImage(() => Resources.GetImage("test-img"), size: () => new(150 * (s.Value + 1), 150), position: () => new(MathF.Sin(FContext.Time / 2) * 300, 0));
+
+
+
+            // var s = new FSlider(position: () => new(0, 100));
+            // s.SnappingInterval = 0.5f;
+            // s.ExtraHotspots.Add(0.25f);
+            // s.Transform.Size.SetStaticState(new(300, 5));
+
+            // var sDisplay = new FText(TextModelFactory.CreateBasic("Slider Wert: 0"), position: () => new(0, 200), size: () => new(200, 200));
+            // // sDisplay.LayoutModel = new ParticleExplosionLayoutProcessor(sDisplay, new WrapLayout(sDisplay)) { ExplosionRadius = 200, VelocityRandomness = 75, ParticleEndSize = 16, ParticleStartSize = 10, PreDelay = -1 };
+            // // sDisplay.Padding.SetStaticState(200);
+            // s.OnValueChanged += (x) => sDisplay.Model = TextModelFactory.CreateBasic("Slider Wert: " + x);
+
+            // new FImage(() => Resources.GetImage("test-img"), size: () => new(150 * (s.Value + 1), 150), position: () => new(MathF.Sin(FContext.Time / 2) * 300, 0));
 
             var btn = new FSimpleButton(new Text.FText(TextModelFactory.CreateBasic("Open Pop-up!")), position: () => new(new(0,0)));
             btn.OnClick += () => fp.Show(() => btn.Transform.LocalToGlobal(btn.Transform.LocalPosition.CachedValue));
 
-            return new List<UIObject>() { btn };
+            return new List<UIObject>() { };
         }
     }
 }
