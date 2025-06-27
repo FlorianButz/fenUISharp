@@ -80,6 +80,8 @@ namespace FenUISharp.Objects
             col.Layout.MarginVertical.SetStaticState(7.5f);
             col.SetParent(fp);
 
+            new FColorPatch();
+
             var v = new FToggle();
             v.Transform.LocalPosition.SetStaticState(new(0, 100));
             // v.Transform.Size.SetStaticState(new(100, 100));

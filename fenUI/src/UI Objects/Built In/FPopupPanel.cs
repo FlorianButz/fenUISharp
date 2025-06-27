@@ -17,18 +17,22 @@ namespace FenUISharp.Objects
         public SKRect GlobalBounds { get; set; }
 
         private AnimatorComponent _inAnimation;
-        private StackContentComponent layout;
+        private StackContentComponent? layout;
 
-        public FPopupPanel(Func<Vector2> size) : base(() => new(0, 0), size)
+        public FPopupPanel(Func<Vector2> size, bool addLayout = true) : base(() => new(0, 0), size)
         {
             GlobalTargetPoint = new(() => new(0, 0), this);
-            layout = new StackContentComponent(this, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
-            layout.Pad.SetStaticState(5);
-            layout.Gap.SetStaticState(15);
 
-            layout.ContentFade = true;
-            layout.EnableEdgeBlur = true;
-            layout.FadeLength = 20;
+            if (addLayout)
+            {
+                layout = new StackContentComponent(this, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
+                layout.Pad.SetStaticState(5);
+                layout.Gap.SetStaticState(15);
+
+                layout.ContentFade = true;
+                layout.EnableEdgeBlur = true;
+                layout.FadeLength = 20;
+            }
 
             _inAnimation = new(this, Easing.EaseOutLessElastic, Easing.EaseInCubic);
             _inAnimation.OnValueUpdate += (x) =>
@@ -122,7 +126,7 @@ namespace FenUISharp.Objects
             FContext.GetCurrentDispatcher().InvokeLater(() => Children.ToList().ForEach(x => x.Invalidate(Invalidation.All)), 1L);
             _inAnimation.OnComplete = OnCompleteAnim; // Reset
 
-            layout.FullUpdateLayout();
+            layout?.FullUpdateLayout();
         }
 
         private SKPath tailPath;
@@ -144,7 +148,7 @@ namespace FenUISharp.Objects
 
             if (lastPos != Transform.LocalToGlobal(Transform.Position))
             {
-                layout.FullUpdateLayout();
+                layout?.FullUpdateLayout();
                 Children.ForEach(x => x.Invalidate(Invalidation.TransformDirty));
             }
 

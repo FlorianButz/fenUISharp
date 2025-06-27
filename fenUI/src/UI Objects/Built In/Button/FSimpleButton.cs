@@ -148,7 +148,9 @@ namespace FenUISharp.Objects.Buttons
         {
             base.Render(canvas);
 
-            // using (var roundRect = new SKRoundRect(Transform.LocalBounds, cornerRadius, cornerRadius))
+            canvas.Translate(0.5f, 0.5f);
+
+            using (var path = SKSquircle.CreateSquircle(Shape.LocalBounds, cornerRadius))
             {
                 // Draw base rectangle
                 using (var paint = GetRenderPaint())
@@ -160,7 +162,7 @@ namespace FenUISharp.Objects.Buttons
                     using (var shadow = SKImageFilter.CreateDropShadow(0, 2, 2, 2, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Shadow))
                         paint.ImageFilter = shadow;
                     // canvas.DrawRoundRect(roundRect, paint);
-                    canvas.DrawPath(SKSquircle.CreateSquircle(Shape.LocalBounds, cornerRadius), paint);
+                    canvas.DrawPath(path, paint);
                 }
 
                 // Highlight on Top Edge
@@ -175,7 +177,7 @@ namespace FenUISharp.Objects.Buttons
                         SKShaderTileMode.Clamp
                     );
                     // canvas.DrawRoundRect(roundRect, paint);
-                    canvas.DrawPath(SKSquircle.CreateSquircle(Shape.LocalBounds, cornerRadius), paint);
+                    canvas.DrawPath(path, paint);
                 }
 
                 using (var paint = GetRenderPaint())
@@ -184,9 +186,7 @@ namespace FenUISharp.Objects.Buttons
                     paint.Color = BorderColor.CachedValue;
                     paint.StrokeWidth = 1;
 
-                    canvas.Translate(0.5f, 0.5f);
-                    canvas.DrawPath(SKSquircle.CreateSquircle(Shape.LocalBounds, cornerRadius), paint);
-                    canvas.Translate(-0.5f, -0.5f);
+                    canvas.DrawPath(path, paint);
                 }
 
                 // Inner Shadow
@@ -201,7 +201,7 @@ namespace FenUISharp.Objects.Buttons
                         SKShaderTileMode.Clamp
                     );
                     // canvas.DrawRoundRect(roundRect, paint);
-                    canvas.DrawPath(SKSquircle.CreateSquircle(Shape.LocalBounds, cornerRadius), paint);
+                    canvas.DrawPath(path, paint);
                 }
             }
         }

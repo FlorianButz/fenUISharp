@@ -7,6 +7,7 @@ namespace FenUISharp.Objects
     {
         public SKColor PickedColor { get => GetColor(); set => SetColor(value); }
         public Action<SKColor>? OnColorUpdated { get; set; }
+        public Action<SKColor>? OnUserColorUpdated { get; set; }
 
         private FHueSlider hueSlider;
         private SKRect pickerInnerBounds;
@@ -19,7 +20,7 @@ namespace FenUISharp.Objects
         private Spring knobSpring;
         private Spring knobSizeSpring;
 
-        public FColorPicker() : base(size: () => new(150, 150))
+        public FColorPicker(SKColor? initialColor = null) : base(size: () => new(150, 150))
         {
             _drawBasePanel = false;
 
@@ -43,11 +44,21 @@ namespace FenUISharp.Objects
             hueSlider.Transform.LocalPosition.SetStaticState(new(0, -5));
             hueSlider.DisplayFill = false;
 
-            hueSlider.OnValueChanged += (x) => Invalidate(Invalidation.SurfaceDirty);
+            hueSlider.OnValueChanged += (x) =>
+            {
+                Invalidate(Invalidation.SurfaceDirty);
+
+                OnColorUpdated?.Invoke(PickedColor);
+                OnUserColorUpdated?.Invoke(PickedColor);
+            };
 
             Padding.SetStaticState(15);
-
             hueSlider.SetParent(this);
+
+            FContext.GetCurrentDispatcher().InvokeLater(() =>
+            {
+                SetColor(initialColor ?? SKColors.White);
+            }, 2L);
         }
 
         private SKColor GetColor()
@@ -61,6 +72,9 @@ namespace FenUISharp.Objects
             hueSlider.Value = hue / 360f;
 
             pickerKnobPos = new((sat / 100f) * pickerInnerBounds.Width, (1f - (val / 100f)) * pickerInnerBounds.Height);
+            pickerKnobDisplayPos = pickerKnobPos;
+            knobSpring.ResetVector(pickerKnobPos);
+
             OnColorUpdated?.Invoke(PickedColor);
         }
 
@@ -83,6 +97,7 @@ namespace FenUISharp.Objects
             pickerKnobPos = Vector2.Clamp(pickerKnobPos, Vector2.Zero, new(pickerInnerBounds.Width, pickerInnerBounds.Height));
 
             OnColorUpdated?.Invoke(PickedColor);
+            OnUserColorUpdated?.Invoke(PickedColor);
         }
 
         public override void Dispose()
@@ -92,19 +107,23 @@ namespace FenUISharp.Objects
             pickerSurface.Dispose();
         }
 
+        void UpdateBounds()
+        {
+            pickerInnerBounds = Shape.LocalBounds;
+            pickerInnerBounds.Offset(0, -(hueSlider.Transform.Size.CachedValue.y / 2 + 10));
+            pickerInnerBounds.Inflate(0, -(hueSlider.Transform.Size.CachedValue.y / 2 + 10));
+        }
+
         protected override void Update()
         {
             base.Update();
 
-            pickerInnerBounds = Shape.LocalBounds;
-            pickerInnerBounds.Offset(0, -(hueSlider.Transform.Size.CachedValue.y / 2 + 10));
-            pickerInnerBounds.Inflate(0, -(hueSlider.Transform.Size.CachedValue.y / 2 + 10));
-
+            UpdateBounds();
             var lastVal = pickerKnobPos + knobSizeSpring.GetLastValue().x;
 
             knobSizeSpring.Update(FContext.DeltaTime, new(pickerSurface.IsMouseDown ? 12.5f : 5, 0f));
             pickerKnobDisplayPos = knobSpring.Update(FContext.DeltaTime, pickerKnobPos);
-            
+
             if (lastVal != (pickerKnobDisplayPos + knobSizeSpring.GetLastValue().x)) Invalidate(Invalidation.SurfaceDirty);
         }
 

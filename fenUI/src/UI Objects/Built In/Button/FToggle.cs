@@ -137,18 +137,18 @@ namespace FenUISharp.Objects
 
             using var paint = GetRenderPaint();
             var bounds = Shape.LocalBounds;
-            using var backgroundRect = new SKRoundRect(bounds, CornerRadius);
+            using var backgroundPath = SKSquircle.CreateSquircle(Shape.LocalBounds, CornerRadius);
 
             using var shadow = SKImageFilter.CreateDropShadow(0, 2, 5, 5, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Shadow);
 
             paint.Color = currentbackground;
-            canvas.DrawRoundRect(backgroundRect, paint);
-            canvas.ClipRoundRect(backgroundRect, antialias: true);
+            canvas.DrawPath(backgroundPath, paint);
+            canvas.ClipPath(backgroundPath, antialias: true);
 
             paint.Color = BorderColor.CachedValue;
             paint.IsStroke = true;
             paint.StrokeWidth = 1;
-            canvas.DrawRoundRect(backgroundRect, paint);
+            canvas.DrawPath(backgroundPath, paint);
             canvas.Translate(-0.5f, -0.5f);
 
             // Highlight on Top Edge
@@ -162,8 +162,7 @@ namespace FenUISharp.Objects
                     new float[] { 0.0f, 0.4f },
                     SKShaderTileMode.Clamp
                 );
-                // canvas.DrawRoundRect(roundRect, paint);
-                canvas.DrawPath(SKSquircle.CreateSquircle(Shape.LocalBounds, CornerRadius), highlightPaint);
+                canvas.DrawPath(backgroundPath, highlightPaint);
             }
         }
     }
