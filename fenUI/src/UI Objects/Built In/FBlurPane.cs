@@ -25,7 +25,7 @@ namespace FenUISharp.Objects
             base.Render(canvas);
 
             var captureArea = Shape.SurfaceDrawRect;
-            using var windowArea = this.Composition.GrabBehindPlusBuffer(Transform.DrawLocalToGlobal(captureArea), HighQualityBlur ? 0.15f : 0.02f);
+            using var windowArea = this.Composition.GrabBehindPlusBuffer(Transform.DrawLocalToGlobal(captureArea), HighQualityBlur ? 0.3f : 0.02f);
 
             using (var panelPath = GetPanelPath())
             {

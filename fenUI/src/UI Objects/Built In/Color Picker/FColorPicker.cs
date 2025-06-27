@@ -10,6 +10,7 @@ namespace FenUISharp.Objects
         public Action<SKColor>? OnUserColorUpdated { get; set; }
 
         private FHueSlider hueSlider;
+        private FAlphaSlider alphaSlider;
         private SKRect pickerInnerBounds;
 
         private InteractiveSurface pickerSurface;
@@ -32,6 +33,8 @@ namespace FenUISharp.Objects
             pickerSurface.OnMouseAction += MouseAction;
             pickerSurface.OnDrag += DragPicker;
 
+            // Hue slider
+
             hueSlider = new();
             hueSlider.Layout.StretchHorizontal.SetStaticState(true);
             hueSlider.Layout.Alignment.SetStaticState(new(0.5f, 1f));
@@ -41,7 +44,7 @@ namespace FenUISharp.Objects
             // hueSlider.KnobSize = new(5, hueSlider.KnobSize.y);
             hueSlider.KnobSize = new(7.5f, hueSlider.KnobSize.y - 5);
             hueSlider.Transform.Size.SetStaticState(new(0, hueSlider.KnobSize.y - 10));
-            hueSlider.Transform.LocalPosition.SetStaticState(new(0, -5));
+            hueSlider.Transform.LocalPosition.SetStaticState(new(0, -25));
             hueSlider.DisplayFill = false;
 
             hueSlider.OnValueChanged += (x) =>
@@ -52,8 +55,30 @@ namespace FenUISharp.Objects
                 OnUserColorUpdated?.Invoke(PickedColor);
             };
 
+            // Alpha slider
+
+            alphaSlider = new();
+            alphaSlider.Layout.StretchHorizontal.SetStaticState(true);
+            alphaSlider.Layout.Alignment.SetStaticState(new(0.5f, 1f));
+            alphaSlider.Layout.AlignmentAnchor.SetStaticState(new(0.5f, 1f));
+
+            // Making it look better
+            alphaSlider.KnobSize = new(7.5f, alphaSlider.KnobSize.y - 5);
+            alphaSlider.Transform.Size.SetStaticState(new(0, alphaSlider.KnobSize.y - 10));
+            alphaSlider.Transform.LocalPosition.SetStaticState(new(0, -5));
+            alphaSlider.DisplayFill = false;
+
+            alphaSlider.OnValueChanged += (x) =>
+            {
+                Invalidate(Invalidation.SurfaceDirty);
+
+                OnColorUpdated?.Invoke(PickedColor);
+                OnUserColorUpdated?.Invoke(PickedColor);
+            };
+
             Padding.SetStaticState(15);
             hueSlider.SetParent(this);
+            alphaSlider.SetParent(this);
 
             FContext.GetCurrentDispatcher().InvokeLater(() =>
             {
@@ -63,13 +88,14 @@ namespace FenUISharp.Objects
 
         private SKColor GetColor()
         {
-            return SKColor.FromHsv(hueSlider.Value * 360, (pickerKnobPos.x / pickerInnerBounds.Width) * 100, (1f - (pickerKnobPos.y / pickerInnerBounds.Height)) * 100);
+            return SKColor.FromHsv(hueSlider.Value * 360, (pickerKnobPos.x / pickerInnerBounds.Width) * 100, (1f - (pickerKnobPos.y / pickerInnerBounds.Height)) * 100).WithAlpha((byte)(alphaSlider.Value * 255));
         }
 
         private void SetColor(SKColor color)
         {
             color.ToHsv(out float hue, out float sat, out float val);
             hueSlider.Value = hue / 360f;
+            alphaSlider.Value = (float)color.Alpha / 255f;
 
             pickerKnobPos = new((sat / 100f) * pickerInnerBounds.Width, (1f - (val / 100f)) * pickerInnerBounds.Height);
             pickerKnobDisplayPos = pickerKnobPos;
@@ -103,15 +129,14 @@ namespace FenUISharp.Objects
         public override void Dispose()
         {
             base.Dispose();
-
             pickerSurface.Dispose();
         }
 
         void UpdateBounds()
         {
             pickerInnerBounds = Shape.LocalBounds;
-            pickerInnerBounds.Offset(0, -(hueSlider.Transform.Size.CachedValue.y / 2 + 10));
-            pickerInnerBounds.Inflate(0, -(hueSlider.Transform.Size.CachedValue.y / 2 + 10));
+            pickerInnerBounds.Offset(0, -20);
+            pickerInnerBounds.Inflate(0, -20);
         }
 
         protected override void Update()

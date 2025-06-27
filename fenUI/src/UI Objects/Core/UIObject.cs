@@ -46,6 +46,8 @@ namespace FenUISharp.Objects
         internal CachedSurface _objectSurface;
         internal CachedSurface _childSurface;
 
+        public Action? OnObjectDisposed { get; set; }
+
         public UIObject(Func<Vector2>? position = null, Func<Vector2>? size = null)
         {
             if (!FContext.IsValidContext()) throw new Exception("Invalid FenUISharp window context.");
@@ -59,7 +61,7 @@ namespace FenUISharp.Objects
             Composition = new(this);
             InteractiveSurface = new(this, FContext.GetCurrentDispatcher(), () => Shape.GlobalBounds);
             Quality = new(() => 1f, (x) => Invalidate(Invalidation.SurfaceDirty));
-            Padding = new(() => 0, (x) => Invalidate(Invalidation.SurfaceDirty));
+            Padding = new(() => 2, (x) => Invalidate(Invalidation.SurfaceDirty)); // Default to use 2 padding. Helps to reduce sharp edges on lower quality settings
 
             Transform.LocalPosition.Value = position ?? (() => Vector2.Zero);
             Transform.Size.Value = size ?? (() => new(100, 100));
@@ -122,6 +124,11 @@ namespace FenUISharp.Objects
                 Parent = parent;
                 parent.Children.Add(this);
             }
+        }
+
+        void RemoveFromParent()
+        {
+            if (Parent != null) Parent.Children.Remove(this);
         }
 
         protected SKPaint GetRenderPaint()
@@ -328,6 +335,10 @@ namespace FenUISharp.Objects
             Visible.Dispose();
             Quality.Dispose();
             Padding.Dispose();
+
+            RemoveFromParent();
+
+            OnObjectDisposed?.Invoke();
         }
 
         public virtual void OnInternalStateChanged<T>(T value)

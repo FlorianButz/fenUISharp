@@ -1,6 +1,7 @@
 using FenUISharp.Behavior;
 using FenUISharp.Mathematics;
 using FenUISharp.States;
+using FenUISharp.WinFeatures;
 using SkiaSharp;
 
 namespace FenUISharp.Objects
@@ -51,6 +52,21 @@ namespace FenUISharp.Objects
             CornerRadius.SetStaticState(10f);
 
             Composition.LocalZIndex.SetStaticState(99);
+            dispatcher = FContext.GetCurrentDispatcher();
+
+            WindowFeatures.GlobalHooks.OnMouseAction += OnGlobalMouseAction;
+        }
+
+        private Dispatcher dispatcher;
+        private void OnGlobalMouseAction(MouseInputCode code)
+        {
+            dispatcher.Invoke(() =>
+            {
+                if (code.button != MouseInputButton.Left || code.state != MouseInputState.Down) return;
+
+                if (!Shape.GlobalBounds.Contains(new SKPoint(FContext.GetCurrentWindow().ClientMousePosition.x, FContext.GetCurrentWindow().ClientMousePosition.y)))
+                    Close(() => Dispose()); // Close and destroy this pop-up
+            });
         }
 
         public bool IsShowing { get; private set; }
@@ -373,6 +389,7 @@ namespace FenUISharp.Objects
             base.Dispose();
 
             GlobalTargetPoint.Dispose();
+            WindowFeatures.GlobalHooks.OnMouseAction -= OnGlobalMouseAction;
         }
     }
 }

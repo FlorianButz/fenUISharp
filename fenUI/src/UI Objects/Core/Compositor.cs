@@ -68,16 +68,19 @@ namespace FenUISharp.Objects
 
         public SKImage? GrabBehindPlusBuffer(SKRect globalBounds, float quality)
         {
+            if (globalBounds.Height < 1 || globalBounds.Width < 1) return null;
+
             SKImage? behind = FContext.GetCurrentWindow().RenderContext.CaptureWindowRegion(globalBounds, quality);
             SKImage? buffer = Owner.Parent?._childSurface.CaptureSurfaceRegion(Owner.Parent.Transform.GlobalToDrawLocal(globalBounds), quality);
+
 
             Compositor.Dump(behind, "buffer_grab_behind");
             Compositor.Dump(buffer, "buffer_grab_child");
 
-            if (behind == null) return buffer;
-            else if (buffer == null) return behind;
+            if (behind == null || !RMath.IsImageValid(behind)) return buffer;
+            else if (buffer == null || !RMath.IsImageValid(buffer)) return behind;
 
-            SKImage combined = RMath.Combine(behind, buffer, new(filter: SKFilterMode.Linear, mipmap: SKMipmapMode.Linear));
+            SKImage? combined = RMath.Combine(behind, buffer, new(filter: SKFilterMode.Linear, mipmap: SKMipmapMode.Linear)) ?? null;
 
             Compositor.Dump(buffer, "buffer_grab_combined");
 

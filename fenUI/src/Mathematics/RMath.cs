@@ -96,18 +96,40 @@ namespace FenUISharp.Mathematics
             }
         }
 
-        public static SKImage Combine(SKImage sourceImage1, SKImage sourceImage2, SKSamplingOptions samplingOptions)
+        public static SKImage? Combine(SKImage sourceImage1, SKImage sourceImage2, SKSamplingOptions samplingOptions)
         {
-            var info = new SKImageInfo(sourceImage1.Width, sourceImage1.Height);
-            using (var surface = SKSurface.Create(info))
-            {
-                var canvas = surface.Canvas;
+            if (sourceImage1 == null && sourceImage2 == null)
+                return null;
+            if (sourceImage1 == null) return sourceImage2;
+            if (sourceImage2 == null) return sourceImage1;
 
-                canvas.DrawImage(sourceImage1, SKRect.Create(0, 0, sourceImage1.Width, sourceImage1.Height), samplingOptions);
-                canvas.DrawImage(sourceImage2, SKRect.Create(0, 0, sourceImage1.Width, sourceImage1.Height), samplingOptions);
+            // If one is null or has zero size, return the other
+            bool img1Valid = sourceImage1 != null && sourceImage1.Width > 0 && sourceImage1.Height > 0;
+            bool img2Valid = sourceImage2 != null && sourceImage2.Width > 0 && sourceImage2.Height > 0;
 
-                return surface.Snapshot();
-            }
+            if (!img1Valid && !img2Valid)
+                return null;
+
+            if (!img1Valid) return sourceImage2;
+            if (!img2Valid) return sourceImage1;
+
+            var info = new SKImageInfo(RMath.Clamp(sourceImage1.Width, 1, 99999), RMath.Clamp(sourceImage1.Height, 1, 99999));
+            using var surface = SKSurface.Create(info);
+
+            var canvas = surface.Canvas;
+
+            canvas.DrawImage(sourceImage1, SKRect.Create(0, 0, sourceImage1.Width, sourceImage1.Height), samplingOptions);
+            canvas.DrawImage(sourceImage2, SKRect.Create(0, 0, sourceImage1.Width, sourceImage1.Height), samplingOptions);
+
+            return surface.Snapshot();
+        }
+
+        public static bool IsImageValid(SKImage image)
+        {
+            return image != null &&
+                image.Handle != IntPtr.Zero &&
+                image.Width > 0 &&
+                image.Height > 0;
         }
 
         public static bool IsRectFullyInside(SKRect outer, SKRect inner)

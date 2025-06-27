@@ -12,13 +12,14 @@ namespace FenUISharp.Objects
         public State<SKColor> BorderColor { get; set; }
         public State<SKColor> EnabledFillColor { get; set; }
         public State<SKColor> CheckColor { get; set; }
+        public State<SKColor> ShadowColor { get; set; }
 
         private State<SKColor> highlight;
 
         public float CornerRadius { get; set; } = 5;
 
-        private SKColor currenthighlight;
-        private SKColor currentbackground;
+        internal SKColor currenthighlight;
+        internal SKColor currentbackground;
 
         private AnimatorComponent toggleAnimator;
 
@@ -28,6 +29,7 @@ namespace FenUISharp.Objects
             BorderColor = new(() => BackgroundColor.CachedValue.AddMix(new(25, 25, 25)), this);
             CheckColor = new(() => SKColors.White, this);
             EnabledFillColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary, this);
+            ShadowColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary, this);
 
             highlight = new(() => BackgroundColor.CachedValue.AddMix(new(65, 65, 65)), this);
             currenthighlight = BackgroundColor.CachedValue.AddMix(new(65, 65, 65));
@@ -48,7 +50,7 @@ namespace FenUISharp.Objects
                 currentbackground = RMath.Lerp((!IsSelected) ? BackgroundColor.CachedValue : EnabledFillColor.CachedValue, hoveredMix, t);
                 currenthighlight = RMath.Lerp(highlight.CachedValue, hoveredHigh, t);
 
-                float pixelsAdd = 0.75f;
+                float pixelsAdd = PIXEL_ADD;
                 float sx = (Transform.Size.CachedValue.x + pixelsAdd) / Transform.Size.CachedValue.x;
                 float sy = (Transform.Size.CachedValue.y + pixelsAdd / 2) / Transform.Size.CachedValue.y;
 
@@ -89,6 +91,7 @@ namespace FenUISharp.Objects
             BackgroundColor.Dispose();
             CheckColor.Dispose();
             EnabledFillColor.Dispose();
+            ShadowColor.Dispose();
 
             highlight.Dispose();
         }
@@ -139,7 +142,7 @@ namespace FenUISharp.Objects
             var bounds = Shape.LocalBounds;
             using var backgroundPath = SKSquircle.CreateSquircle(Shape.LocalBounds, CornerRadius);
 
-            using var shadow = SKImageFilter.CreateDropShadow(0, 2, 5, 5, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Shadow);
+            using var shadow = SKImageFilter.CreateDropShadow(0, 2, 5, 5, ShadowColor.CachedValue);
 
             paint.Color = currentbackground;
             canvas.DrawPath(backgroundPath, paint);

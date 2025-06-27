@@ -8,6 +8,8 @@ namespace FenUISharp.Objects.Buttons
     {
         public Action? OnClick { get; set; }
 
+        protected const float PIXEL_ADD = 1f; // Just a global constant for the size change in the animation
+
         public Button(Action? onClick = null, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
             this.OnClick = onClick;

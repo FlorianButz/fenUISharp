@@ -1,6 +1,8 @@
 using FenUISharp.Behavior;
 using FenUISharp.Mathematics;
 using FenUISharp.Objects.Buttons;
+using FenUISharp.Objects.Text;
+using FenUISharp.Objects.Text.Model;
 using FenUISharp.States;
 using SkiaSharp;
 
@@ -8,6 +10,10 @@ namespace FenUISharp.Objects
 {
     public class FColorPatch : Button, IStateListener
     {
+        // TODO: Global saving of color patches
+        // TODO: Better ux
+        // TODO: Add FNumericScroller instead
+
         private SKColor pickedColor;
         public SKColor PickedColor { get => GetColor(); set => SetColor(value); }
         public Action<SKColor>? OnColorUpdated { get; set; }
@@ -15,13 +21,14 @@ namespace FenUISharp.Objects
 
         public State<SKColor> BackgroundColor { get; init; }
         public State<SKColor> BorderColor { get; init; }
+        public State<SKColor> ShadowColor { get; init; }
 
         private State<SKColor> highlight;
 
         public float CornerRadius { get; set; } = 10f;
 
-        private SKColor currenthighlight;
-        private SKColor currentbackground;
+        internal SKColor currenthighlight;
+        internal SKColor currentbackground;
 
         private AnimatorComponent toggleAnimator;
 
@@ -31,11 +38,13 @@ namespace FenUISharp.Objects
 
             BackgroundColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary, this);
             BorderColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SecondaryBorder, this);
+            ShadowColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Shadow, this);
 
             highlight = new(() => BackgroundColor.CachedValue.AddMix(new(65, 65, 65)), this);
             currenthighlight = BackgroundColor.CachedValue.AddMix(new(65, 65, 65));
 
             Transform.SnapPositionToPixelGrid.SetStaticState(true);
+            Padding.SetStaticState(10);
 
             toggleAnimator = new(this, Easing.EaseOutCubic, Easing.EaseOutCubic);
             toggleAnimator.Duration = 0.2f;
@@ -48,7 +57,7 @@ namespace FenUISharp.Objects
                 currentbackground = RMath.Lerp(BackgroundColor.CachedValue, hoveredMix, t);
                 currenthighlight = RMath.Lerp(highlight.CachedValue, hoveredHigh, t);
 
-                float pixelsAdd = 0.75f;
+                float pixelsAdd = PIXEL_ADD;
                 float sx = (Transform.Size.CachedValue.x + pixelsAdd) / Transform.Size.CachedValue.x;
                 float sy = (Transform.Size.CachedValue.y + pixelsAdd / 2) / Transform.Size.CachedValue.y;
 
@@ -83,6 +92,7 @@ namespace FenUISharp.Objects
 
             BackgroundColor.Dispose();
             BorderColor.Dispose();
+            ShadowColor.Dispose();
             highlight.Dispose();
         }
 
@@ -143,7 +153,7 @@ namespace FenUISharp.Objects
         private void CreatePicker()
         {
             activePickerPanel = new FPopupPanel(() => new(225, 150), false);
-            activePickerPanel.CornerRadius.SetStaticState(20);
+            activePickerPanel.CornerRadius.SetStaticState(30);
 
             activePicker = new FColorPicker(pickedColor);
             activePicker.Layout.StretchHorizontal.SetStaticState(true);
@@ -153,11 +163,59 @@ namespace FenUISharp.Objects
             activePicker.Layout.MarginHorizontal.SetStaticState(50);
             activePicker.Layout.MarginVertical.SetStaticState(7.5f);
 
-            activePicker.Layout.AlignmentAnchor.SetResponsiveState(() => new(0f, 0.5f));
-            activePicker.Layout.Alignment.SetResponsiveState(() => new(0f, 0.5f));
+            activePicker.Layout.AlignmentAnchor.SetStaticState(new(0f, 0.5f));
+            activePicker.Layout.Alignment.SetStaticState(new(0f, 0.5f));
 
             activePicker.OnColorUpdated += (x) => SetColor(x, false);
+            activePicker.OnUserColorUpdated += (x) => OnUserColorUpdated?.Invoke(x);
             activePicker.SetParent(activePickerPanel);
+
+            // Buttons
+
+            const float btnSize = 15f;
+
+            var copyBtn = new FImageButton(new FImage(() => Resources.GetImage("fenui-builtin-copy")), size: () => new(btnSize, btnSize));
+            copyBtn.Layout.Alignment.SetStaticState(new(0, 0));
+            copyBtn.Layout.AlignmentAnchor.SetStaticState(new(0, 0));
+            copyBtn.Transform.LocalPosition.SetStaticState(new(activePicker.Transform.Size.CachedValue.x, 7.5f));
+            copyBtn.BaseColor.SetStaticState(SKColors.Transparent);
+            copyBtn.BorderColor.SetStaticState(SKColors.Transparent);
+            copyBtn.SetParent(activePickerPanel);
+
+            var pasteBtn = new FImageButton(new FImage(() => Resources.GetImage("fenui-builtin-paste")), size: () => new(btnSize, btnSize));
+            pasteBtn.Layout.Alignment.SetStaticState(new(0, 0));
+            pasteBtn.Layout.AlignmentAnchor.SetStaticState(new(0, 0));
+            pasteBtn.BaseColor.SetStaticState(SKColors.Transparent);
+            pasteBtn.BorderColor.SetStaticState(SKColors.Transparent);
+            pasteBtn.Transform.LocalPosition.SetStaticState(new(activePicker.Transform.Size.CachedValue.x + btnSize + 5, 7.5f));
+            pasteBtn.SetParent(activePickerPanel);
+
+            // Info text
+
+            var text = new FText(TextModelFactory.CreateBasic(""), size: () => new(65, 0));
+            // text.Layout.StretchHorizontal.SetStaticState(true);
+            text.Layout.StretchVertical.SetStaticState(true);
+
+            text.Transform.LocalPosition.SetResponsiveState(() => new(activePicker.Transform.Size.CachedValue.x, btnSize + 10));
+            // text.Layout.MarginHorizontal.SetStaticState(75);
+            text.Layout.MarginVertical.SetStaticState(7.5f);
+
+            text.Layout.AlignmentAnchor.SetStaticState(new(0f, 0.5f));
+            text.Layout.Alignment.SetStaticState(new(0f, 0.5f));
+
+            text.Quality.SetStaticState(0.85f);
+            text.SetParent(activePickerPanel);
+
+            activePicker.OnColorUpdated += (x) =>
+            {
+                text.Model = TextModelFactory.CreateBasic(
+                    "R: " + x.Red + "\n"+
+                    "G: " + x.Green + "\n"+
+                    "B: " + x.Blue + "\n"+
+                    "\n"+
+                    x
+                , align: new(){HorizontalAlign = Components.Text.Layout.TextAlign.AlignType.Start}, textSize: 12);
+            };
 
             activePickerPanel.Show(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
         }
@@ -177,15 +235,16 @@ namespace FenUISharp.Objects
                 half4 main(float2 fragCoord) {
                     float2 uv = (fragCoord - iOff) / iResolution;
 
-                    half4 col = half4(iColor.r, iColor.g, iColor.b, 1);
+                    half4 col = half4(iColor.rgb, 1);
 
                     float2 coord = fragCoord - (iGlobOff);
                     
                     float checker = mod(floor(coord.x / 5) + floor(coord.y / 5), 2.0);
                     checker = clamp(checker, 0.6, 0.9);
 
-                    half4 colAlpha = lerp(half4(checker, checker, checker, 1), col, col.a);
+                    half4 colAlpha = lerp(half4(checker, checker, checker, 1), col, iColor.a);
                     if((uv.x > 0.5)) col = colAlpha;
+
                     return col;
                 }
             ";
@@ -223,7 +282,7 @@ namespace FenUISharp.Objects
             patchRect1.Inflate(-5f, -5f);
             using var patchPath1 = SKSquircle.CreateSquircle(patchRect1, CornerRadius / 2);
 
-            using var shadow = SKImageFilter.CreateDropShadow(0, 0, 5, 5, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Shadow);
+            using var shadow = SKImageFilter.CreateDropShadow(0, 0, 5, 5, ShadowColor.CachedValue);
             paint.ImageFilter = shadow;
 
             paint.Color = currentbackground;

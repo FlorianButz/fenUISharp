@@ -165,9 +165,11 @@ namespace FenUISharp.Behavior
 
             if (StackBehavior != ContentStackBehavior.Scroll) return;
             if (!ContentFade || _contentSize <= _pageSize) return;
+            
+            // TODO: Fix layer issue with render surface system
 
             // Save a layer for the children to be rendered into
-                var bounds = Owner.Shape.LocalBounds;
+            var bounds = Owner.Shape.LocalBounds;
             _fadeLayerSaveCount = canvas?.SaveLayer(bounds, null);
         }
 

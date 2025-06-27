@@ -66,6 +66,12 @@ namespace FenUISharp.Objects
         public Action<float>? OnValueChanged { get; set; }
         public Action<float>? OnUserValueChanged { get; set; }
 
+        // TODO: Fix wrong slider size
+        // TODO: Fix slider false range when dragging
+        // TODO: Fix clamp knob issue
+        // TODO: Fix too many hotspots by removing them all together when too many
+        // TODO: Fix last hotspot not detected
+
         public FSlider(Func<Vector2>? position = null, float width = 100) : base(position, () => new(width, 3))
         {
             InteractiveSurface.EnableMouseActions.SetStaticState(true);
@@ -144,7 +150,7 @@ namespace FenUISharp.Objects
 
         private void OnDragSlider(Vector2 mousePos)
         {
-            SetToPoint(mousePos);
+            SetToPoint(FContext.GetCurrentWindow().ClientMousePosition);
         }
 
         private void SetToPoint(Vector2 pos)
@@ -152,7 +158,7 @@ namespace FenUISharp.Objects
             var lastValue = GetValue();
 
             Value = Math.Clamp(
-                RMath.Remap(FContext.GetCurrentWindow().ClientMousePosition.x,
+                RMath.Remap(pos.x,
                     Shape.GlobalBounds.Left + Padding.CachedValue,
                     Shape.GlobalBounds.Right - Padding.CachedValue,
                 MinValue.CachedValue, MaxValue.CachedValue),

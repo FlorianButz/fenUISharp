@@ -81,7 +81,8 @@ namespace FenUISharp.Objects
 
         protected SKColor GetDarkStrokeColor()
         {
-            return BorderColor.CachedValue.MultiplyMix(new SKColor(50, 50, 50, 150));
+            // return BorderColor.CachedValue.MultiplyMix(new SKColor(50, 50, 50, 150));
+            return FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Background.MultiplyMix(new SKColor(200, 200, 200, 150));
         }
 
         public SKPath GetPanelPath(SKRect? rect = null)

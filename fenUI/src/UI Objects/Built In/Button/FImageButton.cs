@@ -1,14 +1,14 @@
 using FenUISharp.Behavior;
 using FenUISharp.Mathematics;
-using FenUISharp.Objects.Text;
+using FenUISharp.Objects.Buttons;
 using FenUISharp.States;
 using SkiaSharp;
 
-namespace FenUISharp.Objects.Buttons
+namespace FenUISharp.Objects
 {
-    public class FSimpleButton : Button, IStateListener
+    public class FImageButton : Button, IStateListener
     {
-        public FText Label { get; protected set; }
+        public FImage Image { get; protected set; }
 
         private AnimatorComponent animatorComponent;
 
@@ -27,23 +27,23 @@ namespace FenUISharp.Objects.Buttons
         float cornerRadius = 10f;
 
 
-        public FSimpleButton(FText label, Action? onClick = null, Func<Vector2>? position = null, float minWidth = 25, float maxWidth = 175) : base(onClick, position, () => new Vector2(0, 0))
+        public FImageButton(FImage image, Action? onClick = null, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(onClick, position, size)
         {
             this.OnClick = onClick;
 
-            highlight = new(() => new SKColor(112, 102, 107, 100), this);
             BaseColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary, this);
             BorderColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SecondaryBorder, this);
             ShadowColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Shadow, this);
+            highlight = new(() => new SKColor(112, 102, 107, BaseColor.CachedValue.Alpha), this);
 
             this.maxWidth = RMath.Clamp(maxWidth, minWidth, float.MaxValue);
             this.minWidth = RMath.Clamp(minWidth, 0, this.maxWidth);
 
-            Label = label;
+            Image = image;
 
-            Label.SetParent(this);
-            Label.OnAnyChange += RefreshLabel;
-            RefreshLabel();
+            Image.SetParent(this);
+            Image.Layout.StretchHorizontal.SetStaticState(true);
+            Image.Layout.StretchVertical.SetStaticState(true);
 
             currentcolor = FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary;
             currenthighlight = FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SecondaryBorder;
@@ -95,22 +95,6 @@ namespace FenUISharp.Objects.Buttons
             currenthighlight = RMath.Lerp(highlight.CachedValue, hoveredHigh, InteractiveSurface.IsMouseHovering ? 1 : 0);
         }
 
-        void RefreshLabel()
-        {
-            var measuredText = Label.LayoutModel.GetBoundingRect(Label.Model, SKRect.Create(0, 0, maxWidth, 1000));
-
-            float width = RMath.Clamp(measuredText.Width, minWidth, maxWidth);
-            float height = RMath.Clamp(measuredText.Height, 20, 100);
-
-            Label.Invalidate(Invalidation.SurfaceDirty | Invalidation.LayoutDirty);
-
-            Label.Layout.StretchHorizontal.SetStaticState(true);
-            Label.Layout.StretchVertical.SetStaticState(true);
-            Label.Padding.SetStaticState(0);
-
-            Transform.Size.SetStaticState(new Vector2(width + padding * 2.5f, height + padding * 0.5f));
-        }
-
         protected void MouseEnter()
         {
             animatorComponent.Inverse = false;
@@ -143,10 +127,10 @@ namespace FenUISharp.Objects.Buttons
         {
             base.Dispose();
 
-            Label.Dispose();
-            ShadowColor.Dispose();
-            BorderColor.Dispose();
+            Image.Dispose();
             BaseColor.Dispose();
+            BorderColor.Dispose();
+            ShadowColor.Dispose();
             highlight.Dispose();
         }
 

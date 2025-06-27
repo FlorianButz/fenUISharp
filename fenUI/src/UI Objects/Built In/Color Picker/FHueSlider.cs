@@ -1,3 +1,4 @@
+using FenUISharp.Mathematics;
 using SkiaSharp;
 
 namespace FenUISharp.Objects
@@ -7,7 +8,7 @@ namespace FenUISharp.Objects
         public FHueSlider()
         {
             KnobPositionSpring.SetValues(3f, 1.5f);
-            InteractiveSurface.ExtendInteractionRadius.SetStaticState(-10);
+            InteractiveSurface.ExtendInteractionRadius.SetStaticState(-6);
             ClampKnob = true;
         }
 
@@ -49,9 +50,15 @@ namespace FenUISharp.Objects
             uniforms["iOffset"] = new float[] { rect.Left - Shape.SurfaceDrawRect.Left, rect.Top - Shape.SurfaceDrawRect.Top };
 
             using var paint = GetRenderPaint();
+            using var barRoundRect = new SKRoundRect(rect, BarCornerRadius);
+
+            using var shadow = SKImageFilter.CreateDropShadow(0, 0, 2, 2, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Shadow.AddMix(new(0, 0, 0, 25)));
+            paint.ImageFilter = shadow;
+            canvas.DrawRoundRect(barRoundRect, paint);
+            paint.ImageFilter = null;
+
             paint.Shader = effect?.ToShader(uniforms);
 
-            using var barRoundRect = new SKRoundRect(rect, BarCornerRadius);
             canvas.DrawRoundRect(barRoundRect, paint);
 
             paint.IsStroke = true;

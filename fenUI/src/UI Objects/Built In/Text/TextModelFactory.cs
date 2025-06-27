@@ -36,6 +36,22 @@ namespace FenUISharp.Objects.Text.Model
             return new(spans, align ?? old.Align, FTypeface.Default);
         }
 
+        public static TextModel CopyBasicNew(string newText, TextModel old)
+        {
+            List<TextSpan> spans = new();
+
+            TextSpan span = new(newText, new()
+            {
+                Color = old.TextParts[0].Style.Color,
+                Weight = old.TextParts[0].Style.Weight,
+                Slant = old.TextParts[0].Style.Slant,
+                FontSize = old.TextParts[0].Style.FontSize
+            });
+            spans.Add(span);
+
+            return new(spans, old.Align, FTypeface.Default);
+        }
+
         public static TextModel CreateTest(string text)
         {
             TextAlign align = new() { HorizontalAlign = TextAlign.AlignType.Middle, VerticalAlign = TextAlign.AlignType.Middle };

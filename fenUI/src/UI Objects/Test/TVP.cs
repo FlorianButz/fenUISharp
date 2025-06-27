@@ -65,25 +65,45 @@ namespace FenUISharp.Objects
             // var v = new FToggle();
             // new FRoundToggle().Transform.LocalPosition.SetStaticState(new(0, 100));
 
-            var fp = new FPopupPanel(() => new(150, 125));
-            fp.CornerRadius.SetStaticState(20);
+            // var fp = new FPopupPanel(() => new(150, 125));
+            // fp.CornerRadius.SetStaticState(20);
 
-            // var toggle = new FRoundToggle();
-            // toggle.SetParent(fp);
-            // new FRoundToggle().SetParent(fp);
+            // // var toggle = new FRoundToggle();
+            // // toggle.SetParent(fp);
+            // // new FRoundToggle().SetParent(fp);
 
-            var col = new FColorPicker();
-            col.Transform.LocalPosition.SetStaticState(new(0, -150));
-            col.Layout.StretchHorizontal.SetStaticState(true);
-            col.Layout.StretchVertical.SetStaticState(true);
-            col.Layout.MarginHorizontal.SetStaticState(7.5f);
-            col.Layout.MarginVertical.SetStaticState(7.5f);
-            col.SetParent(fp);
+            // var col = new FColorPicker();
+            // col.Transform.LocalPosition.SetStaticState(new(0, -150));
+            // col.Layout.StretchHorizontal.SetStaticState(true);
+            // col.Layout.StretchVertical.SetStaticState(true);
+            // col.Layout.MarginHorizontal.SetStaticState(7.5f);
+            // col.Layout.MarginVertical.SetStaticState(7.5f);
+            // col.SetParent(fp);
 
-            new FColorPatch();
+            // var patch = new FColorPatch(size: () => new(200, 150));
+            // patch.OnColorUpdated += (x) => Console.WriteLine("Color update: " + x);
+            // patch.OnUserColorUpdated += (x) => Console.WriteLine("Color user update: " + x);
 
-            var v = new FToggle();
-            v.Transform.LocalPosition.SetStaticState(new(0, 100));
+            var n = new FNumericScroller(new FText(TextModelFactory.CreateBasic("", 14, bold: true)));
+            // n.Label.LayoutModel = new WiggleCharsLayoutProcessor(n.Label, new WrapLayout(n.Label));
+            n.MinValue.SetStaticState(0);
+            n.MaxValue.SetStaticState(1);
+            n.Step.SetStaticState(0.1f);
+            n.Value = 5;
+            n.FormatProvider.SetStaticState("C");
+
+            var slider = new FSlider(() => new(0, 70));
+            slider.MinValue.SetStaticState(0);
+            slider.MaxValue.SetStaticState(1);
+            slider.SnappingInterval = 0.1f;
+
+            slider.OnUserValueChanged += (x) => n.Value = x; 
+            n.OnUserValueChanged += (x) => slider.Value = x; 
+
+            new FColorPatch(SKColors.Magenta, () => new(0, 150));
+
+            // var v = new FToggle();
+            // v.Transform.LocalPosition.SetStaticState(new(0, 100));
             // v.Transform.Size.SetStaticState(new(100, 100));
 
             // var s = new FSlider(position: () => new(0, 100));
@@ -98,12 +118,12 @@ namespace FenUISharp.Objects
 
             // new FImage(() => Resources.GetImage("test-img"), size: () => new(150 * (s.Value + 1), 150), position: () => new(MathF.Sin(FContext.Time / 2) * 300, 0));
 
-            var btn = new FSimpleButton(new Text.FText(TextModelFactory.CreateBasic("Change Color")), position: () => new(new(-65,50)));
-            btn.OnClick += () => fp.Show(() => btn.Transform.LocalToGlobal(btn.Transform.LocalPosition.CachedValue));
-            btn.Layout.Alignment.SetStaticState(new(1, 0));
-            // btn.OnClick += () => col.PickedColor = SKColors.Blue;
+            // var btn = new FSimpleButton(new Text.FText(TextModelFactory.CreateBasic("Change Color")), position: () => new(new(-65, 50)));
+            // btn.OnClick += () => fp.Show(() => btn.Transform.LocalToGlobal(btn.Transform.LocalPosition.CachedValue));
+            // btn.Layout.Alignment.SetStaticState(new(1, 0));
+            // // btn.OnClick += () => col.PickedColor = SKColors.Blue;
 
-            new FImage(() => Resources.GetImage("test-img"), position: () => new(-300, 0)).TintColor.SetResponsiveState(() => col.PickedColor);
+            // new FImage(() => Resources.GetImage("test-img"), position: () => new(0, -170)).TintColor.SetResponsiveState(() => col.PickedColor);
 
             return new List<UIObject>() { };
         }

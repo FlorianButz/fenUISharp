@@ -20,6 +20,10 @@ namespace FenUISharp
 
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.test_img.png")), "test-img");
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.check.png")), "fenui-builtin-check");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.copy.png")), "fenui-builtin-copy");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.clipboard.png")), "fenui-builtin-paste");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.chevron-left.png")), "fenui-builtin-arrow-left");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.chevron-right.png")), "fenui-builtin-arrow-right");
 
             var darkTheme = new Theme
             {
@@ -73,7 +77,7 @@ namespace FenUISharp
                 PrimaryBorder = new SKColor(122, 161, 255),
                 SecondaryBorder = new SKColor(204, 204, 204),
 
-                Shadow = new SKColor(0, 0, 0, 20),
+                Shadow = new SKColor(0, 0, 0, 35),
 
                 DisabledMix = new SKColor(200, 200, 200),
                 HoveredMix = new SKColor(220, 220, 220),

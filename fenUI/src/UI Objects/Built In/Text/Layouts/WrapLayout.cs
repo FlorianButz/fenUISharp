@@ -49,7 +49,7 @@ namespace FenUISharp.Components.Text.Layout
 
                 foreach (var word in words)
                 {
-                    if (string.IsNullOrEmpty(word))
+                    if (word == "" || word == " ")
                         continue;
                     if (word.Contains("\r\n") || word.Contains("\n"))
                     {
