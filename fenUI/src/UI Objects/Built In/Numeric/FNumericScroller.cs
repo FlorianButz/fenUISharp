@@ -130,7 +130,7 @@ namespace FenUISharp.Objects
 
         public void OpenPopup()
         {
-            if (activePopup != null) activePopup.Close(() => CreatePopup());
+            if (activePopup != null) activePopup.Close();
             else CreatePopup();
         }
 

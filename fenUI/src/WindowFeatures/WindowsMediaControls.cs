@@ -145,56 +145,63 @@ namespace FenUISharp.WinFeatures
 
             if (currentSession != null)
             {
-                var info = await currentSession.TryGetMediaPropertiesAsync();
-                if (info == null) return;
-
-                var playbackInfo = currentSession.GetPlaybackInfo();
-                // if (playbackInfo == null) return;
-
-                var timelineProperties = currentSession.GetTimelineProperties();
-
-                bool infoChanged = info.Title != cachedInfo.title || info.Artist != cachedInfo.artist;
-
-                cachedInfo.title = info.Title;
-                cachedInfo.artist = info.Artist;
-                cachedInfo.album = info.AlbumTitle;
-                cachedInfo.albumArtist = info.AlbumArtist;
-                cachedInfo.sourceAppModelId = currentSession.SourceAppUserModelId;
-
-                if (playbackInfo != null)
+                try
                 {
-                    cachedInfo.isShuffling = playbackInfo.IsShuffleActive;
-                    cachedInfo.repeatMode = playbackInfo.AutoRepeatMode;
-                    cachedInfo.playbackState = playbackInfo.PlaybackStatus;
-                    cachedInfo.mediaType = playbackInfo.PlaybackType;
-                }
+                    var info = await currentSession.TryGetMediaPropertiesAsync();
+                    if (info == null) return;
 
-                if (timelineProperties != null)
-                {
-                    TimeSpan duration = timelineProperties.EndTime - timelineProperties.StartTime;
-                    bool isUpdatedTimeline = cachedInfo.duration != duration.TotalSeconds ||
-                                             cachedInfo.position != timelineProperties.Position.TotalSeconds;
-                    cachedInfo.duration = duration.TotalSeconds;
-                    cachedInfo.position = timelineProperties.Position.TotalSeconds;
-                    cachedInfo.isActiveSession = true;
+                    var playbackInfo = currentSession.GetPlaybackInfo();
+                    // if (playbackInfo == null) return;
 
-                    if (isUpdatedTimeline && ContinousPolling)
-                        onTimelineUpdated?.Invoke();
-                }
+                    var timelineProperties = currentSession.GetTimelineProperties();
 
-                if (infoChanged && ContinousPolling)
-                {
-                    var thumbnail = info.Thumbnail;
-                    if (thumbnail != null)
+                    bool infoChanged = info.Title != cachedInfo.title || info.Artist != cachedInfo.artist;
+
+                    cachedInfo.title = info.Title;
+                    cachedInfo.artist = info.Artist;
+                    cachedInfo.album = info.AlbumTitle;
+                    cachedInfo.albumArtist = info.AlbumArtist;
+                    cachedInfo.sourceAppModelId = currentSession.SourceAppUserModelId;
+
+                    if (playbackInfo != null)
                     {
-                        using var stream = await thumbnail.OpenReadAsync();
-                        cachedInfo.thumbnail = ConvertThumbnailToSkImage(stream);
+                        cachedInfo.isShuffling = playbackInfo.IsShuffleActive;
+                        cachedInfo.repeatMode = playbackInfo.AutoRepeatMode;
+                        cachedInfo.playbackState = playbackInfo.PlaybackStatus;
+                        cachedInfo.mediaType = playbackInfo.PlaybackType;
                     }
-                    else
-                        cachedInfo.thumbnail = null;
 
-                    onThumbnailUpdated?.Invoke();
-                    onMediaUpdated?.Invoke();
+                    if (timelineProperties != null)
+                    {
+                        TimeSpan duration = timelineProperties.EndTime - timelineProperties.StartTime;
+                        bool isUpdatedTimeline = cachedInfo.duration != duration.TotalSeconds ||
+                                                 cachedInfo.position != timelineProperties.Position.TotalSeconds;
+                        cachedInfo.duration = duration.TotalSeconds;
+                        cachedInfo.position = timelineProperties.Position.TotalSeconds;
+                        cachedInfo.isActiveSession = true;
+
+                        if (isUpdatedTimeline && ContinousPolling)
+                            onTimelineUpdated?.Invoke();
+                    }
+
+                    if (infoChanged && ContinousPolling)
+                    {
+                        var thumbnail = info.Thumbnail;
+                        if (thumbnail != null)
+                        {
+                            using var stream = await thumbnail.OpenReadAsync();
+                            cachedInfo.thumbnail = ConvertThumbnailToSkImage(stream);
+                        }
+                        else
+                            cachedInfo.thumbnail = null;
+
+                        onThumbnailUpdated?.Invoke();
+                        onMediaUpdated?.Invoke();
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Exception in WindowsMediaControls: " + e.Message);
                 }
             }
             else

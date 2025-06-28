@@ -84,21 +84,21 @@ namespace FenUISharp.Objects
             // patch.OnColorUpdated += (x) => Console.WriteLine("Color update: " + x);
             // patch.OnUserColorUpdated += (x) => Console.WriteLine("Color user update: " + x);
 
-            var n = new FNumericScroller(new FText(TextModelFactory.CreateBasic("", 14, bold: true)));
-            // n.Label.LayoutModel = new WiggleCharsLayoutProcessor(n.Label, new WrapLayout(n.Label));
-            n.MinValue.SetStaticState(0);
-            n.MaxValue.SetStaticState(1);
-            n.Step.SetStaticState(0.1f);
-            n.Value = 5;
-            n.FormatProvider.SetStaticState("C");
+            // var n = new FNumericScroller(new FText(TextModelFactory.CreateBasic("", 14, bold: true)));
+            // // n.Label.LayoutModel = new WiggleCharsLayoutProcessor(n.Label, new WrapLayout(n.Label));
+            // n.MinValue.SetStaticState(0);
+            // n.MaxValue.SetStaticState(2);
+            // n.Step.SetStaticState(0.1f);
+            // n.Value = 5;
+            // n.FormatProvider.SetStaticState("C");
 
-            var slider = new FSlider(() => new(0, 70));
-            slider.MinValue.SetStaticState(0);
-            slider.MaxValue.SetStaticState(1);
-            slider.SnappingInterval = 0.1f;
+            // var slider = new FSlider(() => new(0, 70));
+            // slider.MinValue.SetStaticState(0);
+            // slider.MaxValue.SetStaticState(2);
+            // slider.SnappingInterval = 0.1f;
 
-            slider.OnUserValueChanged += (x) => n.Value = x; 
-            n.OnUserValueChanged += (x) => slider.Value = x; 
+            // slider.OnUserValueChanged += (x) => n.Value = x;
+            // n.OnUserValueChanged += (x) => slider.Value = x;
 
             new FColorPatch(SKColors.Magenta, () => new(0, 150));
 

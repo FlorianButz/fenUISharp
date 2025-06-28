@@ -78,6 +78,7 @@ namespace FenUISharp.Objects
             };
 
             UpdateColors();
+            CreatePicker();
         }
 
         public override void OnInternalStateChanged<T>(T value)
@@ -146,8 +147,11 @@ namespace FenUISharp.Objects
 
         public void OpenPicker()
         {
-            if (activePickerPanel != null) activePickerPanel.Close(() => CreatePicker());
-            else CreatePicker();
+            // Actually, it's better to create it at the start and just re-use it. This will mean every color patch already has a picker, however since they're disabled anyway it shouldn't matter much
+            // if (activePickerPanel != null) activePickerPanel.Close(() => CreatePicker());
+            // else CreatePicker();
+
+            activePickerPanel?.Show(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
         }
 
         private void CreatePicker()
@@ -217,7 +221,7 @@ namespace FenUISharp.Objects
                 , align: new(){HorizontalAlign = Components.Text.Layout.TextAlign.AlignType.Start}, textSize: 12);
             };
 
-            activePickerPanel.Show(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
+            // activePickerPanel.Show(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
         }
 
         public SKShader GetColorPatchShader(SKColor color, SKRect rect)

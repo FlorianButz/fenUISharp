@@ -14,6 +14,8 @@ namespace FenUISharp.Objects
 
         public int DistanceToTarget { get; set; } = 15;
 
+        public bool DisposeOnClose { get; set; } = false;
+
         public State<Vector2> GlobalTargetPoint { get; init; }
         public SKRect GlobalBounds { get; set; }
 
@@ -65,7 +67,7 @@ namespace FenUISharp.Objects
                 if (code.button != MouseInputButton.Left || code.state != MouseInputState.Down) return;
 
                 if (!Shape.GlobalBounds.Contains(new SKPoint(FContext.GetCurrentWindow().ClientMousePosition.x, FContext.GetCurrentWindow().ClientMousePosition.y)))
-                    Close(() => Dispose()); // Close and destroy this pop-up
+                    Close(); // Close this pop-up
             });
         }
 
@@ -114,19 +116,28 @@ namespace FenUISharp.Objects
                 return;
             }
 
+            if (_inAnimation.IsRunning)
+            {
+                _inAnimation.OnComplete += () => Close(onComplete);
+                return;
+            }
+
             IsShowing = false;
 
             _inAnimation.Inverse = true;
             _inAnimation.Duration = 0.175f;
             _inAnimation.OnComplete = () =>
-            {    
+            {
                 InteractiveSurface.IgnoreInteractions.SetStaticState(true);
                 InteractiveSurface.IgnoreChildInteractions.SetStaticState(true);
 
                 Visible.SetStaticState(false);
+                Enabled.SetStaticState(false);
                 onComplete?.Invoke();
 
                 OnCompleteAnim();
+
+                if (DisposeOnClose) Dispose();
             };
 
             _inAnimation.Restart();

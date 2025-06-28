@@ -193,5 +193,16 @@ namespace FenUISharp.Mathematics
             float normalized = (t - oldMin) / (oldMax - oldMin);
             return newMin + normalized * (newMax - newMin);
         }
+
+        public static bool Approximately(float value, float newNormalized)
+        {
+            return Math.Round(value * 100) == Math.Round(newNormalized * 100);
+        }
+
+        public static float InverseLerp(float a, float b, float value)
+        {
+            if (a == b) return 0;
+            return (value - a) / (b - a);
+        }
     }
 }

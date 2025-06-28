@@ -10,20 +10,21 @@ namespace FenUISharp.Objects
         protected float _value = 0f;
         public float Value
         {
-            get => GetValue();
+            get => RMath.Remap(_value, 0, 1, MinValue.CachedValue, MaxValue.CachedValue);
             set
             {
-                var lastValue = GetValue();
-                var val = GetValue(RMath.Remap(value, MinValue.CachedValue, MaxValue.CachedValue, 0, 1));
-                if (lastValue != val)
-                {
-                    _value = val;
+                float clamped = Math.Clamp(value, MinValue.CachedValue, MaxValue.CachedValue);
+                float newNormalized = RMath.Remap(clamped, MinValue.CachedValue, MaxValue.CachedValue, 0, 1);
 
-                    OnValueChanged?.Invoke(value);
+                if (!RMath.Approximately(_value, newNormalized))
+                {
+                    _value = SnapIfNeeded(newNormalized);
+                    OnValueChanged?.Invoke(Value);
                     Invalidate(Invalidation.SurfaceDirty);
                 }
             }
         }
+
 
         public State<float> MaxValue { get; init; }
         public State<float> MinValue { get; init; }
@@ -66,12 +67,6 @@ namespace FenUISharp.Objects
         public Action<float>? OnValueChanged { get; set; }
         public Action<float>? OnUserValueChanged { get; set; }
 
-        // TODO: Fix wrong slider size
-        // TODO: Fix slider false range when dragging
-        // TODO: Fix clamp knob issue
-        // TODO: Fix too many hotspots by removing them all together when too many
-        // TODO: Fix last hotspot not detected
-
         public FSlider(Func<Vector2>? position = null, float width = 100) : base(position, () => new(width, 3))
         {
             InteractiveSurface.EnableMouseActions.SetStaticState(true);
@@ -92,7 +87,7 @@ namespace FenUISharp.Objects
             SnappingHandle = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SecondaryVariant, this);
 
             Padding.SetStaticState(15);
-            InteractiveSurface.ExtendInteractionRadius.SetStaticState(50);
+            InteractiveSurface.ExtendInteractionRadius.SetStaticState(2);
 
             KnobPositionSpring = new(5f, 1.4f);
         }
@@ -137,15 +132,29 @@ namespace FenUISharp.Objects
                 return RMath.Remap(c ?? _value, 0, 1, MinValue.CachedValue, MaxValue.CachedValue);
         }
 
+        private float SnapIfNeeded(float normalized)
+        {
+            if (SnappingInterval <= 0) return normalized;
+
+            float actualValue = RMath.Remap(normalized, 0, 1, MinValue.CachedValue, MaxValue.CachedValue);
+            var allHotspots = new List<float>(_snappingHotspots ?? new());
+            allHotspots.AddRange(ExtraHotspots);
+
+            if (allHotspots.Count == 0) return normalized;
+
+            float snapped = allHotspots.OrderBy(x => Math.Abs(x - actualValue)).First();
+            return RMath.Remap(snapped, MinValue.CachedValue, MaxValue.CachedValue, 0, 1);
+        }
+
         protected override void Update()
         {
             base.Update();
 
-            float value = RMath.Remap(GetValue(), MinValue.CachedValue, MaxValue.CachedValue, 0, 1);
-
             var lastKnobPosition = _knobPosition;
-            _knobPosition = Math.Clamp(KnobPositionSpring.Update(FContext.DeltaTime, new(value * 100, 0)).x / 100, 0, 1);
-            if (Math.Round(lastKnobPosition * 100) != Math.Round(_knobPosition * 100)) Invalidate(Invalidation.SurfaceDirty);
+            _knobPosition = KnobPositionSpring.Update(FContext.DeltaTime, new(_value * 100, 0)).x / 100;
+
+            if (Math.Round(lastKnobPosition * 100) != Math.Round(_knobPosition * 100))
+                Invalidate(Invalidation.SurfaceDirty);
         }
 
         private void OnDragSlider(Vector2 mousePos)
@@ -276,6 +285,8 @@ namespace FenUISharp.Objects
 
         protected virtual void RenderHotspots(SKCanvas canvas, List<float> hotspots)
         {
+            if (hotspots.Count > MaxSnapIndicators) return; // If too many, don't render them at all
+            
             using var paint = GetRenderPaint();
 
             canvas.Save();
@@ -316,12 +327,16 @@ namespace FenUISharp.Objects
         {
             var hotSpots = new List<float>();
 
-            for (float i = min; i <= max; i += interval)
+            for (float i = min; i < max; i += interval)
             {
                 hotSpots.Add(i);
             }
 
+            if (!hotSpots.Contains(min)) hotSpots.Add(min);
+            if (!hotSpots.Contains(max)) hotSpots.Add(max);
+
             hotSpots.Sort();
+
             return hotSpots;
         }
 
