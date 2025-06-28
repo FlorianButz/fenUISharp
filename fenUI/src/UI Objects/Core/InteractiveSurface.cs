@@ -153,7 +153,7 @@ namespace FenUISharp.Objects
 
         private void Global_FuncOnMouseScroll(float obj)
         {
-            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+            if (!Owner.GlobalEnabled || !Owner.GlobalVisible || _topmostSurfaceMouseScroll != this) return;
 
             _lastDelta += obj;
             Dispatcher.InvokeWithID(() => FuncOnMouseScroll(), $"{uniqueID}-mousescroll");
@@ -169,10 +169,7 @@ namespace FenUISharp.Objects
         private void FuncOnMouseScroll()
         {
             if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
-
             if (!FContext.GetCurrentWindow().IsWindowFocused || !TestIfTopMost_MouseScrolling() || !TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition)) return;
-
-            // TODO: Fix delta being accumulated when outside of client area and unfocused
 
             OnMouseScroll?.Invoke(_lastDelta);
             _lastDelta = 0;

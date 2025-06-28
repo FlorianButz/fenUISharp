@@ -30,6 +30,8 @@ namespace FenUISharp.Objects
         public Action<float>? OnValueChanged { get; set; }
         public Action<float>? OnUserValueChanged { get; set; }
 
+        // TODO: Fix scroller lines for different popup orientations
+
         public FNumericScroller(FText label, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position: position, size: size ?? (() => new(30, 25)))
         {
             Label = label;
