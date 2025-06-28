@@ -27,9 +27,6 @@ namespace FenUISharp.Objects
 
         public FText Label { get; protected set; }
 
-        public State<SKColor> HoverColor { get; init; }
-        private SKColor currentBackground;
-
         public Action<float>? OnValueChanged { get; set; }
         public Action<float>? OnUserValueChanged { get; set; }
 
@@ -38,8 +35,7 @@ namespace FenUISharp.Objects
             Label = label;
             label.SetParent(this);
 
-            HoverColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary.MultiplyMix(new(200, 200, 200)).WithAlpha(65), this);
-            currentBackground = SKColors.Transparent;
+            RenderMaterial.Value = FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.TransparentInteractableMaterial;
 
             label.Layout.StretchHorizontal.SetStaticState(true);
             label.Layout.StretchVertical.SetStaticState(true);
@@ -102,20 +98,6 @@ namespace FenUISharp.Objects
             Invalidate(Invalidation.SurfaceDirty | Invalidation.LayoutDirty);
         }
 
-        protected override void Update()
-        {
-            base.Update();
-
-            var lastCol = currentBackground;
-
-            currentBackground = RMath.Lerp(currentBackground,
-                InteractiveSurface.IsMouseDown ? HoverColor.CachedValue : (InteractiveSurface.IsMouseHovering ? HoverColor.CachedValue : SKColors.Transparent),
-            FContext.DeltaTime * 10f);
-
-            if (lastCol != currentBackground)
-                Invalidate(Invalidation.SurfaceDirty);
-        }
-
         protected override void MouseAction(MouseInputCode inputCode)
         {
             base.MouseAction(inputCode);
@@ -130,8 +112,9 @@ namespace FenUISharp.Objects
 
         public void OpenPopup()
         {
-            if (activePopup != null) activePopup.Close();
-            else CreatePopup();
+            if(activePopup == null) 
+                CreatePopup();
+            activePopup?.Show(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
         }
 
         private void CreatePopup()
@@ -149,8 +132,6 @@ namespace FenUISharp.Objects
             {
                 activePopup.InteractiveSurface.OnMouseScroll -= OnPopupScroll;
             };
-
-            activePopup.Show(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
         }
 
         void Increment()
@@ -178,17 +159,6 @@ namespace FenUISharp.Objects
 
             OnValueChanged?.Invoke(Value);
             OnUserValueChanged?.Invoke(Value);
-        }
-
-        public override void Render(SKCanvas canvas)
-        {
-            base.Render(canvas);
-
-            using var panel = SKSquircle.CreateSquircle(Shape.LocalBounds, Shape.LocalBounds.Height / 1.25f);
-            using var paint = GetRenderPaint();
-
-            paint.Color = currentBackground;
-            canvas.DrawPath(panel, paint);
         }
     }
 }

@@ -11,6 +11,9 @@ namespace FenUISharp.Objects
         public SKRect GlobalBounds { get; private set; } = new();
         public SKRect SurfaceDrawRect { get; private set; } = new();
 
+        // Needed for invalidation path
+        public SKRect LastGlobalBounds { get; private set; } = new();
+
         public Shape(UIObject owner)
         {
             this.Owner = owner;
@@ -23,7 +26,8 @@ namespace FenUISharp.Objects
             LocalBounds = new(0, 0, size.x, size.y);
             SurfaceDrawRect = new(-Owner.Padding.CachedValue, -Owner.Padding.CachedValue,
                 size.x + Owner.Padding.CachedValue, size.y + Owner.Padding.CachedValue);
-            
+
+            LastGlobalBounds = GlobalBounds;
             GlobalBounds = Owner.Transform.DrawLocalToGlobal(SurfaceDrawRect);
         }
     }

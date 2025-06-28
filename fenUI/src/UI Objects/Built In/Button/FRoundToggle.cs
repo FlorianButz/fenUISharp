@@ -7,12 +7,8 @@ namespace FenUISharp.Objects.Buttons
 {
     public class FRoundToggle : SelectableButton, IStateListener
     {
-        public State<SKColor> BackgroundColor { get; set; }
-        public State<SKColor> EnabledFillColor { get; set; }
         public State<SKColor> KnobColor { get; set; }
-        public State<SKColor> BorderColor { get; set; }
 
-        protected SKColor currentBackground;
         public Spring AnimationSpring { get; set; }
 
         const int WIDTH = 50;
@@ -22,10 +18,7 @@ namespace FenUISharp.Objects.Buttons
 
         public FRoundToggle(Func<Vector2>? position = null) : base(null, null, position, () => new(WIDTH, HEIGHT))
         {
-            BackgroundColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SurfaceVariant, this);
             KnobColor = new(() => SKColors.White, this);
-            EnabledFillColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary, this);
-            BorderColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SecondaryBorder, this);
 
             toggleAnimator = new(this, Easing.EaseOutBack);
             toggleAnimator.Duration = 0.5f;
@@ -43,6 +36,8 @@ namespace FenUISharp.Objects.Buttons
 
             InteractiveSurface.OnMouseExit += MouseExit;
             Transform.SnapPositionToPixelGrid.SetStaticState(true); // Technically good
+
+            CornerRadius.SetResponsiveState(() => Transform.Size.CachedValue.y / 2);
         }
 
         float _width = HEIGHT;
@@ -68,75 +63,63 @@ namespace FenUISharp.Objects.Buttons
 
             _width = RMath.Lerp(_width, InteractiveSurface.IsMouseDown ? WIDTH / 2f + 5 : WIDTH / 2f, FContext.DeltaTime * 5f);
 
-            if (_lastAnimTime != _animTime || Math.Round(_width) != Math.Round(_lastWidth) /*|| _lastSize != glassKnob.Transform.Size*/)
-            {
+            if (_lastAnimTime != _animTime)
                 Invalidate(Invalidation.SurfaceDirty);
-            }
+
             _lastAnimTime = _animTime;
             _lastWidth = _width;
         }
 
-        void UpdateColors()
+        protected override void MouseExit()
         {
-            if (toggleAnimator.IsRunning)
-            {
-                float t = toggleAnimator.Time;
-                if (!IsSelected) t = 1 - t;
-                t = Math.Clamp(t, 0, 1);
-
-                currentBackground = RMath.Lerp(BackgroundColor.CachedValue, EnabledFillColor.CachedValue, t);
-            }
-            else
-            {
-                currentBackground = RMath.Lerp(BackgroundColor.CachedValue, EnabledFillColor.CachedValue, IsSelected ? 1 : 0);
-            }
-        }
-
-        protected override void MouseAction(MouseInputCode inputCode)
-        {
-            base.MouseAction(inputCode);
-        }
-
-        protected void MouseExit()
-        {
+            base.MouseExit();
             InteractiveSurface.IsMouseDown = false;
         }
 
         public override void Render(SKCanvas canvas)
         {
-            base.Render(canvas);
-
-            UpdateColors();
-            canvas.Translate(0.5f, 0.5f);
+            // base.Render(canvas);
 
             using var paint = GetRenderPaint();
             var bounds = Shape.LocalBounds;
-            using var backgroundRect = new SKRoundRect(bounds, 50);
 
+            // Base background
+            var colorBefore = RenderMaterial.CachedValue.GetProp<Func<SKColor>>("BaseColor", null);
+            var colorBorderBefore = RenderMaterial.CachedValue.GetProp<Func<SKColor>>("BorderColor", null);
+
+            float t = RMath.Clamp(1f - _animTime, 0, 1);
+            SKColor currentBackground = RMath.Lerp(EnabledFillColor.CachedValue, (colorBefore?.Invoke() ?? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary), t);
+            SKColor currentBorder = RMath.Lerp(EnabledFillColor.CachedValue.AddMix(new(25, 25, 25)), (colorBorderBefore?.Invoke() ?? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SecondaryBorder), t);
+
+            using var backgroundRect = new SKRoundRect(bounds, CornerRadius.CachedValue);
+            RenderMaterial.CachedValue.WithOverride(new (){
+                ["BaseColor"] = () => currentBackground,
+                ["BorderColor"] = () => currentBorder
+            }).DrawWithMaterial(canvas, backgroundRect, paint);
+
+            // Knob
             float knobLeft = RMath.Lerp(bounds.Left, bounds.Right - _width, _animTime);
             float knobRight = RMath.Lerp(bounds.Left + _width, bounds.Right, _animTime);
 
             var knobRect = new SKRect(knobLeft, bounds.Top, knobRight, bounds.Bottom);
-
             knobRect.Inflate(-2, -2);
             using var knobRectRound = new SKRoundRect(knobRect, 20);
 
             using var shadow = SKImageFilter.CreateDropShadow(0, 2, 5, 5, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Shadow);
-
-            paint.Color = currentBackground;
-            canvas.DrawRoundRect(backgroundRect, paint);
-            canvas.ClipRoundRect(backgroundRect, antialias: true);
-
             paint.ImageFilter = shadow;
             paint.Color = KnobColor.CachedValue;
             canvas.DrawRoundRect(knobRectRound, paint);
-            paint.ImageFilter = null;
+        }
 
-            paint.Color = BorderColor.CachedValue;
-            paint.IsStroke = true;
-            paint.StrokeWidth = 1;
-            canvas.DrawRoundRect(backgroundRect, paint);
-            canvas.Translate(-0.5f, -0.5f);
+
+        public override void AfterRender(SKCanvas canvas)
+        {
+            using (var rect = new SKRoundRect(Shape.LocalBounds, CornerRadius.CachedValue))
+            {
+                using var paint = GetRenderPaint();
+                paint.Color = currentHoverMix;
+                canvas.DrawRoundRect(rect, paint);
+            }
         }
     }
 }

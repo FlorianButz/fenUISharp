@@ -1,3 +1,4 @@
+using FenUISharp.Materials;
 using FenUISharp.Mathematics;
 using FenUISharp.States;
 using SkiaSharp;
@@ -54,12 +55,8 @@ namespace FenUISharp.Objects
             rightArrow.InteractiveSurface.OnMouseEnter += () => Invalidate(Invalidation.SurfaceDirty);
             rightArrow.InteractiveSurface.OnMouseExit += () => Invalidate(Invalidation.SurfaceDirty);
 
-            leftArrow.BaseColor.SetStaticState(SKColors.Transparent);
-            rightArrow.BaseColor.SetStaticState(SKColors.Transparent);
-            leftArrow.BorderColor.SetStaticState(SKColors.Transparent);
-            rightArrow.BorderColor.SetStaticState(SKColors.Transparent);
-            leftArrow.ShadowColor.SetStaticState(SKColors.Transparent);
-            rightArrow.ShadowColor.SetStaticState(SKColors.Transparent);
+            leftArrow.RenderMaterial.Value = () => new InteractableDefaultMaterial() { BaseColor = () => SKColors.Transparent, BorderColor = () => SKColors.Transparent, ShadowColor = () => SKColors.Transparent, HightlightColor = () => SKColors.Transparent };
+            rightArrow.RenderMaterial.Value = () => new InteractableDefaultMaterial() { BaseColor = () => SKColors.Transparent, BorderColor = () => SKColors.Transparent, ShadowColor = () => SKColors.Transparent, HightlightColor = () => SKColors.Transparent };
 
             InteractiveSurface.EnableMouseActions.SetStaticState(true);
         }

@@ -227,7 +227,7 @@ namespace FenUISharp.Behavior
             {
                 if (Owner._childSurface.TryGetSurface(out var surf))
                 {
-                    float l = FadeLength / 2;
+                    float l = FadeLength / 2f;
                     var topBounds = new SKRect(bounds.Left, bounds.Top, bounds.Right, bounds.Top + l);
                     var bottomBounds = new SKRect(bounds.Left, bounds.Bottom - l, bounds.Right, bounds.Bottom);
 

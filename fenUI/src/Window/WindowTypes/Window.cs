@@ -417,44 +417,51 @@ namespace FenUISharp
 
         public SKPath GetCurrentDirtyClipPath()
         {
+            // Return a copy to avoid external modifications
+            return _cachedDirtyPath != null ? new SKPath(_cachedDirtyPath) : new SKPath();
+        }
+
+        private SKPath? _cachedDirtyPath;
+        private SKPath? _lastDirtyPath;
+        private SKPath GetDirtyClipPath()
+{
+            // Clear the old cached path
+            _cachedDirtyPath?.Dispose();
+            
             var clipPath = new SKPath();
+            
             if (_isDirty)
             {
                 clipPath.AddRect(Bounds);
-                return clipPath;
+                _cachedDirtyPath = clipPath;
+                return new SKPath(clipPath); // Return copy
             }
 
             foreach (var component in GetAllUIObjects())
             {
-                if (component.WindowRedrawThisObject)
+                if (component.WindowRedrawThisObject && component.GlobalEnabled && component.GlobalVisible)
                 {
+                    int pad = 4;
                     var bounds = component.Shape.GlobalBounds;
-                    bounds.Inflate(5, 5); // Make sure to clear a bit more to avoid buffer overdraw
+                    bounds.Inflate(pad, pad);
                     clipPath.AddRect(bounds);
+
+                    var lastbounds = component.Shape.LastGlobalBounds;
+                    lastbounds.Inflate(pad, pad);
+                    clipPath.AddRect(lastbounds);
                 }
             }
 
-            return clipPath;
-        }
-
-        private SKPath? _lastDirtyPath;
-        private SKPath GetDirtyClipPath()
-        {
-            var clipPath = GetCurrentDirtyClipPath();
-
-            // This probably doesn't need to be that complicated, however I am tired and this works
-            SKPath? lastPath = null;
-            if (_lastDirtyPath != null)
-                lastPath = new SKPath(_lastDirtyPath);
-
+            SKPath lastPath = null;
+            if (_lastDirtyPath != null) lastPath = new SKPath(_lastDirtyPath);
             _lastDirtyPath?.Dispose();
             _lastDirtyPath = new SKPath(clipPath);
 
-            // Make sure to also redraw where the invalidated objects were last frame to avoid artifacts
             if (lastPath != null)
                 clipPath.AddPath(lastPath, SKPathAddMode.Append);
-            lastPath?.Dispose();
 
+            _cachedDirtyPath = new SKPath(clipPath);
+            
             return clipPath;
         }
 

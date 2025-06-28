@@ -2,6 +2,7 @@
 using FenUISharp.Behavior;
 using FenUISharp.Components;
 using FenUISharp.Components.Text.Layout;
+using FenUISharp.Materials;
 using FenUISharp.Mathematics;
 using FenUISharp.Objects.Buttons;
 using FenUISharp.Objects.Text;
@@ -17,24 +18,27 @@ namespace FenUISharp.Objects
     {
         public override List<UIObject> Create()
         {
-            // var f = new FPanel(size: () => new(750, 500));
-            // // f.Layout.Alignment.SetStaticState(new(0, 0));
+            var f = new FPanel(size: () => new(750, 500));
+            // f.Layout.Alignment.SetStaticState(new(0, 0));
 
-            // for (int i = 0; i < 1; i++)
-            // {
-            //     var panel = new FPanel(size: () => new(150, 75));
-            //     panel.SetParent(f);
-            //     panel.PanelColor.SetStaticState(new(
-            //         (byte)(Random.Shared.NextSingle() * 255),
-            //         (byte)(Random.Shared.NextSingle() * 255),
-            //         (byte)(Random.Shared.NextSingle() * 255),
-            //         255
-            //     ));
+            for (int i = 0; i < 35; i++)
+            {
+                var panel = new FPanel(size: () => new(350, 75));
+                panel.SetParent(f);
+                panel.PanelColor.SetStaticState(new(
+                    (byte)(Random.Shared.NextSingle() * 255),
+                    (byte)(Random.Shared.NextSingle() * 255),
+                    (byte)(Random.Shared.NextSingle() * 255),
+                    255
+                ));
 
-            //     var pic = new FImage(() => Resources.GetImage("test-img"), size: () => new(200, 100));
-            //     pic.SetParent(f);
-            //     pic.CornerRadius.Value = () => 100;
-            // }
+                var pic = new FImage(() => Resources.GetImage("test-img"), size: () => new(200, 100));
+                pic.SetParent(f);
+                pic.CornerRadius.Value = () => 100;
+
+                // pic.Enabled.SetStaticState(false);
+                // panel.Enabled.SetStaticState(false);
+            }
 
             // var slider = new FSlider();
             // slider.SetParent(f);
@@ -53,12 +57,12 @@ namespace FenUISharp.Objects
             // // fp.Show(() => FContext.GetCurrentWindow().ClientMousePosition);
 
 
-            // var l = new StackContentComponent(f, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
-            // l.ContentFade = true;
-            // l.EnableEdgeBlur = true;
-            // l.Pad.SetStaticState(25);
-            // l.Gap.SetStaticState(20);
-            // l.FullUpdateLayout();
+            var l = new StackContentComponent(f, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
+            l.ContentFade = true;
+            l.EnableEdgeBlur = true;
+            l.Pad.SetStaticState(25);
+            l.Gap.SetStaticState(20);
+            l.FullUpdateLayout();
 
             // return new();
 
@@ -84,13 +88,15 @@ namespace FenUISharp.Objects
             // patch.OnColorUpdated += (x) => Console.WriteLine("Color update: " + x);
             // patch.OnUserColorUpdated += (x) => Console.WriteLine("Color user update: " + x);
 
-            // var n = new FNumericScroller(new FText(TextModelFactory.CreateBasic("", 14, bold: true)));
-            // // n.Label.LayoutModel = new WiggleCharsLayoutProcessor(n.Label, new WrapLayout(n.Label));
-            // n.MinValue.SetStaticState(0);
-            // n.MaxValue.SetStaticState(2);
-            // n.Step.SetStaticState(0.1f);
-            // n.Value = 5;
-            // n.FormatProvider.SetStaticState("C");
+            var n = new FNumericScroller(new FText(TextModelFactory.CreateBasic("", 14, bold: true)), () => new(0, -50));
+            // n.Label.LayoutModel = new WiggleCharsLayoutProcessor(n.Label, new WrapLayout(n.Label));
+            n.MinValue.SetStaticState(0);
+            n.MaxValue.SetStaticState(2);
+            n.Step.SetStaticState(0.1f);
+            n.Value = 5;
+            n.FormatProvider.SetStaticState("C");
+
+            // FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.InteractableMaterial = () => new TransparentInteractableDefaultMaterial();
 
             // var slider = new FSlider(() => new(0, 70));
             // slider.MinValue.SetStaticState(0);
@@ -101,6 +107,8 @@ namespace FenUISharp.Objects
             // n.OnUserValueChanged += (x) => slider.Value = x;
 
             new FColorPatch(SKColors.Magenta, () => new(0, 150));
+            new FRoundToggle(() => new(0, 100));
+            new FToggle();
 
             // var v = new FToggle();
             // v.Transform.LocalPosition.SetStaticState(new(0, 100));
@@ -118,12 +126,17 @@ namespace FenUISharp.Objects
 
             // new FImage(() => Resources.GetImage("test-img"), size: () => new(150 * (s.Value + 1), 150), position: () => new(MathF.Sin(FContext.Time / 2) * 300, 0));
 
-            // var btn = new FSimpleButton(new Text.FText(TextModelFactory.CreateBasic("Change Color")), position: () => new(new(-65, 50)));
+            // var btn = new FSimpleButton(new Text.FText(TextModelFactory.CreateBasic("Test Button!")));
             // btn.OnClick += () => fp.Show(() => btn.Transform.LocalToGlobal(btn.Transform.LocalPosition.CachedValue));
             // btn.Layout.Alignment.SetStaticState(new(1, 0));
             // // btn.OnClick += () => col.PickedColor = SKColors.Blue;
 
             // new FImage(() => Resources.GetImage("test-img"), position: () => new(0, -170)).TintColor.SetResponsiveState(() => col.PickedColor);
+
+            var layout = new StackContentComponent(PaneRoot, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
+            layout.Pad.SetStaticState(100);
+            layout.Gap.SetStaticState(50);
+            layout.FullUpdateLayout();
 
             return new List<UIObject>() { };
         }

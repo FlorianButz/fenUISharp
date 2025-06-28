@@ -131,8 +131,11 @@ namespace FenUISharp.Objects
                 InteractiveSurface.IgnoreInteractions.SetStaticState(true);
                 InteractiveSurface.IgnoreChildInteractions.SetStaticState(true);
 
-                Visible.SetStaticState(false);
-                Enabled.SetStaticState(false);
+                FContext.GetCurrentDispatcher().InvokeLater(() =>
+                {
+                    Visible.SetStaticState(false);
+                    Enabled.SetStaticState(false);
+                }, 1L);
                 onComplete?.Invoke();
 
                 OnCompleteAnim();

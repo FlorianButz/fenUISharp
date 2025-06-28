@@ -15,6 +15,13 @@ namespace FenUISharp.Objects
         [ThreadStatic]
         private static int GlobalCreationIndex = 0;
 
+        // Static stuff
+        [ThreadStatic]
+        private static int activeInstances = 0;
+
+        [ThreadStatic]
+        private static List<UIObject> _cachedOrderedList = new();
+
         public Compositor(UIObject owner)
         {
             this.Owner = owner;
@@ -23,44 +30,55 @@ namespace FenUISharp.Objects
             GlobalCreationIndex++;
 
             LocalZIndex = new(() => 0, this);
+
+            if (activeInstances == 0)
+                FContext.GetCurrentWindow().OnPreUpdate += CacheZOrderedListOfEverything;
+
+            activeInstances++;
+        }
+
+        private static void CacheZOrderedListOfEverything()
+        {
+            if (FContext.GetRootViewPane() != null)
+            {
+                var result = new List<UIObject>();
+                TraverseAndCollect(FContext.GetRootViewPane(), result, true);
+                _cachedOrderedList = result;
+            }
         }
 
         public List<UIObject> GetZOrderedListOfChildren(UIObject root)
         {
-            if (root == null) return new();
-            
             return root.Children
                 .OrderBy(child => child.Composition.LocalZIndex.CachedValue)
                 .ThenBy(child => child.Composition.CreationIndex)
                 .ToList();
         }
 
-        public List<UIObject> GetZOrderedListOfEverything(UIObject root)
+        public List<UIObject> GetZOrderedListOfEverything()
         {
-            if (root == null) return new();
-
-            var result = new List<UIObject>();
-            TraverseAndCollect(root, result);
-            return result;
+            return _cachedOrderedList;
         }
 
-        void TraverseAndCollect(UIObject current, List<UIObject> list) {
+        static void TraverseAndCollect(UIObject current, List<UIObject> list, bool enabledAndVisibleOnly = false) {
+            if (enabledAndVisibleOnly ? (!current.GlobalVisible || !current.GlobalEnabled) : false) return;
             list.Add(current);
 
             var sortedChildren = current.Children
+                .Where(x => (enabledAndVisibleOnly ? (x.GlobalEnabled && x.GlobalVisible) : true))
                 .OrderBy(child => child.Composition.LocalZIndex.CachedValue)
                 .ThenBy(child => child.Composition.CreationIndex)
                 .ToList();
 
             foreach (var child in sortedChildren) {
-                TraverseAndCollect(child, list);
+                TraverseAndCollect(child, list, enabledAndVisibleOnly);
             }
         }
 
         public bool TestIfTopMost()
         {
             // Check if the last element matches the current one
-            var last = GetZOrderedListOfEverything(FContext.GetRootViewPane()).LastOrDefault(x => x != null);
+            var last = GetZOrderedListOfEverything().LastOrDefault(x => x != null);
 
             // If it's a match, this object is the topmost
             return last != null && last == Owner;
@@ -111,6 +129,10 @@ namespace FenUISharp.Objects
         public void Dispose()
         {
             LocalZIndex.Dispose();
+
+            activeInstances--;
+            if (activeInstances <= 0)
+                FContext.GetCurrentWindow().OnPreUpdate -= CacheZOrderedListOfEverything;
         }
 
         public void OnInternalStateChanged<T>(T value)

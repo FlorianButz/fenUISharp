@@ -1,6 +1,8 @@
 using FenUISharp.Behavior;
+using FenUISharp.Materials;
 using FenUISharp.Mathematics;
 using FenUISharp.States;
+using FenUISharp.Themes;
 using SkiaSharp;
 
 namespace FenUISharp.Objects
@@ -13,6 +15,8 @@ namespace FenUISharp.Objects
         public Compositor Composition { get; init; }
         public InteractiveSurface InteractiveSurface { get; init; }
 
+        public State<Material> RenderMaterial { get; init; }
+
         internal List<BehaviorComponent> BehaviorComponents { get; private set; }
 
         public UIObject? Parent { get; private set; }
@@ -21,10 +25,16 @@ namespace FenUISharp.Objects
         public State<bool> Enabled { get; init; }
         public State<bool> Visible { get; init; }
 
-        public bool GlobalEnabled { get => Enabled.CachedValue && (Parent?.Enabled.CachedValue ?? true); }
-        public bool GlobalVisible { get => Visible.CachedValue && (Parent?.Visible.CachedValue ?? true); }
+        /// <summary>
+        /// This is highly recommended and disabling it can lead to very poor performance
+        /// </summary>
+        public bool DisableWhenOutOfParentBounds { get; set; } = true;
+
+        public bool GlobalEnabled { get => Enabled.CachedValue && (Parent?.Enabled.CachedValue ?? true) && (DisableWhenOutOfParentBounds ? _insideParent : true); }
+        public bool GlobalVisible { get => Visible.CachedValue && (Parent?.Visible.CachedValue ?? true) && (DisableWhenOutOfParentBounds ? _insideParent : true); }
 
         private bool _wasBeginCalled = false;
+        private bool _insideParent = true;
 
         [Flags]
         public enum Invalidation
@@ -51,6 +61,9 @@ namespace FenUISharp.Objects
         public UIObject(Func<Vector2>? position = null, Func<Vector2>? size = null)
         {
             if (!FContext.IsValidContext()) throw new Exception("Invalid FenUISharp window context.");
+            FContext.GetCurrentWindow().WindowThemeManager.ThemeChanged += OnThemeChanged;
+
+            RenderMaterial = new(FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.DefaultMaterial, this);
 
             Enabled = new(() => true, this);
             Visible = new(() => true, this);
@@ -79,6 +92,20 @@ namespace FenUISharp.Objects
             Invalidate(Invalidation.All);
         }
 
+        public void CheckIfObjectMustBeDisabled()
+        {
+            if (!DisableWhenOutOfParentBounds) return;
+
+            _insideParent = RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Bounds, Shape.GlobalBounds);
+            CheckIfSurfaceCanBeDisposed();
+        }
+
+        protected virtual void OnThemeChanged()
+        {
+            // On theme changed
+            // RenderMaterial.ReevaluateValue(true);
+        }
+
         public void RecursiveInvalidate(Invalidation invalidation)
         {
             Invalidate(invalidation);
@@ -99,7 +126,7 @@ namespace FenUISharp.Objects
             Parent?.Invalidate(Invalidation.ChildDirty);
 
             if (InvalidationState != Invalidation.Clean && InvalidationState != Invalidation.ChildDirty) WindowRedrawThisObject = true;
-            
+
             OnInvalidate(invalidation);
         }
 
@@ -156,7 +183,7 @@ namespace FenUISharp.Objects
 
         public void OnUpdate()
         {
-            if (!GlobalEnabled && _wasBeginCalled) return;
+            if (!Enabled.CachedValue && _wasBeginCalled) return;
 
             DispatchBehaviorEvent(BehaviorEventType.BeforeUpdate);
 
@@ -183,7 +210,7 @@ namespace FenUISharp.Objects
                     Transform.UpdateTransform();
                     Children.ForEach(x => x.Invalidate(Invalidation.TransformDirty));
                     DispatchBehaviorEvent(BehaviorEventType.AfterTransform);
-                    
+
                     Shape.UpdateShape(); // Includes updating layout
 
                     DispatchBehaviorEvent(BehaviorEventType.AfterLayout);
@@ -195,6 +222,9 @@ namespace FenUISharp.Objects
                     _objectSurface.InvalidateSurface(Shape.LocalBounds, Quality.CachedValue, Padding.CachedValue); // Make sure to use LocalBounds since those don't include padding
                 }
             }
+
+            CheckIfObjectMustBeDisabled();
+            if (!GlobalEnabled) return;
 
             // Run own update behavior before children
             Update();
@@ -241,6 +271,7 @@ namespace FenUISharp.Objects
 
             DispatchBehaviorEvent(BehaviorEventType.BeforeRender, canvas);
             Render(canvas);
+            AfterRender(canvas);
             DispatchBehaviorEvent(BehaviorEventType.AfterRender, canvas);
 
             // Debug bounds
@@ -254,6 +285,11 @@ namespace FenUISharp.Objects
         public virtual void Render(SKCanvas canvas)
         {
             // The actual rendering is done here. It is cached, therefor does not get called every render tick
+        }
+
+        public virtual void AfterRender(SKCanvas canvas)
+        {
+            // Second render pass after the inital is done
         }
 
         public virtual void DrawChildren(SKCanvas? canvas)
@@ -275,7 +311,7 @@ namespace FenUISharp.Objects
         {
             if (!RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Bounds, Shape.GlobalBounds)) return false;
             // if (!RMath.IsRectPartiallyInside(Shape.GlobalBounds, FContext.GetCurrentWindow().GetCurrentDirtyClipPath())) return false; // Technically smart, though it wouldn't work like that
-            
+
             if (!GlobalEnabled) return false;
             if (!GlobalVisible) return false;
 
@@ -336,9 +372,21 @@ namespace FenUISharp.Objects
             Quality.Dispose();
             Padding.Dispose();
 
+            RenderMaterial.Dispose();
+
             RemoveFromParent();
 
             OnObjectDisposed?.Invoke();
+        }
+
+        void CheckIfSurfaceCanBeDisposed()
+        {
+            if (!GlobalEnabled || !GlobalVisible)
+            {
+                _childSurface.DisposeSurface();
+                _objectSurface.DisposeSurface();
+                Invalidate(Invalidation.SurfaceDirty);
+            }
         }
 
         public virtual void OnInternalStateChanged<T>(T value)

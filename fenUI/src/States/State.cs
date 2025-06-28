@@ -79,13 +79,13 @@ namespace FenUISharp.States
                 FContext.GetCurrentWindow().OnPreUpdate += Update;
         }
 
-        public void ReevaluateValue()
+        public void ReevaluateValue(bool forceReevaluation = false)
         {
             if (Value == null || isStaticValue) return;
             var value = Value();
 
             if (_lastValue == null) Notify(value);
-            else if (!EqualityComparer<T>.Default.Equals(_lastValue, value)) Notify(value);
+            else if (!EqualityComparer<T>.Default.Equals(_lastValue, value) || forceReevaluation) Notify(value);
 
             _lastValue = value;
         }

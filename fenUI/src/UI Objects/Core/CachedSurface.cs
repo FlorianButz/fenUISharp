@@ -18,7 +18,7 @@ namespace FenUISharp.Objects
         public bool TryGetSurface(out SKSurface surface)
         {
             if (_cachedSurface == null) { surface = null; return false; }
-            
+
             surface = _cachedSurface;
             return true;
         }
@@ -75,9 +75,12 @@ namespace FenUISharp.Objects
         {
             if (LockInvalidation) return;
 
-            _cachedSurface?.Canvas.Dispose();
-            _cachedSurface?.Dispose();
-            _cachedSurface = null;
+            if(_cachedSurface != null)
+            {
+                _cachedSurface?.Canvas.Dispose();
+                _cachedSurface?.Dispose();
+                _cachedSurface = null;
+            }
 
             quality = RMath.Clamp(quality, 0, 1);
 
@@ -98,6 +101,18 @@ namespace FenUISharp.Objects
         {
             _cachedSnapshot?.Dispose();
             _cachedSurface?.Dispose();
+        }
+
+        internal void DisposeSurface()
+        {
+            if (LockInvalidation) return;
+
+            // _cachedImageInfo = null;
+            _cachedSnapshot?.Dispose();
+            _cachedSurface?.Dispose();
+
+            _cachedSnapshot = null;
+            _cachedSurface = null;
         }
     }
 }
