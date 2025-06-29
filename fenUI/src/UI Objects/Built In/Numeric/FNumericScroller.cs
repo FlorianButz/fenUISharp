@@ -32,7 +32,7 @@ namespace FenUISharp.Objects
 
         // TODO: Fix scroller lines for different popup orientations
 
-        public FNumericScroller(FText label, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position: position, size: size ?? (() => new(30, 25)))
+        public FNumericScroller(FText label, Func<string>? formatProvider = null, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position: position, size: size ?? (() => new(30, 25)))
         {
             Label = label;
             label.SetParent(this);
@@ -47,7 +47,7 @@ namespace FenUISharp.Objects
             Step = new(() => 0.1f, this);
 
             Suffix = new(() => "", this);
-            FormatProvider = new(() => "", this);
+            FormatProvider = new(formatProvider ?? (() => ""), this);
             Culture = new(() => System.Globalization.CultureInfo.CurrentCulture, this);
 
             UpdateText();
@@ -79,7 +79,7 @@ namespace FenUISharp.Objects
 
         private void SetValue(float value)
         {
-            _value = RMath.Clamp(value, MinValue.CachedValue, MaxValue.CachedValue);
+            _value = RMath.Clamp(MathF.Round(value * 10000) / 10000, MinValue.CachedValue, MaxValue.CachedValue);
             UpdateText();
 
             OnValueChanged?.Invoke(Value);

@@ -277,6 +277,7 @@ namespace FenUISharp
             FContext.WithRootViewPane(null);
 
             RootViewPane = new(null);
+            RootViewPane.Layout.Alignment.Value = () => new(0.5f, 0.5f);
             RootViewPane.Layout.StretchHorizontal.Value = () => true;
             RootViewPane.Layout.StretchVertical.Value = () => true;
 

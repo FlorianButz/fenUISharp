@@ -371,11 +371,9 @@ namespace FenUISharp.Objects
             Visible.Dispose();
             Quality.Dispose();
             Padding.Dispose();
-
             RenderMaterial.Dispose();
 
             RemoveFromParent();
-
             OnObjectDisposed?.Invoke();
         }
 

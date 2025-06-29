@@ -1,3 +1,4 @@
+using FenUISharp.Behavior;
 using FenUISharp.Mathematics;
 using SkiaSharp;
 
@@ -6,8 +7,6 @@ namespace FenUISharp.Objects
     public class ModelViewPane : UIObject
     {
         private List<UIObject>? _modelItems;
-
-        // TODO: Reenable all features
 
         private View? _model;
         public View? ViewModel { get => _model; set { /*SetViewAnimated(value);*/ _model = value; UpdateView(); } }
@@ -26,13 +25,14 @@ namespace FenUISharp.Objects
             UpdateView();
 
             // _viewTransitionComponent = new(this, Easing.EaseInCubic, Easing.EaseOutCubic);
-            // _viewTransitionComponent.onValueUpdate += (x) => OnAnimationValueUpdated?.Invoke(x);
+            // _viewTransitionComponent.OnValueUpdate += (x) => OnAnimationValueUpdated?.Invoke(x);
             // _viewTransitionComponent.Duration = 0.25f;
 
             // OnAnimationValueUpdated += (x) =>
             // {
-            //     Transform.Scale = Vector2.One * RMath.Remap(x, 0, 1, 1, 0.95f);
-            //     ImageEffect.Opacity = RMath.Remap(x, 0, 1, 1, 0f);
+            //     Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(x, 0, 1, 1, 0.95f));
+            //     // Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(1, 0, 1, 1, 0.95f));
+            //     // ImageEffect.Opacity = RMath.Remap(x, 0, 1, 1, 0f);
             // };
         }
 
@@ -48,18 +48,16 @@ namespace FenUISharp.Objects
 
         //     _viewTransitionComponent.Duration = AnimateViewModelSwap ? AnimOutDuration : 0f;
         //     _viewTransitionComponent.Inverse = false;
-        //     _viewTransitionComponent.onComplete = () =>
+        //     _viewTransitionComponent.OnComplete = () =>
         //     {
         //         SilentSetView(view);
-        //         RecursiveInvalidate();
-        //         Transform.UpdateLayout();
+        //         RecursiveInvalidate(Invalidation.All);
 
-        //         _viewTransitionComponent.onComplete = () =>
+        //         _viewTransitionComponent.OnComplete = () =>
         //         {
         //             _viewTransitionComponent.Duration = AnimateViewModelSwap ? AnimInDuration : 0f;
-        //             _viewTransitionComponent.onComplete = null;
-        //             RecursiveInvalidate();
-        //             Transform.UpdateLayout();
+        //             _viewTransitionComponent.OnComplete = null;
+        //             RecursiveInvalidate(Invalidation.All);
         //         };
 
         //         _viewTransitionComponent.Inverse = true;

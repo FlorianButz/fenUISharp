@@ -53,7 +53,7 @@ namespace FenUISharp.Objects
             layoutObject.IgnoreParentLayout.SetStaticState(true);
             CornerRadius.SetStaticState(10f);
 
-            Composition.LocalZIndex.SetStaticState(99);
+            Composition.LocalZIndex.SetResponsiveState(() => IsShowing ? 99 : 0);
             dispatcher = FContext.GetCurrentDispatcher();
 
             WindowFeatures.GlobalHooks.OnMouseAction += OnGlobalMouseAction;
@@ -81,7 +81,6 @@ namespace FenUISharp.Objects
             {
                 Enabled.SetStaticState(true);
 
-                // TODO: Close when unfocused
                 // TODO: Add option to have it force opened
 
                 FContext.GetCurrentDispatcher().InvokeLater(() =>
@@ -282,46 +281,12 @@ namespace FenUISharp.Objects
         public override void Render(SKCanvas canvas)
         {
             var paint = GetRenderPaint();
-            paint.Color = PanelColor.CachedValue;
 
-            // Pixel Perfect border
-            if (BorderSize.CachedValue % 2 == 1)
-                canvas.Translate(0.5f, 0.5f);
-
-            using var panelPath = tailPath;
-            using (var dropShadow = SKImageFilter.CreateDropShadow(0, 2, DropShadowRadius.CachedValue, DropShadowRadius.CachedValue, ShadowColor.CachedValue))
-                paint.ImageFilter = dropShadow;
-
-            // Draw stroke first
-            using (var strokePaint = paint.Clone())
-            {
-                strokePaint.IsStroke = true;
-
-                strokePaint.StrokeCap = SKStrokeCap.Round;
-                strokePaint.StrokeJoin = SKStrokeJoin.Round;
-
-                strokePaint.ImageFilter = null; // Remove shadow
-
-                strokePaint.Color = GetDarkStrokeColor();
-                strokePaint.StrokeWidth = BorderSize.CachedValue + 2f * (BorderSize.CachedValue / 2);
-                canvas.DrawPath(panelPath, strokePaint);
-
-                strokePaint.Color = BorderColor.CachedValue;
-                strokePaint.StrokeWidth = BorderSize.CachedValue;
-                canvas.DrawPath(panelPath, strokePaint);
-            }
-
-            // Draw tail before base
-            if (_drawBasePanel)
-                canvas.DrawPath(panelPath, paint);
+            RenderMaterial.CachedValue.DrawWithMaterial(canvas, tailPath, paint);
 
             // Clip only tail area
-            canvas.ClipPath(tailPath, SKClipOperation.Difference, true);
+            canvas.ClipPath(this.tailPath, SKClipOperation.Difference, true);
             canvas.ClipPath(tailClip, SKClipOperation.Difference, true);
-
-            // Make sure to reset the offset
-            if (BorderSize.CachedValue % 2 == 1)
-                canvas.Translate(-0.5f, -0.5f);
 
             // Draw base everywhere except tail
             base.Render(canvas);
@@ -380,7 +345,7 @@ namespace FenUISharp.Objects
                     new(Shape.SurfaceDrawRect.MidX - TailWidth - 0 - TailCornerRadius,
                     Shape.LocalBounds.Bottom,
                     Shape.SurfaceDrawRect.MidX + TailWidth + 0 + TailCornerRadius,
-                    Shape.LocalBounds.Bottom + BorderSize.CachedValue + 1.5f * (BorderSize.CachedValue / 2))
+                    Shape.LocalBounds.Bottom + 1.5f)
                 );
             }
 

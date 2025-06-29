@@ -33,6 +33,16 @@ namespace FenUISharp.Objects.Buttons
             button.ButtonGroup = this;
         }
 
+        public void Remove(SelectableButton button)
+        {
+            Buttons.Remove(button);
+
+            UpdateButtonGroup();
+
+            button.OnUserSelectionChanged -= (x) => OnButtonChanged(x, button);
+            if(button.ButtonGroup == this) button.ButtonGroup = null;
+        }
+
         void OnButtonChanged(bool isSelected, SelectableButton button)
         {
             if (!AllowMultiSelect && isSelected) Buttons.ForEach(x => { if (x != button && x.IsSelected) x.SetSelected(false); });

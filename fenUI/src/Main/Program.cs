@@ -23,14 +23,14 @@ namespace FenUISharpTest1
             window.AllowResizing = true;
             window.CanMaximize = true;
             window.CanMinimize = true;
-            window.UseMica = true;
+            // window.UseMica = true;
             // window.DebugDisplayAreaCache = true;
             // window.DebugDisplayBounds = true;
 
             string iconPath = Resources.ExtractResourceToTempFile<FenUI>($"{FenUI.ResourceLibName}.icons.TrayIcon.ico");
             window.SetWindowIcon(iconPath);
 
-            window.WithView(new TestViewPane());
+            window.WithView(new DemoViewPane());
 
             window.SetWindowVisibility(true);
             window.BeginWindowLoop();

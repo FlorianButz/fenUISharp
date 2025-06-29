@@ -242,7 +242,7 @@ namespace FenUISharp.Objects
 
         public FGlass(Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
-            this.PanelColor.Value = () => SKColors.Gray;
+            // this.PanelColor.Value = () => SKColors.Gray;
             this._drawBasePanel = true;
         }
 

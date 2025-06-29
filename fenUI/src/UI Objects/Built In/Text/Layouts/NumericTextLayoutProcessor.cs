@@ -22,14 +22,14 @@ namespace FenUISharp.Components.Text.Layout
         private Dictionary<char, Spring> scaleStringArriving;
 
         // Animation parameters - customizable
-        public float Duration { get; init; } = 1f;
+        public float Duration { get; init; } = 0.6f;
         public float DurationLengthAddition { get; init; } = 0.1f;
-        public float BlurRadius { get; init; } = 5f;
-        public float VerticalOffset { get; init; } = -8f;
+        public float BlurRadius { get; init; } = 10f;
+        public float VerticalOffset { get; init; } = -10f;
         public float SpringSpeed { get; init; } = 3f;
         public float SpringSpringiness { get; init; } = 2f;
-        public float ScaleDownAmount { get; init; } = 0.6f;
-        public float GlyphDelay { get; init; } = 0.085f;
+        public float ScaleDownAmount { get; init; } = 0.4f;
+        public float GlyphDelay { get; init; } = 0.05f;
         public Func<float, float> VerticalPositionEasing { get; init; } = Easing.CombineInOut(Easing.EaseInBackDramatic, Easing.EaseOutBackDramatic);
         public Func<float, float> SlidePositionEasing { get; init; } = Easing.EaseOutExpo;
         public Func<float, float> FadeEasing { get; init; } = Easing.EaseInCubic;

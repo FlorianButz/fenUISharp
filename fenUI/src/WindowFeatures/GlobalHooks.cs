@@ -31,6 +31,7 @@ namespace FenUISharp.WinFeatures
         private static Vector2 lastMousePosition = new Vector2(0, 0);
         private static Vector2 mousePosition = new Vector2(0, 0);
         public static Vector2 MousePosition { get => mousePosition; }
+        public static bool MouseDown { get; private set; }
 
         #endregion
 
@@ -103,9 +104,11 @@ namespace FenUISharp.WinFeatures
                 {
                     case MouseMessages.WM_LBUTTONDOWN:
                         instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Down));
+                        MouseDown = true;
                         break;
                     case MouseMessages.WM_LBUTTONUP:
                         instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Up));
+                        MouseDown = false;
                         break;
                     case MouseMessages.WM_RBUTTONDOWN:
                         instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Right, MouseInputState.Down));

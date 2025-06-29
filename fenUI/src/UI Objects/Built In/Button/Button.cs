@@ -3,6 +3,7 @@ using FenUISharp.Components;
 using FenUISharp.Materials;
 using FenUISharp.Mathematics;
 using FenUISharp.States;
+using FenUISharp.WinFeatures;
 using SkiaSharp;
 
 namespace FenUISharp.Objects.Buttons
@@ -80,12 +81,16 @@ namespace FenUISharp.Objects.Buttons
 
         protected virtual void MouseEnter()
         {
+            if (GlobalHooks.MouseDown) return;
+
             animatorComponent.Inverse = false;
             animatorComponent.Start();
         }
 
         protected virtual void MouseExit()
         {
+            if (GlobalHooks.MouseDown) return;
+
             animatorComponent.Inverse = true;
             animatorComponent.Start();
         }

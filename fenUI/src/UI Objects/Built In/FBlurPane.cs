@@ -1,15 +1,29 @@
+using FenUISharp.Materials;
 using FenUISharp.Mathematics;
+using FenUISharp.States;
 using SkiaSharp;
 
 namespace FenUISharp.Objects
 {
-    public class FBlurPane : FPanel
+    public class FBlurPane : FPanel, IStateListener
     {
         public bool HighQualityBlur { get; set; } = true;
+        public State<Material> BlurMaterial { get; init; }
 
         public FBlurPane(Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
-            this.BorderColor.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface.WithAlpha(50);
+            BlurMaterial = new(() => new BlurMaterial(() => Shape.SurfaceDrawRect, () => Composition.GrabBehindPlusBuffer(Shape.GlobalBounds, HighQualityBlur ? 0.3f : 0.02f)) { BlurRadius = () => HighQualityBlur ? 15 : 5 }, this);
+
+            RenderMaterial.Value = () => new MaterialCompose(
+                () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.PanelMaterial().WithOverride(new() { ["BorderColor"] = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface.WithAlpha(50) }),
+                () => BlurMaterial.CachedValue
+            );
+        }
+
+        public override void OnInternalStateChanged<T>(T value)
+        {
+            base.OnInternalStateChanged(value);
+            Invalidate(Invalidation.SurfaceDirty);
         }
 
         protected override void Update()
@@ -24,26 +38,10 @@ namespace FenUISharp.Objects
         {
             base.Render(canvas);
 
-            var captureArea = Shape.SurfaceDrawRect;
-            using var windowArea = this.Composition.GrabBehindPlusBuffer(Transform.DrawLocalToGlobal(captureArea), HighQualityBlur ? 0.3f : 0.02f);
-
+            using (var paint = GetRenderPaint())
             using (var panelPath = GetPanelPath())
             {
-                if (windowArea == null) return;
-                canvas.ClipPath(panelPath, antialias: true);
-
-                using var paint = GetRenderPaint();
-
-                paint.Color = PanelColor.CachedValue;
-                canvas.DrawPath(panelPath, paint);
-
-                using (var blur = SKImageFilter.CreateBlur(HighQualityBlur ? 15 : 5, HighQualityBlur ? 15 : 5))
-                    paint.ImageFilter = blur;
-
-                var displayArea = Shape.SurfaceDrawRect;
-
-                canvas.DrawImage(windowArea, displayArea, sampling: new(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
-                paint.Dispose();
+                RenderMaterial.CachedValue.DrawWithMaterial(canvas, panelPath, paint);
             }
         }
     }

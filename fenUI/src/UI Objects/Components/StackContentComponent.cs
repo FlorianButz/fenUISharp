@@ -64,8 +64,8 @@ namespace FenUISharp.Behavior
             owner.InteractiveSurface.EnableMouseScrolling.Value = () => StackBehavior == ContentStackBehavior.Scroll;
             owner.InteractiveSurface.OnMouseScroll += OnScroll;
 
-            Gap = new(() => 0, this);
-            Pad = new(() => 0, this);
+            Gap = new(() => 10, this);
+            Pad = new(() => 15, this);
 
             ScrollSpring = new Spring(new Vector2(0, 0), 2f, 1f / 0.85f, 0.1f);
 

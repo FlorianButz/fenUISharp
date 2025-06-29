@@ -25,6 +25,8 @@ namespace FenUISharp.Objects
         public bool IsMouseDown { get; set; }
         public bool IsDragging { get; set; }
 
+        public bool MouseInteractionCallbackOnChildMouseInteraction { get; set; } = false;
+
         // Mouse Actions
 
         public Action? OnMouseEnter { get; set; }
@@ -280,6 +282,9 @@ namespace FenUISharp.Objects
 
         private bool TestIfTopMost_MouseInteraction()
         {
+            if (MouseInteractionCallbackOnChildMouseInteraction && Owner.Children.Any(x => x.InteractiveSurface.TestIfTopMost_MouseInteraction()))
+                return true;
+
             return _topmostSurfaceMouseAction == this;
         }
 

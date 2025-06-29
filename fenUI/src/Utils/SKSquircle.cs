@@ -5,14 +5,15 @@ namespace FenUISharp
 {
     public static class SKSquircle
     {
-        public static SKPath CreateSquircle(SKRect rect, float cornerRadius, float squircleness = 0.5f)
+        public static SKPath CreateSquircle(SKRect rect, float cornerRadius, float? squircleness = null)
         {
             var path = new SKPath();
+            path.Offset(rect.Left, rect.Top); // Initial position set
 
-            squircleness = Math.Clamp(squircleness, 0.0f, 1.0f);
+            squircleness = Math.Clamp(squircleness ?? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.DefaultSuperellipseRatio, 0.0f, 1.0f);
             cornerRadius = Math.Min(cornerRadius, Math.Min(rect.Width, rect.Height) * 0.5f);
 
-            float exponent = 2f + (1f - squircleness) * 2f;
+            float exponent = 2f + (1f - squircleness ?? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.DefaultSuperellipseRatio) * 2f;
             int segments = 30;
 
             float left = rect.Left;

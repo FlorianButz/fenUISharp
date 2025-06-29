@@ -59,7 +59,6 @@ namespace FenUISharp.Objects
             if (_cachedSurface == null)
                 return null;
 
-            // TODO: remove
             Compositor.Dump(_cachedSurface.Snapshot(), "buffer_surf_whole");
 
             var snapshot = _cachedSurface.Snapshot(new SKRectI((int)region.Left, (int)region.Top, (int)region.Right, (int)region.Bottom));

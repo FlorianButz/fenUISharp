@@ -23,74 +23,65 @@ namespace FenUISharp.Objects
             TintBlendMode = new(() => SKBlendMode.Modulate, this);
             ScaleMode = new(() => ImageScaleMode.Fit, this);
 
+            CornerRadius.SetResponsiveState(() => Transform.Size.CachedValue.y / 1.5f);
+
             TintColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface, this);
             Padding.Value = () => 10;
         }
 
         public override void Render(SKCanvas canvas)
         {
-            // base.Render(canvas);
+            base.Render(canvas);
 
             if (Image == null) return;
 
             using var paint = GetRenderPaint();
 
             var rect = Shape.LocalBounds;
-            rect.Inflate(0.5f, 0.5f);
+            using var panelPath = GetPanelPath(rect);
+            canvas.ClipPath(panelPath, antialias: true);
 
-            using (var roundRect = new SKRoundRect(Shape.LocalBounds, CornerRadius.CachedValue))
+            SKRect? bounds = null;
+            switch (ScaleMode.CachedValue)
             {
-                using (var dropShadow = SKImageFilter.CreateDropShadowOnly(0, 0, DropShadowRadius.CachedValue, DropShadowRadius.CachedValue, ShadowColor.CachedValue))
-                    paint.ImageFilter = dropShadow;
+                case ImageScaleMode.Stretch:
+                    bounds = Shape.LocalBounds;
+                    break;
+                case ImageScaleMode.Contain:
+                    {
+                        float scale = Math.Min(Shape.LocalBounds.Width / (float)Image.CachedValue.Width, Shape.LocalBounds.Height / (float)Image.CachedValue.Height);
+                        float imageWidth = Image.CachedValue.Width * scale;
+                        float imageHeight = Image.CachedValue.Height * scale;
 
-                using var panelPath = GetPanelPath(rect);
-                canvas.DrawPath(panelPath, paint);
-                paint.ImageFilter = null;
+                        float offsetX = Shape.LocalBounds.Left + (Shape.LocalBounds.Width - imageWidth) / 2;
+                        float offsetY = Shape.LocalBounds.Top + (Shape.LocalBounds.Height - imageHeight) / 2;
 
-                canvas.ClipPath(panelPath, antialias: true);
-
-                SKRect? bounds = null;
-                switch (ScaleMode.CachedValue)
-                {
-                    case ImageScaleMode.Stretch:
-                        bounds = Shape.LocalBounds;
+                        bounds = SKRect.Create(
+                            offsetX,
+                            offsetY,
+                            imageWidth,
+                            imageHeight);
                         break;
-                    case ImageScaleMode.Contain:
-                        {
-                            float scale = Math.Min(Shape.LocalBounds.Width / (float)Image.CachedValue.Width, Shape.LocalBounds.Height / (float)Image.CachedValue.Height);
-                            float imageWidth = Image.CachedValue.Width * scale;
-                            float imageHeight = Image.CachedValue.Height * scale;
+                    }
+                case ImageScaleMode.Fit:
+                    {
+                        float scaleFit = Math.Max(Shape.LocalBounds.Width / Image.CachedValue.Width, Shape.LocalBounds.Height / Image.CachedValue.Height);
 
-                            float offsetX = Shape.LocalBounds.Left + (Shape.LocalBounds.Width - imageWidth) / 2;
-                            float offsetY = Shape.LocalBounds.Top + (Shape.LocalBounds.Height - imageHeight) / 2;
+                        float fitWidth = Image.CachedValue.Width * scaleFit;
+                        float fitHeight = Image.CachedValue.Height * scaleFit;
 
-                            bounds = SKRect.Create(
-                                offsetX,
-                                offsetY,
-                                imageWidth,
-                                imageHeight);
-                            break;
-                        }
-                    case ImageScaleMode.Fit:
-                        {
-                            float scaleFit = Math.Max(Shape.LocalBounds.Width / Image.CachedValue.Width, Shape.LocalBounds.Height / Image.CachedValue.Height);
+                        float fitOffsetX = Shape.LocalBounds.Left + (Shape.LocalBounds.Width - fitWidth) / 2;
+                        float fitOffsetY = Shape.LocalBounds.Top + (Shape.LocalBounds.Height - fitHeight) / 2;
 
-                            float fitWidth = Image.CachedValue.Width * scaleFit;
-                            float fitHeight = Image.CachedValue.Height * scaleFit;
-
-                            float fitOffsetX = Shape.LocalBounds.Left + (Shape.LocalBounds.Width - fitWidth) / 2;
-                            float fitOffsetY = Shape.LocalBounds.Top + (Shape.LocalBounds.Height - fitHeight) / 2;
-
-                            bounds = new SKRect(fitOffsetX, fitOffsetY, fitOffsetX + fitWidth, fitOffsetY + fitHeight);
-                            break;
-                        }
-                }
-
-                using (var cFilter = SKColorFilter.CreateBlendMode(TintColor.CachedValue, TintBlendMode.CachedValue))
-                    paint.ColorFilter = cFilter;
-
-                canvas.DrawImage(Image.CachedValue, bounds ?? Shape.LocalBounds, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+                        bounds = new SKRect(fitOffsetX, fitOffsetY, fitOffsetX + fitWidth, fitOffsetY + fitHeight);
+                        break;
+                    }
             }
+
+            using (var cFilter = SKColorFilter.CreateBlendMode(TintColor.CachedValue, TintBlendMode.CachedValue))
+                paint.ColorFilter = cFilter;
+
+            canvas.DrawImage(Image.CachedValue, bounds ?? Shape.LocalBounds, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
         }
 
         public override void Dispose()

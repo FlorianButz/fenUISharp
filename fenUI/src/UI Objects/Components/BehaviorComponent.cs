@@ -34,7 +34,5 @@ namespace FenUISharp.Behavior
         BeforeLateUpdate, AfterLateUpdate,
         BeforeTransform, AfterTransform,
         BeforeLayout, AfterLayout
-
-        // TODO: Add input; Edit: probably not necessary, can easily just hook in to InteractiveSurface
     }
 }

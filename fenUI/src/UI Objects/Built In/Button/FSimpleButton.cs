@@ -30,12 +30,6 @@ namespace FenUISharp.Objects.Buttons
             InteractiveSurface.ExtendInteractionRadius.SetStaticState(-10);
         }
 
-        protected override void Update()
-        {
-            base.Update();
-            Console.WriteLine(RenderMaterial.CachedValue);
-        }
-
         void RefreshLabel()
         {
             var measuredText = Label.LayoutModel.GetBoundingRect(Label.Model, SKRect.Create(0, 0, maxWidth, 1000));

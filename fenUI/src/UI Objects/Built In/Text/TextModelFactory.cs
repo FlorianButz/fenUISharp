@@ -6,21 +6,22 @@ namespace FenUISharp.Objects.Text.Model
 {
     public class TextModelFactory
     {
-        public static TextModel CreateBasic(string text, float textSize = 14, bool bold = false, bool italic = false, Func<SKColor>? textColor = null, TextAlign? align = null)
+        public static TextModel CreateBasic(string text, float textSize = 14, bool bold = false, bool italic = false, bool underlined = false, Func<SKColor>? textColor = null, TextAlign? align = null)
         {
             TextStyle style = new()
             {
                 FontSize = textSize,
                 Color = textColor ?? (() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnBackground),
                 Weight = bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
-                Slant = italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright
+                Slant = italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright,
+                Underlined = underlined
             };
             TextAlign algn = align ?? new() { HorizontalAlign = TextAlign.AlignType.Middle, VerticalAlign = TextAlign.AlignType.Middle };
 
             return new(new List<TextSpan>() { new TextSpan(text, style) }, algn, FTypeface.Default);
         }
 
-        public static TextModel CopyBasic(TextModel old, float? textSize = null, bool? bold = null, bool? italic = null, Func<SKColor>? textColor = null, TextAlign? align = null)
+        public static TextModel CopyBasic(TextModel old, float? textSize = null, bool? bold = null, bool? italic = null, bool? underlined = null, Func<SKColor>? textColor = null, TextAlign? align = null)
         {
             List<TextSpan> spans = new();
 
@@ -30,6 +31,7 @@ namespace FenUISharp.Objects.Text.Model
                 span.Style.Weight = (bold != null) ? (bold.Value ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal) : span.Style.Weight;
                 span.Style.Slant = (italic != null) ? (italic.Value ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright) : span.Style.Slant;
                 span.Style.FontSize = textSize ?? span.Style.FontSize;
+                span.Style.Underlined = underlined ?? span.Style.Underlined;
                 spans.Add(span);
             }
 
@@ -62,11 +64,12 @@ namespace FenUISharp.Objects.Text.Model
             foreach (var part in splitText)
             {
                 TextStyle style = new();
-                style.Color = (() => new SKColor(
+                var captured = new SKColor(
                     (byte)(Random.Shared.NextSingle() * 255),
                     (byte)(Random.Shared.NextSingle() * 255),
                     (byte)(Random.Shared.NextSingle() * 255),
-                    255));
+                    255);
+                style.Color = (() => captured);
 
                 if (Random.Shared.NextSingle() > 0.5f)
                     style.Weight = SKFontStyleWeight.Bold;
@@ -77,7 +80,7 @@ namespace FenUISharp.Objects.Text.Model
                 if (Random.Shared.NextSingle() > 0.5f)
                     style.Underlined = true;
 
-                spans.Add(new TextSpan(part + ' ', style));
+                spans.Add(new TextSpan(part + " ", style));
             }
 
             return new(spans, align, FTypeface.Default);
