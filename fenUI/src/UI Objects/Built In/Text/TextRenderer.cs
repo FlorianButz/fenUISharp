@@ -1,3 +1,4 @@
+using FenUISharp.Mathematics;
 using FenUISharp.Objects.Text.Model;
 using SkiaSharp;
 
@@ -12,10 +13,11 @@ namespace FenUISharp.Objects.Text.Rendering
             Parent = parent;
         }
 
-        public virtual void DrawText(SKCanvas canvas, TextModel model, List<Glyph> glyphs, SKPaint paint)
+        public virtual void DrawText(SKCanvas canvas, TextModel model, List<Glyph> glyphs, SKRect localBounds, SKPaint paint)
         {
             for (int i = 0; i < glyphs.Count; i++)
             {
+                if (!RMath.IsRectPartiallyInside(localBounds, glyphs[i].Bounds)) continue;
                 int save = canvas.Save();
                 // canvas.Translate(Parent.Padding.CachedValue, Parent.Padding.CachedValue); Edit: Not needed anymore
 

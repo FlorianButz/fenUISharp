@@ -26,6 +26,8 @@ namespace FenUISharp.Objects
 
             StackContentComponent layout = new(panel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
 
+            FTextInputField textInputField = new(new FText(TextModelFactory.CreateBasic("")));
+
             {
                 FText title = new(TextModelFactory.CreateBasic("Images", 20, bold: true), size: () => new Vector2(200, 75));
                 title.SetParent(panel);
@@ -54,7 +56,8 @@ namespace FenUISharp.Objects
                 FText title = new(TextModelFactory.CreateBasic("Text", 20, bold: true), size: () => new Vector2(200, 75));
                 title.SetParent(panel);
 
-                FPanel subpanel = new(size: () => new(500, 0));
+                FPanel subpanel = new();
+                subpanel.Transform.Size.SetStaticState(new(500, 0));
                 subpanel.SetParent(panel);
 
                 StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.SizeToFit);
@@ -106,10 +109,11 @@ namespace FenUISharp.Objects
                 FText title = new(TextModelFactory.CreateBasic("Sliders / Scrollers", 20, bold: true), size: () => new Vector2(200, 75));
                 title.SetParent(panel);
 
-                FPanel subpanel = new(size: () => new(500, 0));
+                FPanel subpanel = new();
+                subpanel.Transform.Size.SetStaticState(new(500, 0));
                 subpanel.SetParent(panel);
 
-                StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.SizeToFitAll);
+                StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.SizeToFit);
                 sublayout.Pad.SetStaticState(25);
                 sublayout.Gap.SetStaticState(30);
 
@@ -133,10 +137,11 @@ namespace FenUISharp.Objects
                 FText title = new(TextModelFactory.CreateBasic("Toggles", 20, bold: true), size: () => new Vector2(200, 75));
                 title.SetParent(panel);
 
-                FPanel subpanel = new(size: () => new(500, 0));
+                FPanel subpanel = new();
+                subpanel.Transform.Size.SetStaticState(new(500, 0));
                 subpanel.SetParent(panel);
 
-                StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.SizeToFitAll);
+                StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.SizeToFit);
                 sublayout.Pad.SetStaticState(25);
                 sublayout.Gap.SetStaticState(30);
 
@@ -154,7 +159,7 @@ namespace FenUISharp.Objects
                 title.SetParent(panel);
 
                 {
-                    FPanel subpanel = new(size: () => new(500, 0));
+                    FPanel subpanel = new();
                     subpanel.SetParent(panel);
 
                     StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Horizontal, StackContentComponent.ContentStackBehavior.SizeToFitAll);
@@ -180,7 +185,7 @@ namespace FenUISharp.Objects
                 }
 
                 {
-                    FPanel subpanel = new(size: () => new(500, 0));
+                    FPanel subpanel = new();
                     subpanel.SetParent(panel);
 
                     StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Horizontal, StackContentComponent.ContentStackBehavior.SizeToFitAll);
@@ -206,7 +211,7 @@ namespace FenUISharp.Objects
                 }
 
                 {
-                    FPanel subpanel = new(size: () => new(500, 0));
+                    FPanel subpanel = new();
                     subpanel.SetParent(panel);
 
                     StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Horizontal, StackContentComponent.ContentStackBehavior.SizeToFitAll);
@@ -236,7 +241,8 @@ namespace FenUISharp.Objects
                 FText title = new(TextModelFactory.CreateBasic("Segmented Controls", 20, bold: true), size: () => new Vector2(200, 75));
                 title.SetParent(panel);
 
-                FPanel subpanel = new(size: () => new(200, 0));
+                FPanel subpanel = new();
+                subpanel.Transform.Size.SetStaticState(new(500, 0));
                 subpanel.SetParent(panel);
 
                 StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.SizeToFit);
@@ -266,7 +272,8 @@ namespace FenUISharp.Objects
                 FText title = new(TextModelFactory.CreateBasic("Other Controls", 20, bold: true), size: () => new Vector2(200, 75));
                 title.SetParent(panel);
 
-                FPanel subpanel = new(size: () => new(200, 0));
+                FPanel subpanel = new();
+                subpanel.Transform.Size.SetStaticState(new(500, 0));
                 subpanel.SetParent(panel);
 
                 StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.SizeToFit);

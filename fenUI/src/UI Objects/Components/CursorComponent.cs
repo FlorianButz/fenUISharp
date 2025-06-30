@@ -10,8 +10,9 @@ namespace FenUISharp.Behavior
         {
             CursorOnHover = cursorOnHover;
 
+            owner.InteractiveSurface.EnableMouseActions.SetStaticState(true);
             owner.InteractiveSurface.OnMouseEnter += MouseEnter;
-            owner.InteractiveSurface.OnMouseEnter += MouseExit;
+            owner.InteractiveSurface.OnMouseExit += MouseExit;
         }
 
         public override void ComponentDestroy()
@@ -19,17 +20,17 @@ namespace FenUISharp.Behavior
             base.ComponentDestroy();
             
             Owner.InteractiveSurface.OnMouseEnter -= MouseEnter;
-            Owner.InteractiveSurface.OnMouseEnter -= MouseExit;
+            Owner.InteractiveSurface.OnMouseExit -= MouseExit;
         }
 
         private void MouseEnter()
         {
-            if (Owner.Composition.TestIfTopMost()) FContext.GetCurrentWindow().ActiveCursor.SetValue(this, CursorOnHover, 5);
+            FContext.GetCurrentWindow().ActiveCursor.SetValue(this, CursorOnHover, 50);
         }
 
         private void MouseExit()
         {
-            if (Owner.Composition.TestIfTopMost()) FContext.GetCurrentWindow().ActiveCursor.DissolveValue(this);
+            FContext.GetCurrentWindow().ActiveCursor.DissolveValue(this);
         }
     }
 }

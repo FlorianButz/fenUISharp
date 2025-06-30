@@ -45,7 +45,7 @@ namespace FenUISharp.Objects.Text
             List<Glyph> glyphs = _layout.ProcessModel(_model, Shape.LocalBounds);
 
             using var paint = GetRenderPaint();
-            _renderer.DrawText(canvas, _model, glyphs, paint);
+            _renderer.DrawText(canvas, _model, glyphs, Shape.SurfaceDrawRect, paint);
         }
     }
 }

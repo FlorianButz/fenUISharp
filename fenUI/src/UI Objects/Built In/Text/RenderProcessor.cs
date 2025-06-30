@@ -12,9 +12,9 @@ namespace FenUISharp.Objects.Text.Rendering
             InnerRenderer = innerRenderer;
         }
 
-        public override void DrawText(SKCanvas canvas, TextModel model, List<Glyph> glyphs, SKPaint paint)
+        public override void DrawText(SKCanvas canvas, TextModel model, List<Glyph> glyphs, SKRect localBounds, SKPaint paint)
         {
-            InnerRenderer.DrawText(canvas, model, glyphs, paint);
+            InnerRenderer.DrawText(canvas, model, glyphs, localBounds, paint);
         }
     }
 }
