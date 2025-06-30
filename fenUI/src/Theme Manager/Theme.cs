@@ -1,3 +1,4 @@
+using FenUISharp.Materials;
 using SkiaSharp;
 
 namespace FenUISharp.Themes
@@ -30,6 +31,13 @@ namespace FenUISharp.Themes
         public SKColor Error { get; set; }
         public SKColor Success { get; set; }
         public SKColor Warning { get; set; }
+
+        public float DefaultSuperellipseRatio { get; set; } = 0.5f;
+
+        public Func<Material> DefaultMaterial { get; set; } = () => new EmptyDefaultMaterial();
+        public Func<Material> PanelMaterial { get; set; } = () => new DefaultPanelMaterial();
+        public Func<Material> InteractableMaterial { get; set; } = () => new InteractableDefaultMaterial();
+        public Func<Material> TransparentInteractableMaterial { get; set; } = () => new EmptyDefaultMaterial() { BaseColor = () => SKColors.Transparent };
 
         public Theme Clone()
         {

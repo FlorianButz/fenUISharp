@@ -2,10 +2,9 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text;
-using FenUISharp.Components;
 using FenUISharp.Mathematics;
+using FenUISharp.Objects;
 using FenUISharp.Themes;
-using FenUISharp.Views;
 using FenUISharp.WinFeatures;
 using SkiaSharp;
 
@@ -25,7 +24,7 @@ namespace FenUISharp
         public Vector2 WindowMinSize { get; set; } = new Vector2(100, 100);
         public Vector2 WindowMaxSize { get; set; } = new Vector2(float.MaxValue, float.MaxValue);
 
-        public ModelViewPane ViewPane { get; protected set; }
+        protected FenUISharp.Objects.ModelViewPane RootViewPane { get; private set; }
 
         protected bool _allowResize = true;
         public bool AllowResizing { get => _allowResize; set { _allowResize = value; UpdateAllowResize(_allowResize); } }
@@ -70,6 +69,7 @@ namespace FenUISharp
         public bool DebugDisplayAreaCache { get; set; } = false;
 
         public ThemeManager WindowThemeManager { get; private set; }
+        public KeyboardInputManager WindowKeyboardInput { get; private set; }
 
         public SKRect Bounds { get; private set; }
 
@@ -90,7 +90,9 @@ namespace FenUISharp
 
         public Action OnBeginRender { get; set; }
         public Action OnEndRender { get; set; }
-        public Action OnUpdate { get; set; }
+
+        public Action OnPostUpdate { get; set; }
+        public Action OnPreUpdate { get; set; }
 
         public Action OnDevicesChanged { get; set; }
 
@@ -107,8 +109,6 @@ namespace FenUISharp
 
         #region Private
 
-        protected volatile List<UIComponent> UiComponents = new List<UIComponent>();
-
         private readonly WndProcDelegate _wndProcDelegate;
         protected bool _alwaysOnTop;
         protected volatile bool _isDirty = false;
@@ -117,7 +117,6 @@ namespace FenUISharp
 
         volatile bool _stopRunningFlag = false;
         volatile bool _isRunning = false;
-        volatile bool _windowCloseFlag = false;
 
         protected bool _lastIsWindowFocused = false;
         public bool IsWindowFocused { get; protected set; } = false;
@@ -178,20 +177,16 @@ namespace FenUISharp
 
             SetTaskbarIconVisibility(!hideTaskbarIcon);
             RecalcClientBounds();
-
-            ViewPane = new(this, null, Vector2.Zero, Vector2.Zero);
-            ViewPane.Transform.StretchHorizontal = true;
-            ViewPane.Transform.StretchVertical = true;
-
-            ViewPane.Transform.MarginHorizontal = 0;
-            ViewPane.Transform.MarginVertical = 0;
         }
 
         #endregion
 
-        public void SetView(View model)
+        public void WithView(FenUISharp.Objects.View model)
         {
-            ViewPane.ViewModel = model;
+            Dispatcher.Invoke(() =>
+            {
+                RootViewPane.ViewModel = model;
+            });
         }
 
         public virtual void CreateAndUpdateRenderContext(RenderContextType type)
@@ -251,11 +246,10 @@ namespace FenUISharp
             {
                 Thread.CurrentThread.Priority = ThreadPriority.Highest;
 
-                // Initialize FRenderContext
-                CreateAndUpdateRenderContext(_startWithType);
-
-                RenderLoop();
+                SetupLogic();
+                LogicLoop();
             });
+            _renderThread.Name = "Logic Thread";
             _renderThread.Start();
 
             MSG msg;
@@ -274,7 +268,26 @@ namespace FenUISharp
             }
         }
 
-        private async void RenderLoop()
+        private void SetupLogic()
+        {
+            FContext.WithWindow(this); // Make sure to activate this window for the current thread
+
+            WindowKeyboardInput = new();
+
+            // Initialize FRenderContext
+            CreateAndUpdateRenderContext(_startWithType);
+
+            FContext.WithRootViewPane(null);
+
+            RootViewPane = new(null);
+            RootViewPane.Layout.Alignment.Value = () => new(0.5f, 0.5f);
+            RootViewPane.Layout.StretchHorizontal.Value = () => true;
+            RootViewPane.Layout.StretchVertical.Value = () => true;
+
+            FContext.WithRootViewPane(RootViewPane);
+        }
+
+        private void LogicLoop()
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
 
@@ -292,7 +305,7 @@ namespace FenUISharp
                     previousFrameTime = currentTime; // Make sure delta time doesn't go too crazy when updates are resumed
                     OnWindowUpdateCall(true);
 
-                    await Task.Delay(100); continue;
+                    Thread.Sleep(100); continue;
                 }
 
                 if (currentTime >= nextFrameTime)
@@ -304,28 +317,47 @@ namespace FenUISharp
 
                     if (IsNextFrameRendering())
                     {
-                        if (_fullRedraw)
-                            UiComponents.ForEach(x => x.RecursiveInvalidate());
-
-                        // Console.WriteLine("test");
-
                         OnBeginRender?.Invoke();
                         RenderFrame();
                         OnEndRender?.Invoke();
 
                         _isDirty = false;
                         _fullRedraw = false;
-                        UiComponents.ForEach(x => x.GloballyInvalidated = false);
                     }
 
                     nextFrameTime = currentTime + frameInterval;
                 }
 
-                // await Task.Delay(needsRender ? 1 : 16); // If not rendering, sleep longer (saves CPU); Edit: Not good, since the Update method inside the FUIComponents gets skipped then
-                await Task.Delay(1);
+                GetAllUIObjects().ForEach(x => x.WindowRedrawThisObject = false);
+
+                // await Task.Delay(needsRender ? 1 : 16); // If not rendering, sleep longer (saves CPU); Edit: Not good, since the Update method inside the UIObjects gets skipped then; Edit: Maybe that's not that bad, but right now I don't want to refactor stuff to work like that
+                Thread.Sleep(1);
             }
 
-            new List<UIComponent>(UiComponents).ForEach(x => x?.Dispose());
+            RootViewPane.Dispose(); // Should recursively dispose everything, at least I hope it does
+        }
+        
+        private void OnWindowUpdateCall(bool isPaused = false)
+        {
+            Time += DeltaTime;
+            Dispatcher.UpdateQueue(); // This MUST be executed as first in update
+
+            if (!isPaused)
+                OnPreUpdate?.Invoke();
+
+            RootViewPane.OnUpdate();        // First update iteration
+
+            if (!isPaused)
+                OnPostUpdate?.Invoke();
+            
+            RootViewPane.OnLateUpdate();    // Second update iteration
+
+            if (_lastIsWindowFocused != IsWindowFocused)
+            {
+                if (IsWindowFocused) OnFocusGained?.Invoke();
+                else OnFocusLost?.Invoke();
+            }
+            _lastIsWindowFocused = IsWindowFocused;
         }
 
         protected virtual void OnRenderFrame(SKSurface surface) { }
@@ -351,20 +383,19 @@ namespace FenUISharp
                 if (RenderContext.Surface != null)
                     OnRenderFrame(RenderContext.Surface);
 
-                foreach (var component in OrderUIComponents(UiComponents))
+                RootViewPane.DrawToSurface(_canvas);
+
+                if (DebugDisplayBounds)
                 {
-                    if (!RMath.IsRectPartiallyInside(component.Transform.FullBounds, clipPath)) continue;
-
-                    int savedBeforeComponent = _canvas.Save();
-                    if (component.Enabled && component.Transform.Parent == null)
-                        component.DrawToScreen(_canvas);
-
-                    if (DebugDisplayBounds)
+                    foreach (var component in GetAllUIObjects())
                     {
-                        _canvas.DrawRect(component.Transform.Bounds, new SKPaint() { IsStroke = true, Color = SKColors.Red });
-                        _canvas.DrawRect(component.InteractionBounds, new SKPaint() { IsStroke = true, Color = SKColors.Green });
+                        if (component.RenderThisFrame())
+                        {
+                            var bounds = component.Shape.GlobalBounds;
+                            bounds.Inflate(2, 2);
+                            _canvas.DrawRect(bounds, new SKPaint() { IsStroke = true, StrokeWidth = 1f, Color = SKColors.Blue });
+                        }
                     }
-                    _canvas.RestoreToCount(savedBeforeComponent);
                 }
 
                 _canvas.RestoreToCount(notClipped);
@@ -384,80 +415,81 @@ namespace FenUISharp
 
         public void ClearCanvasArea(SKPath path, SKCanvas canvas)
         {
-            var paint = new SKPaint { BlendMode = SKBlendMode.Clear };
+            using var paint = new SKPaint { BlendMode = SKBlendMode.Clear };
             canvas.DrawPath(path, paint);
         }
 
-        public SKPath GetDirtyClipPath()
+        public SKPath GetCurrentDirtyClipPath()
         {
+            // Return a copy to avoid external modifications
+            return _cachedDirtyPath != null ? new SKPath(_cachedDirtyPath) : new SKPath();
+        }
+
+        private SKPath? _cachedDirtyPath;
+        private SKPath? _lastDirtyPath;
+        private SKPath GetDirtyClipPath()
+{
+            // Clear the old cached path
+            _cachedDirtyPath?.Dispose();
+            
             var clipPath = new SKPath();
+            
             if (_isDirty)
             {
                 clipPath.AddRect(Bounds);
-                return clipPath;
+                _cachedDirtyPath = clipPath;
+                return new SKPath(clipPath); // Return copy
             }
 
-            foreach (var component in UiComponents)
+            foreach (var component in GetAllUIObjects())
             {
-                if (component.SelfInvalidated)
+                if (component.WindowRedrawThisObject && component.GlobalEnabled && component.GlobalVisible)
                 {
-                    var bounds = component.Transform.FullBounds;
-                    bounds.Inflate(2, 2);
+                    int pad = 4;
+                    var bounds = component.Shape.GlobalBounds;
+                    bounds.Inflate(pad, pad);
                     clipPath.AddRect(bounds);
+
+                    var lastbounds = component.Shape.LastGlobalBounds;
+                    lastbounds.Inflate(pad, pad);
+                    clipPath.AddRect(lastbounds);
                 }
             }
 
+            SKPath lastPath = null;
+            if (_lastDirtyPath != null) lastPath = new SKPath(_lastDirtyPath);
+            _lastDirtyPath?.Dispose();
+            _lastDirtyPath = new SKPath(clipPath);
+
+            if (lastPath != null)
+                clipPath.AddPath(lastPath, SKPathAddMode.Append);
+
+            _cachedDirtyPath = new SKPath(clipPath);
+            
             return clipPath;
         }
 
-        public List<UIComponent> OrderUIComponents(List<UIComponent> uiComponents)
+        public List<UIObject> GetAllUIObjects()
         {
-            return uiComponents.AsEnumerable().OrderBy(e => { if (e != null) return e.Transform.ZIndex; else return -99; }).ThenBy(e => { if (e != null) return e.Transform.CreationIndex; else return -99; }).ToList();
+            List<UIObject> list = new();
+            RecursiveAddChildrenToList(RootViewPane, list);
+            return list;
         }
 
-        private void OnWindowUpdateCall(bool isPaused = false)
+        private void RecursiveAddChildrenToList(UIObject parent, List<UIObject> list)
         {
-            if (!isPaused)
-                OnUpdate?.Invoke();
-
-            Dispatcher.UpdateQueue();
-
-            Time += DeltaTime;
-
-            foreach (char c in _queuedInputChars) Char?.Invoke(c);
-            _queuedInputChars.Clear();
-
-            if (_onEndResizeFlag)
+            if(!list.Contains(parent)) list.Add(parent);
+            parent.Children.ToList().ForEach(x =>
             {
-                _onEndResizeFlag = false;
-                OnEndResize();
-            }
-
-            if (_lastIsWindowFocused != IsWindowFocused)
-            {
-                if (IsWindowFocused) OnFocusGained?.Invoke();
-                else OnFocusLost?.Invoke();
-            }
-            _lastIsWindowFocused = IsWindowFocused;
-
-            if (_onWindowMovedFlag)
-            {
-                _onWindowMovedFlag = false;
-                WindowMoved();
-                OnWindowMoved?.Invoke(WindowPosition);
-            }
-
-            if (_isResizing)
-                OnWindowResize?.Invoke(WindowSize);
-
-            if (_windowCloseFlag)
-            {
-                _windowCloseFlag = false;
-                _isRunning = false;
-                OnWindowClose?.Invoke();
-                Dispose();
-            }
+                if(!list.Contains(parent)) list.Add(x);
+                RecursiveAddChildrenToList(x, list);
+            });
         }
+
+        // public List<UIComponent> OrderUIComponents(List<UIComponent> uiComponents)
+        // {
+        //     return uiComponents.AsEnumerable().OrderBy(e => { if (e != null) return e.Transform.ZIndex; else return -99; }).ThenBy(e => { if (e != null) return e.Transform.CreationIndex; else return -99; }).ToList();
+        // }
 
         public void Redraw() => _isDirty = true;
         public void FullRedraw()
@@ -465,39 +497,14 @@ namespace FenUISharp
             _isDirty = true;
             _fullRedraw = true;
             RenderContext.RecreateSurface();
-        }
-
-        public void AddUIComponent(UIComponent component)
-        {
-            if (component == null) return;
-            if (UiComponents.Contains(component)) return;
-
-            component.WindowRoot = this;
-            UiComponents.Add(component);
-        }
-
-        public void RemoveUIComponent(UIComponent component)
-        {
-            if (component == null || !UiComponents.Contains(component)) return;
-
-            // component.WindowRoot = null; // Don't do, could break some stuff
-            UiComponents.Remove(component);
-        }
-
-        public void DestroyUIComponent(UIComponent component)
-        {
-            if (component == null) return;
-
-            component.Dispose();
-            UiComponents.Remove(component);
+            RootViewPane.RecursiveInvalidate(Objects.UIObject.Invalidation.All);
         }
 
         public bool IsNextFrameRendering()
         {
-            return UiComponents.Any(x => x.GloballyInvalidated && x.Enabled && x.Visible && x.Transform.Parent == null && !x.IsOutsideClip()) || DebugDisplayAreaCache || _isDirty || _fullRedraw;
+            var i = GetAllUIObjects().Any(x => x.WindowRedrawThisObject && x.Enabled.CachedValue && x.Visible.CachedValue);
+            return i || DebugDisplayAreaCache || _isDirty || _fullRedraw;
         }
-
-        public List<UIComponent> GetUIComponents() => UiComponents;
 
         public void SetWindowVisibility(bool visible) => ShowWindow(hWnd, visible ? 1 : 0);
 
@@ -619,6 +626,8 @@ namespace FenUISharp
             _stopRunningFlag = false;
             DisposeHiddenWindow();
 
+            WindowKeyboardInput.Dispose();
+
             // Console.WriteLine("Destroyed " + Thread.CurrentThread.ManagedThreadId);
         }
 
@@ -671,45 +680,44 @@ namespace FenUISharp
         }
 
         // UI Thread methods
-        protected virtual void WindowMoved() { }
+        protected virtual void WindowMoved()
+        {
+        }
 
         protected virtual void OnEndResize()
         {
             RenderContext?.OnEndResize();
-            new List<UIComponent>(UiComponents).ForEach(x =>
-            {
-                x?.Invalidate();
-                x?.Transform.UpdateLayout();
-            });
+
+            Dispatcher.Invoke(() => FullRedraw()); // Make sure it gets executed a tick later
         }
 
         // Main thread methods
 
-        bool _onEndResizeFlag = false;
         Vector2 oldSize;
-        private void OnEndRsz()
-        {
-            _onEndResizeFlag = true;
-        }
 
         public virtual void WindowRzd(Vector2 size)
         {
             if (!_isResizing && size != oldSize)
-                OnEndRsz();
+                Dispatcher.Invoke(() => OnEndResize());
             oldSize = size;
 
             _isDirty = true;
 
             if (RenderContext != null)
-                RenderContext.OnResize(size);
+                Dispatcher.Invoke(() => RenderContext.OnResize(size));
 
             RecalcClientBounds();
+            Dispatcher.Invoke(() => FullRedraw()); // Make sure it gets executed a tick later
         }
 
-        private bool _onWindowMovedFlag = false;
         private void OnWindowMvd()
         {
-            _onWindowMovedFlag = true;
+            Dispatcher.Invoke(() =>
+            {
+                WindowMoved();
+                OnWindowMoved?.Invoke(WindowPosition);
+            });
+
             GetWindowRect(hWnd, out var rect);
             WindowPosition = new Vector2(rect.left, rect.top);
 
@@ -772,14 +780,12 @@ namespace FenUISharp
             return DefWindowProcW(hWnd, msg, wParam, lParam);
         }
 
-        private Queue<char> _queuedInputChars = new();
-
         protected IntPtr WindowsProcedure(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
             switch (msg)
             {
-                case 0x0102:
-                    _queuedInputChars.Enqueue((char)wParam);
+                case 0x0102: // Keyboard input
+                    Dispatcher.Invoke(() =>  Char?.Invoke((char)wParam));
                     break;
 
                 case (int)WindowMessages.WM_DEVICECHANGE:
@@ -799,11 +805,10 @@ namespace FenUISharp
 
                 case (int)WindowMessages.WM_USER + 1:
                     if ((int)lParam == (int)WindowMessages.WM_RBUTTONUP)
-                        Dispatcher.Invoke(() => TrayMouseAction?.Invoke(new MouseInputCode(1, 1)));
-
+                        Dispatcher.Invoke(() => TrayMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Right, MouseInputState.Up)));
 
                     if ((int)lParam == (int)WindowMessages.WM_LBUTTONUP)
-                        Dispatcher.Invoke(() => TrayMouseAction?.Invoke(new MouseInputCode(0, 1)));
+                        Dispatcher.Invoke(() => TrayMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Up)));
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_INITMENUPOPUP:
@@ -818,12 +823,13 @@ namespace FenUISharp
 
                 case (int)WindowMessages.WM_ENTERSIZEMOVE:
                     _isResizing = true;
+                    Dispatcher.Invoke(() => OnWindowResize?.Invoke(WindowSize));
                     break;
 
                 case (int)WindowMessages.WM_EXITSIZEMOVE:
                     _isDirty = true;
                     _isResizing = false;
-                    OnEndRsz();
+                    Dispatcher.Invoke(() => OnEndResize());
                     break;
 
                 case (int)WindowMessages.WM_KILLFOCUS:
@@ -851,22 +857,22 @@ namespace FenUISharp
                 case (int)WindowMessages.WM_KEYDOWN:
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_LBUTTONDOWN:
-                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(0, 0)));
+                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Down)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_RBUTTONDOWN:
-                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(1, 0)));
+                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(MouseInputButton.Right, MouseInputState.Down)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_MBUTTONDOWN:
-                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(2, 0)));
+                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(MouseInputButton.Middle, MouseInputState.Down)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_LBUTTONUP:
-                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(0, 1)));
+                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Up)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_RBUTTONUP:
-                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(1, 1)));
+                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(MouseInputButton.Right, MouseInputState.Up)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_MBUTTONUP:
-                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(2, 1)));
+                    Dispatcher.Invoke(() => MouseAction?.Invoke(new MouseInputCode(MouseInputButton.Middle, MouseInputState.Up)));
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_SETCURSOR:
@@ -883,7 +889,14 @@ namespace FenUISharp
                 case (int)WindowMessages.WM_CLOSE:
                     SetWindowVisibility(false); // Make sure the window is closes seemingly faster by hiding it first
                     if (!HideWindowOnClose)
-                        _windowCloseFlag = true;
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            _isRunning = false;
+                            OnWindowClose?.Invoke();
+                            Dispose();
+                        });
+                    }
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_DESTROY:

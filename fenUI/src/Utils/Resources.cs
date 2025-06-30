@@ -1,5 +1,6 @@
 using System.Reflection;
 using FenUISharp.Components.Text.Model;
+using FenUISharp.Materials;
 using FenUISharp.Themes;
 using SkiaSharp;
 
@@ -19,6 +20,11 @@ namespace FenUISharp
             var asm = typeof(Resources).Assembly;
 
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.test_img.png")), "test-img");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.check.png")), "fenui-builtin-check");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.copy.png")), "fenui-builtin-copy");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.clipboard.png")), "fenui-builtin-paste");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.chevron-left.png")), "fenui-builtin-arrow-left");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.chevron-right.png")), "fenui-builtin-arrow-right");
 
             var darkTheme = new Theme
             {
@@ -40,7 +46,7 @@ namespace FenUISharp
                 PrimaryBorder = new SKColor(0, 0, 0, 0),
                 SecondaryBorder = new SKColor(0, 0, 0, 0),
 
-                Shadow = new SKColor(0, 0, 0, 45),
+                Shadow = new SKColor(0, 0, 0, 28),
 
                 DisabledMix = new SKColor(255, 255, 255),
                 HoveredMix = new SKColor(150, 150, 150),
@@ -72,7 +78,7 @@ namespace FenUISharp
                 PrimaryBorder = new SKColor(122, 161, 255),
                 SecondaryBorder = new SKColor(204, 204, 204),
 
-                Shadow = new SKColor(0, 0, 0, 20),
+                Shadow = new SKColor(0, 0, 0, 35),
 
                 DisabledMix = new SKColor(200, 200, 200),
                 HoveredMix = new SKColor(220, 220, 220),
@@ -140,7 +146,9 @@ namespace FenUISharp
 
         public static SKImage RegisterImage(SKImage image, string withId)
         {
-            images.Add(withId, image);
+            if (images.Keys.Contains(withId)) images[withId] = image;
+            else images.Add(withId, image);
+            
             return image;
         }
 

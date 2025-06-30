@@ -1,0 +1,333 @@
+using FenUISharp.Mathematics;
+using FenUISharp.States;
+using FenUISharp.WinFeatures;
+using SkiaSharp;
+
+namespace FenUISharp.Objects
+{
+    public class InteractiveSurface : IDisposable
+    {
+        public UIObject Owner { get; init; }
+        public State<SKRect> GlobalSurface { get; init; }
+        private Dispatcher Dispatcher { get; init; }
+
+        private string uniqueID = Guid.NewGuid().ToString();
+
+        public State<int> ExtendInteractionRadius { get; init; }
+
+        public State<bool> IgnoreInteractions { get; init; }
+        public State<bool> IgnoreChildInteractions { get; init; }
+
+        public State<bool> EnableMouseActions { get; init; } // Both for dragging and mouse actions
+        public State<bool> EnableMouseScrolling { get; init; } // Only for scrolling
+
+        public bool IsMouseHovering { get; set; }
+        public bool IsMouseDown { get; set; }
+        public bool IsDragging { get; set; }
+
+        public bool MouseInteractionCallbackOnChildMouseInteraction { get; set; } = false;
+
+        // Mouse Actions
+
+        public Action? OnMouseEnter { get; set; }
+        public Action? OnMouseStay { get; set; }
+        public Action? OnMouseExit { get; set; }
+
+        public Action<MouseInputCode>? OnMouseAction { get; set; }
+
+        // Scrolling
+
+        public Action<float>? OnMouseScroll { get; set; }
+
+        private volatile float _lastDelta = 0f; // Makes sure to catch all scrolling events between frames
+
+        // Dragging
+
+        public Action<Vector2>? OnDrag { get; set; } // Returns the delta between current mouse position and the drag start position
+        public Action<Vector2>? OnDragDelta { get; set; } // Returns the delta between the current mouse position and the last one
+        public Action? OnDragStart { get; set; }
+        public Action? OnDragEnd { get; set; }
+
+        private Vector2 _startGlobalMousePos;
+        private Vector2 _lastGlobalMousePos;
+
+
+        private bool ParentIgnoreChild { get => (Owner.Parent?.InteractiveSurface.IgnoreChildInteractions.CachedValue ?? false) || (Owner.Parent?.InteractiveSurface.ParentIgnoreChild ?? false); }
+
+        [ThreadStatic]
+        private static List<InteractiveSurface> _surfaces = new();
+
+        [ThreadStatic]
+        private static InteractiveSurface? _topmostSurface;
+        private static InteractiveSurface? _topmostSurfaceMouseAction;
+        private static InteractiveSurface? _topmostSurfaceMouseScroll;
+
+        [ThreadStatic]
+        private static int activeInstances = 0;
+
+        public InteractiveSurface(UIObject owner, Dispatcher dispatcher, Func<SKRect> globalSurface)
+        {
+            this.Owner = owner;
+            GlobalSurface = new(globalSurface, (x) => { });
+            this.Dispatcher = dispatcher;
+
+            ExtendInteractionRadius = new(() => 0, (x) => { });
+            IgnoreInteractions = new(() => false, (x) => { });
+            IgnoreChildInteractions = new(() => false, (x) => { });
+
+            EnableMouseActions = new(() => false, (x) => { });
+            EnableMouseScrolling = new(() => false, (x) => { });
+
+            FContext.GetCurrentWindow().MouseAction += FuncOnMouseAction;
+            WindowFeatures.GlobalHooks.OnMouseScroll += Global_FuncOnMouseScroll;
+            WindowFeatures.GlobalHooks.OnMouseMove += Global_FuncOnMouseMove;
+            WindowFeatures.GlobalHooks.OnMouseAction += FuncOnMouseActionGlobal;
+
+            if (activeInstances == 0)
+            {
+                FContext.GetCurrentWindow().OnPreUpdate += CacheTopmostMouseAction;
+                FContext.GetCurrentWindow().OnPreUpdate += CacheTopmostMouseScroll;
+            }
+
+            activeInstances++;
+
+            _surfaces.Add(this);
+        }
+
+        private void CacheTopmostMouseAction()
+        {
+            List<UIObject> ordered = Owner.Composition.GetZOrderedListOfEverything();
+
+            // Goes in reverse Z-order (front to back)
+            for (int i = ordered.Count - 1; i >= 0; i--)
+            {
+                var obj = ordered[i];
+                var surfaces = _surfaces.Where(s =>
+                    s.Owner == obj &&
+                    s.Owner.GlobalEnabled &&
+                    !s.IgnoreInteractions.CachedValue &&
+                    !s.ParentIgnoreChild &&
+                    s.EnableMouseActions.CachedValue &&
+                    s.TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition) // <- Important!
+                ).ToList();
+
+                if (surfaces.Count == 0) _topmostSurfaceMouseAction = null;
+                else
+                {
+                    _topmostSurfaceMouseAction = surfaces[0];
+                    break;
+                }
+            }
+        }
+
+        private void CacheTopmostMouseScroll()
+        {
+            List<UIObject> ordered = Owner.Composition.GetZOrderedListOfEverything();
+
+            // Goes in reverse Z-order (front to back)
+            for (int i = ordered.Count - 1; i >= 0; i--)
+            {
+                var obj = ordered[i];
+                var surfaces = _surfaces.Where(s =>
+                    s.Owner == obj &&
+                    s.Owner.GlobalEnabled &&
+                    !s.IgnoreInteractions.CachedValue &&
+                    !s.ParentIgnoreChild &&
+                    s.EnableMouseScrolling.CachedValue &&
+                    s.TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition) // <- Important!
+                ).ToList();
+
+                if (surfaces.Count == 0) _topmostSurfaceMouseScroll = null;
+                else
+                {
+                    _topmostSurfaceMouseScroll = surfaces[0];
+                    break;
+                }
+            }
+        }
+
+        private void FuncOnMouseActionGlobal(MouseInputCode code)
+        {
+            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+
+            Dispatcher.InvokeWithID(() => FuncOnMouseMoveGlobal(code), $"{uniqueID}-globalmousemove");
+        }
+
+        private void Global_FuncOnMouseScroll(float obj)
+        {
+            if (!Owner.GlobalEnabled || !Owner.GlobalVisible || _topmostSurfaceMouseScroll != this) return;
+
+            _lastDelta += obj;
+            Dispatcher.InvokeWithID(() => FuncOnMouseScroll(), $"{uniqueID}-mousescroll");
+        }
+
+        private void Global_FuncOnMouseMove(Vector2 vector)
+        {
+            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+
+            Dispatcher.InvokeWithID(() => FuncOnMouseMove(), $"{uniqueID}-mousemove");
+        }
+
+        private void FuncOnMouseScroll()
+        {
+            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+            if (!FContext.GetCurrentWindow().IsWindowFocused || !TestIfTopMost_MouseScrolling() || !TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition)) return;
+
+            OnMouseScroll?.Invoke(_lastDelta);
+            _lastDelta = 0;
+        }
+
+        private void FuncOnMouseMove()
+        {
+            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+
+            FuncProcessDrag();
+
+            if (!TestIfTopMost_MouseInteraction() || !TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition))
+            {
+                if (IsMouseHovering)
+                {
+                    if (_topmostSurface == this) _topmostSurface = null;
+                    IsMouseHovering = false;
+                    OnMouseExit?.Invoke();
+                }
+                return;
+            }
+
+            if (!IsMouseHovering)
+            {
+                OnMouseEnter?.Invoke();
+                _topmostSurface = this;
+            }
+
+            OnMouseStay?.Invoke();
+            IsMouseHovering = true;
+        }
+
+        private void FuncProcessDrag()
+        {
+            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+
+            if (IsMouseDown && !IsDragging && IsMouseHovering /* Technically not needed, but helps with readability */)
+            {
+                _startGlobalMousePos = FContext.GetCurrentWindow().ClientMousePosition;
+                _lastGlobalMousePos = FContext.GetCurrentWindow().ClientMousePosition;
+
+                OnDragStart?.Invoke();
+                IsDragging = true;
+            }
+
+            if (IsDragging)
+            {
+                OnDrag?.Invoke(FContext.GetCurrentWindow().ClientMousePosition - _startGlobalMousePos);
+                OnDragDelta?.Invoke(FContext.GetCurrentWindow().ClientMousePosition - _lastGlobalMousePos);
+                _lastGlobalMousePos = FContext.GetCurrentWindow().ClientMousePosition;
+            }
+        }
+
+        private void StopDragging()
+        {
+            _startGlobalMousePos = new(0, 0);
+            _lastGlobalMousePos = new(0, 0);
+
+            OnDragEnd?.Invoke();
+            IsDragging = false;
+        }
+
+        private void FuncOnMouseMoveGlobal(MouseInputCode code)
+        {
+            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+
+            if (code.button == MouseInputButton.Left && code.state == MouseInputState.Up && IsMouseDown)
+            {
+                IsMouseDown = false;
+
+                if (IsDragging)
+                {
+                    StopDragging();
+                }
+            }
+        }
+
+        private void FuncOnMouseAction(MouseInputCode code)
+        {
+            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+
+            // Dragging
+
+            if (TestIfTopMost_Dragging() && TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition))
+            {
+                if (IsDragging)
+                {
+                    StopDragging();
+                }
+            }
+
+            // Mouse actions
+
+            if (!TestIfTopMost_MouseInteraction() || !TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition)) return;
+
+            if (code.button == MouseInputButton.Left && code.state == MouseInputState.Down) IsMouseDown = true;
+            else if (code.button == MouseInputButton.Left && code.state == MouseInputState.Up) IsMouseDown = false;
+
+            OnMouseAction?.Invoke(code);
+        }
+
+        // Helper testing functions
+
+        public bool TestForGlobalPoint(Vector2 point)
+        {
+            return GetGlobalInteractionRect().Contains(point.x, point.y) && (Owner.Parent != null ? Owner.Parent.InteractiveSurface.TestForGlobalPoint(point) : true);
+        }
+
+        private bool TestIfTopMost_MouseInteraction()
+        {
+            if (MouseInteractionCallbackOnChildMouseInteraction && Owner.Children.Any(x => x.InteractiveSurface.TestIfTopMost_MouseInteraction()))
+                return true;
+
+            return _topmostSurfaceMouseAction == this;
+        }
+
+        // Separate function because buttons will be interactive, however should not block scrolling. I have no idea how actual frameworks handle this, so this has to do for now
+        private bool TestIfTopMost_MouseScrolling()
+        {
+            return _topmostSurfaceMouseScroll == this;
+        }
+
+        // Should be same as TestIfTopMost_MouseInteraction. Leave it there though, might change in future
+        private bool TestIfTopMost_Dragging()
+        {
+            return _topmostSurfaceMouseAction == this;
+        }
+
+        public SKRect GetGlobalInteractionRect()
+        {
+            var global = GlobalSurface.CachedValue;
+            global.Inflate(ExtendInteractionRadius.CachedValue, ExtendInteractionRadius.CachedValue);
+
+            return global;
+        }
+
+        public void Dispose()
+        {
+            _surfaces.Remove(this);
+
+            FContext.GetCurrentWindow().MouseAction -= FuncOnMouseAction;
+            WindowFeatures.GlobalHooks.OnMouseScroll -= Global_FuncOnMouseScroll;
+            WindowFeatures.GlobalHooks.OnMouseMove -= Global_FuncOnMouseMove;
+            WindowFeatures.GlobalHooks.OnMouseAction -= FuncOnMouseActionGlobal;
+
+            IgnoreInteractions.Dispose();
+            IgnoreChildInteractions.Dispose();
+            EnableMouseActions.Dispose();
+            EnableMouseScrolling.Dispose();
+
+            activeInstances--;
+            if (activeInstances <= 0)
+            {
+                FContext.GetCurrentWindow().OnPreUpdate += CacheTopmostMouseAction;
+                FContext.GetCurrentWindow().OnPreUpdate += CacheTopmostMouseScroll;
+            }
+        }
+    }
+}

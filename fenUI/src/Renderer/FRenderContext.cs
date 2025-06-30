@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using FenUISharp.Mathematics;
+using FenUISharp.Objects;
 using SkiaSharp;
 
 namespace FenUISharp
@@ -46,9 +47,13 @@ namespace FenUISharp
             if (Surface == null)
                 return null;
 
+            Compositor.Dump(Surface.Snapshot(), "rcontext_buffer_surf_whole");
+
             var snapshot = Surface.Snapshot(new SKRectI((int)region.Left, (int)region.Top, (int)region.Right, (int)region.Bottom));
-            var scaled = RMath.CreateLowResImage(snapshot, RMath.Clamp(quality, 0.05f, 1f), WindowRoot.RenderContext.SamplingOptions);
-            snapshot.Dispose();
+            var scaled = RMath.CreateLowResImage(snapshot, RMath.Clamp(quality, 0.01f, 1f), WindowRoot.RenderContext.SamplingOptions);
+            snapshot?.Dispose();
+
+            Compositor.Dump(scaled, "rcontext_buffer_cropped_scaled");
 
             return scaled;
         }

@@ -161,6 +161,17 @@
             : -Math.Pow(2, 10 * x - 10) * Math.Sin((x * 10 - 10.75) * c4));
         }
 
+        public static float EaseOutLessElastic(float x)
+        {
+            float c4 = 1;
+
+            return (float)(x == 0
+            ? 0
+            : x == 1
+            ? 1
+            : Math.Pow(2, -10 * (x)) * Math.Sin(((x-0.1) * 10 - 0.75) * c4) + 1);
+        }
+
         public static float EaseOutExpo(float x)
         {
             return x == 1 ? 1 : 1 - (float)Math.Pow(2, -10 * x);

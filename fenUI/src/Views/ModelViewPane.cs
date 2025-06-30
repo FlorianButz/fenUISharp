@@ -1,80 +1,78 @@
-using FenUISharp.Components;
+using FenUISharp.Behavior;
 using FenUISharp.Mathematics;
 using SkiaSharp;
 
-namespace FenUISharp.Views
+namespace FenUISharp.Objects
 {
-    public class ModelViewPane : UIComponent
+    public class ModelViewPane : UIObject
     {
-        private List<UIComponent>? _modelItems;
+        private List<UIObject>? _modelItems;
 
         private View? _model;
-        public View? ViewModel { get => _model; set { SetViewAnimated(value); } }
+        public View? ViewModel { get => _model; set { /*SetViewAnimated(value);*/ _model = value; UpdateView(); } }
 
-        public bool AnimateViewModelSwap { get; set; } = true;
-        public Action<float>? OnAnimationValueUpdated { get; set; }
+        // public bool AnimateViewModelSwap { get; set; } = true;
+        // public Action<float>? OnAnimationValueUpdated { get; set; }
 
-        private AnimatorComponent _viewTransitionComponent;
+        // private AnimatorComponent _viewTransitionComponent;
 
-        public float AnimOutDuration { get; set; } = 0.25f;
-        public float AnimInDuration { get; set; } = 0.25f;
+        // public float AnimOutDuration { get; set; } = 0.25f;
+        // public float AnimInDuration { get; set; } = 0.25f;
 
-        public ModelViewPane(Window rootWindow, View? model, Vector2 position, Vector2 size) : base(rootWindow, position, size)
+        public ModelViewPane(View? model, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
             this._model = model;
             UpdateView();
 
-            _viewTransitionComponent = new(this, Easing.EaseInCubic, Easing.EaseOutCubic);
-            _viewTransitionComponent.onValueUpdate += (x) => OnAnimationValueUpdated?.Invoke(x);
-            _viewTransitionComponent.Duration = 0.25f;
+            // _viewTransitionComponent = new(this, Easing.EaseInCubic, Easing.EaseOutCubic);
+            // _viewTransitionComponent.OnValueUpdate += (x) => OnAnimationValueUpdated?.Invoke(x);
+            // _viewTransitionComponent.Duration = 0.25f;
 
-            OnAnimationValueUpdated += (x) =>
-            {
-                Transform.Scale = Vector2.One * RMath.Remap(x, 0, 1, 1, 0.95f);
-                ImageEffect.Opacity = RMath.Remap(x, 0, 1, 1, 0f);
-            };
+            // OnAnimationValueUpdated += (x) =>
+            // {
+            //     Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(x, 0, 1, 1, 0.95f));
+            //     // Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(1, 0, 1, 1, 0.95f));
+            //     // ImageEffect.Opacity = RMath.Remap(x, 0, 1, 1, 0f);
+            // };
         }
 
-        protected override void OnUpdate()
+        protected override void Update()
         {
-            base.OnUpdate();
+            base.Update();
             _model?.Update();
         }
 
-        private void SetViewAnimated(View? view)
-        {
-            if (view == null) return;
+        // private void SetViewAnimated(View? view)
+        // {
+        //     if (view == null) return;
 
-            _viewTransitionComponent.Duration = AnimateViewModelSwap ? AnimOutDuration : 0f;
-            _viewTransitionComponent.Inverse = false;
-            _viewTransitionComponent.onComplete = () =>
-            {
-                SilentSetView(view);
-                RecursiveInvalidate();
-                Transform.UpdateLayout();
+        //     _viewTransitionComponent.Duration = AnimateViewModelSwap ? AnimOutDuration : 0f;
+        //     _viewTransitionComponent.Inverse = false;
+        //     _viewTransitionComponent.OnComplete = () =>
+        //     {
+        //         SilentSetView(view);
+        //         RecursiveInvalidate(Invalidation.All);
 
-                _viewTransitionComponent.onComplete = () =>
-                {
-                    _viewTransitionComponent.Duration = AnimateViewModelSwap ? AnimInDuration : 0f;
-                    _viewTransitionComponent.onComplete = null;
-                    RecursiveInvalidate();
-                    Transform.UpdateLayout();
-                };
+        //         _viewTransitionComponent.OnComplete = () =>
+        //         {
+        //             _viewTransitionComponent.Duration = AnimateViewModelSwap ? AnimInDuration : 0f;
+        //             _viewTransitionComponent.OnComplete = null;
+        //             RecursiveInvalidate(Invalidation.All);
+        //         };
 
-                _viewTransitionComponent.Inverse = true;
-                _viewTransitionComponent.Restart();
-            };
-            _viewTransitionComponent.Restart();
-        }
+        //         _viewTransitionComponent.Inverse = true;
+        //         _viewTransitionComponent.Restart();
+        //     };
+        //     _viewTransitionComponent.Restart();
+        // }
 
         protected void UpdateView()
         {
             if (_model == null) return;
 
-            _model.WindowRoot = WindowRoot;
             _model.PaneRoot = this;
-            _modelItems = _model.Create(WindowRoot);
-            _modelItems.ForEach(x => { if (x.Transform.Parent == null) x.Transform.SetParent(this.Transform); });
+            _modelItems = _model.Create();
+            _modelItems.ForEach(x => { if (x.Parent == null || x.Parent is ModelViewPane) x.SetParent(this); });
             _model.OnViewShown();
         }
 
@@ -90,16 +88,13 @@ namespace FenUISharp.Views
             if (_model == null) return;
 
             _model.OnViewDestroyed();
-            _modelItems?.ForEach(x => x.Transform.ClearParent());
             _modelItems?.ForEach(x => x.Dispose());
         }
 
-        protected override void ComponentDestroy()
+        public override void Dispose()
         {
-            base.ComponentDestroy();
+            base.Dispose();
             DisposeItems();
         }
-
-        protected override void DrawToSurface(SKCanvas canvas) { return; }
     }
 }
