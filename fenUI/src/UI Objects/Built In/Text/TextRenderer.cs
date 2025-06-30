@@ -21,12 +21,56 @@ namespace FenUISharp.Objects.Text.Rendering
                 int save = canvas.Save();
                 // canvas.Translate(Parent.Padding.CachedValue, Parent.Padding.CachedValue); Edit: Not needed anymore
 
-                var fontPaint = paint.Clone();
+                using var fontPaint = paint.Clone();
+                using var backgroundPaint = paint.Clone();
 
                 var glyph = glyphs[i];
+
+                // Set glyph color and background color
+                backgroundPaint.Color = glyph.Style.BackgroundColor();
                 fontPaint.Color = glyph.Style.Color();
 
                 canvas.Scale(glyph.Scale.Width, glyph.Scale.Height, glyph.Position.X + glyph.Bounds.Width * glyph.Anchor.X / 2, glyph.Position.Y + -glyph.Bounds.Height * glyph.Anchor.Y / 2);
+
+                // Batching together backgrounds with same color
+                // Test if should draw text background
+                SKColor backgroundColor = backgroundPaint.Color;
+                if (backgroundColor.Alpha != 0)
+                {
+                    // Make sure to not draw if already drawn
+                    if (i == 0 || glyphs[i - 1].Style.BackgroundColor() != backgroundColor)
+                    {
+                        // Start with the first bounds
+                        var startingGlyphBounds = glyph.Bounds;
+                        startingGlyphBounds.Offset(0, startingGlyphBounds.Height / 2);
+
+                        SKRect drawRect = startingGlyphBounds;
+
+                        int addition = 0;
+                        var currentGlyph = glyph;
+                        do
+                        {
+                            var currentGlyphBounds = currentGlyph.Bounds;
+                            currentGlyphBounds.Offset(0, currentGlyphBounds.Height / 2);
+
+                            // Combine them
+                            drawRect = new(
+                                MathF.Min(drawRect.Left, currentGlyph.Bounds.Left),
+                                MathF.Min(drawRect.Top, currentGlyph.Bounds.Top),
+                                MathF.Max(drawRect.Right, currentGlyph.Bounds.Right),
+                                MathF.Max(drawRect.Bottom, currentGlyph.Bounds.Bottom)
+                            );
+
+                            addition++;
+                            if ((i + addition) >= glyphs.Count) break;
+                            currentGlyph = glyphs[i + addition];
+                        } while (currentGlyph.Style.BackgroundColor() == backgroundColor);
+
+                        // Create a rounded rect out of the bounds
+                        using var roundRect = new SKRoundRect(drawRect, 5);
+                        canvas.DrawRoundRect(roundRect, backgroundPaint);
+                    }
+                }
 
                 using (var blur = SKImageFilter.CreateBlur(glyph.Style.BlurRadius, glyph.Style.BlurRadius))
                 using (var font = CreateFont(model.Typeface, glyph.Style))
@@ -70,10 +114,10 @@ namespace FenUISharp.Objects.Text.Rendering
 
         public virtual void DrawUnderline(SKCanvas canvas, Glyph glyph, SKPaint paint)
         {
-            if (glyph.Character == ' ') return;
+            if (char.IsWhiteSpace(glyph.Character)) return;
 
             int yOffset = 2;
-            canvas.DrawLine(new(glyph.Bounds.Left, glyph.Bounds.Bottom + yOffset), new(glyph.Bounds.Right, glyph.Bounds.Bottom + yOffset), paint);            
+            canvas.DrawLine(new(glyph.Bounds.Left, glyph.Bounds.Bottom + yOffset), new(glyph.Bounds.Right, glyph.Bounds.Bottom + yOffset), paint);
         }
 
         public static SKFont CreateFont(FTypeface typeface, TextStyle style)
@@ -82,7 +126,7 @@ namespace FenUISharp.Objects.Text.Rendering
             font.Subpixel = true;
             font.ForceAutoHinting = true;
             font.Edging = SKFontEdging.SubpixelAntialias;
-            
+
             return font;
         }
     }

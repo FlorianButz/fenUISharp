@@ -13,24 +13,26 @@ using System.Text;
 
 namespace FenUISharp.Objects
 {
-    public class FTextInputField : UIObject
+    public class FTextInputField : Button
     {
         private FText label;
         private StringBuilder text = new();
 
         public string PlaceholderText = "Type in text...";
 
-        public Vector2 TextPadding = new(15f, 10f);
+        public Vector2 TextPadding = new(10f, 5f);
 
+        private const char ARROW_LEFT = (char)37;
+        private const char ARROW_RIGHT = (char)39;
         private const char BACKSPACE = (char)8;
+        private const char CONTROL_BACKSPACE = (char)127;
         private const char NEWLINE1 = '\r';
         private const char NEWLINE2 = '\n';
         private const char ESCAPE = '\u001B';
         private const char PASTE = '\u0016'; // Ctrl + V
 
-
-
         private int _caretIndex = 0;
+        private int _selectionIndex = 0;
 
         public FTextInputField(FText label)
         {
@@ -38,7 +40,11 @@ namespace FenUISharp.Objects
             label.LayoutModel = new WrapLayout(label) { AllowLinebreakChar = false, AllowLinebreakOnOverflow = false, AllowEllipsis = false };
             label.Model = TextModelFactory.CreateBasic(text.ToString());
             label.SetParent(this);
+
+            label.Padding.SetStaticState(0);
             label.Layout.StretchVertical.SetStaticState(true);
+            label.Layout.AbsoluteMarginVertical.SetStaticState(TextPadding.y);
+            label.Layout.AbsoluteMarginHorizontal.SetStaticState(TextPadding.x);
 
             new CursorComponent(this, Cursor.IBEAM);
 
@@ -50,6 +56,30 @@ namespace FenUISharp.Objects
             // InteractiveSurface.OnMouseExit += () => { isSelected = false;  };
 
             FContext.GetCurrentWindow().Char += OnKeyTyped;
+            WindowFeatures.GlobalHooks.OnKeyPressed += OnKeyPressed;
+        }
+
+        private void OnKeyPressed(int obj)
+        {
+            switch (obj)
+            {
+                case ARROW_LEFT:
+                    _caretIndex--;
+                    _selectionIndex = 0;
+                    _caretIndex = RMath.Clamp(_caretIndex, 0, text.Length);
+                    break;
+                case ARROW_RIGHT:
+                    _caretIndex++;
+                    _caretIndex = RMath.Clamp(_caretIndex, 0, text.Length);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        public override void LateBegin()
+        {
+            base.LateBegin();
             UpdateText();
         }
 
@@ -64,24 +94,37 @@ namespace FenUISharp.Objects
             if (code.button == 0 && code.state == 0) // Left mouse down
             {
                 // isSelected = true;
-                Vector2 localMousePos = Transform.GlobalToDrawLocal(FContext.GetCurrentWindow().ClientMousePosition);
+
+                Vector2 localMousePos = Transform.GlobalToDrawLocal(FContext.GetCurrentWindow().ClientMousePosition) - TextPadding;
                 List<Glyph> glyphs = label.LayoutModel.ProcessModel(label.Model, Shape.LocalBounds);
 
-                // Find caret index by mouse X
-                // caretIndex = 0;
-                // for (int i = 0; i < glyphs.Count; i++)
-                // {
-                //     if (localMousePos.x > glyphs[i].Bounds.Right)
-                //         caretIndex = i + 1;
-                // }
-                // selectionStart = -1;
+                bool changedCaretPos = false;
+
+                for (int i = 0; i < glyphs.Count; i++)
+                {
+                    var caretCheckBound = glyphs[i].Bounds;
+
+                    // Making sure that the caret moves to the left side of a char when the mouse is more on the left side and vice versa
+                    caretCheckBound.Offset(-caretCheckBound.Width / 2, 0);
+
+                    if (RMath.ContainsPoint(caretCheckBound, localMousePos))
+                    {
+                        // Set caret position
+                        _caretIndex = i; // Use i instead of i + 1 because of the offset
+                        changedCaretPos = true;
+                    }
+                }
+
+                if (!changedCaretPos) _caretIndex = text.Length;
                 Invalidate(Invalidation.SurfaceDirty);
             }
         }
 
         private void OnKeyTyped(char c)
         {
-            if (char.IsControl(c) && (c != BACKSPACE && c != PASTE)) return;
+            // if (char.IsControl(c) && (c != BACKSPACE && c != PASTE)) return;
+
+            int oldCaretPos = _caretIndex;
 
             if (c == PASTE)
             {
@@ -96,6 +139,23 @@ namespace FenUISharp.Objects
 
                 text.Remove(RMath.Clamp(_caretIndex - 1, 0, text.Length - 1), 1);
                 _caretIndex--;
+
+            }
+            else if (c == CONTROL_BACKSPACE)
+            {
+                // Make sure we don't go out of bounds
+                if (_caretIndex == 0 || text.Length == 0)
+                    return;
+
+                _caretIndex--;
+                while (_caretIndex > 0 && !char.IsLetterOrDigit(text[_caretIndex]))
+                    _caretIndex--;
+
+                while (_caretIndex > 0 && char.IsLetterOrDigit(text[_caretIndex - 1]))
+                    _caretIndex--;
+
+                int lengthToRemove = (oldCaretPos - _caretIndex);
+                text.Remove(_caretIndex, lengthToRemove);
             }
             else
             {
@@ -106,27 +166,83 @@ namespace FenUISharp.Objects
             UpdateText();
         }
 
+        private Vector2 GetCaretPos()
+        {
+            if (_caretIndex == 0)
+                return Transform.GlobalToDrawLocal(label.Transform.DrawLocalToGlobal(new Vector2(0, label.Shape.LocalBounds.MidY)));
+
+            var textToCaret = text.ToString().Substring(0, _caretIndex);
+
+            var model = CreateTextModel(textToCaret);
+            var bound = label.LayoutModel.GetBoundingRect(model, SKRect.Create(0, 0, 99999, label.Shape.LocalBounds.Height));
+            float xPos = bound.Width;
+
+            if ((_caretIndex - 1) >= 0)
+            {
+                var textToCaretS = text.ToString().Substring(_caretIndex - 1, 1);
+                var modelS = CreateTextModel(textToCaretS);
+                xPos -= label.LayoutModel.GetBoundingRect(modelS, SKRect.Create(0, 0, 99999, label.Shape.LocalBounds.Height)).Width / 2;
+            }
+
+            xPos += 2.5f;
+
+            return Transform.GlobalToDrawLocal(label.Transform.DrawLocalToGlobal(new Vector2(xPos, label.Shape.LocalBounds.MidY)));
+        }
+
         private void UpdateText()
         {
             if (string.IsNullOrWhiteSpace(text.ToString()))
-                label.Model = TextModelFactory.CreateBasic(PlaceholderText, align: new() { HorizontalAlign = Components.Text.Layout.TextAlign.AlignType.Start, VerticalAlign = Components.Text.Layout.TextAlign.AlignType.Middle }, textColor: () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface.WithAlpha(100));
+                label.Model = CreateTextModel(PlaceholderText);
             else
-                label.Model = TextModelFactory.CreateBasic(text.ToString(), align: new() { HorizontalAlign = Components.Text.Layout.TextAlign.AlignType.Start, VerticalAlign = Components.Text.Layout.TextAlign.AlignType.Middle });
+                label.Model = CreateTextModel();
 
             var bound = label.LayoutModel.GetBoundingRect(label.Model, SKRect.Create(0, 0, 99999, label.Shape.LocalBounds.Height));
             label.Layout.Alignment.SetStaticState(new(1f, 0.5f));
             label.Layout.AlignmentAnchor.SetStaticState(new(1f, 0.5f));
 
-            label.Transform.LocalPosition.SetStaticState(bound.Width > (Shape.LocalBounds.Width - TextPadding.x*3) ? new(-TextPadding.x, 0) : new(0, 0));
+            label.Transform.Size.SetStaticState(new(MathF.Max(bound.Width + TextPadding.x * 2, Shape.LocalBounds.Width), bound.Height));
+        }
 
-            label.Transform.Size.SetStaticState(new(MathF.Max(bound.Width, Shape.LocalBounds.Width) - TextPadding.x, bound.Height - (TextPadding.y)));
+        TextModel CreateTextModel(string? overrideText = null)
+        {
+            TextStyle style = new()
+            {
+                FontSize = 14,
+                Color = (overrideText == null) ? () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnBackground : () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface.WithAlpha(75),
+                Weight = SKFontStyleWeight.Normal,
+                Slant = SKFontStyleSlant.Upright,
+                Underlined = false
+            };
+            TextStyle selectedStyle = new(style) { BackgroundColor = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary.WithAlpha(150) };
+            TextAlign algn = new() { HorizontalAlign = Components.Text.Layout.TextAlign.AlignType.Start, VerticalAlign = Components.Text.Layout.TextAlign.AlignType.Middle };
+
+            var returnList = new List<TextSpan>() { };
+            if (overrideText == null)
+            {
+                int selStart = (int)MathF.Min(_caretIndex, _selectionIndex);
+                int selEnd = (int)MathF.Max(_caretIndex, _selectionIndex);
+                int selLength = selEnd - selStart;
+
+                returnList.Add(new TextSpan(text.ToString().Substring(0, selStart), style));
+                returnList.Add(new TextSpan(text.ToString().Substring(selStart, selLength), selectedStyle));
+                returnList.Add(new TextSpan(text.ToString().Substring(selEnd, text.Length - selEnd), style));
+            }
+            else
+                returnList.Add(new TextSpan(overrideText, style));
+
+            return new(returnList, algn, FTypeface.Default);
         }
 
         public override void Render(SKCanvas canvas)
         {
             base.Render(canvas);
 
-            canvas.DrawRect(Shape.LocalBounds, new SKPaint() { Color = SKColors.Black });
+            int caretHeight = 17;
+            var caretPos = GetCaretPos();
+            var caretRect = SKRect.Create(caretPos.x - 1, caretPos.y - caretHeight / 2, 2, caretHeight);
+            using var roundRect = new SKRoundRect(caretRect, 5);
+
+            canvas.DrawRoundRect(roundRect, new SKPaint() { Color = SKColors.Yellow.WithAlpha((byte)RMath.Clamp((MathF.Sin(FContext.Time * 10) > 0 ? 1 : 0) * 255, 0, 255)) });
         }
 
 

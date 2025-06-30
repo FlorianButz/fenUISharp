@@ -69,6 +69,7 @@ namespace FenUISharp
         public bool DebugDisplayAreaCache { get; set; } = false;
 
         public ThemeManager WindowThemeManager { get; private set; }
+        public KeyboardInputManager WindowKeyboardInput { get; private set; }
 
         public SKRect Bounds { get; private set; }
 
@@ -270,6 +271,8 @@ namespace FenUISharp
         private void SetupLogic()
         {
             FContext.WithWindow(this); // Make sure to activate this window for the current thread
+
+            WindowKeyboardInput = new();
 
             // Initialize FRenderContext
             CreateAndUpdateRenderContext(_startWithType);
@@ -622,6 +625,8 @@ namespace FenUISharp
             DestroyWindow(hWnd);
             _stopRunningFlag = false;
             DisposeHiddenWindow();
+
+            WindowKeyboardInput.Dispose();
 
             // Console.WriteLine("Destroyed " + Thread.CurrentThread.ManagedThreadId);
         }

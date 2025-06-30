@@ -19,6 +19,7 @@ namespace FenUISharp
         public static Window GetCurrentWindow() => CurrentWindow ?? throw new Exception("GetCurrentWindow() cannot be called in an invalid FenUI context");
         public static Dispatcher GetCurrentDispatcher() => CurrentDispatcher ?? throw new Exception("GetCurrentDispatcher() cannot be called in an invalid FenUI context");
         public static ModelViewPane? GetRootViewPane() => RootViewPane;
+        public static KeyboardInputManager? GetKeyboardInputManager() => CurrentWindow?.WindowKeyboardInput;
 
         internal static void WithWindow(Window window)
         {

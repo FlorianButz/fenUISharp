@@ -181,6 +181,11 @@ namespace FenUISharp.Objects
             // Triggered once on the first frame update call of being instantiated
         }
 
+        public virtual void LateBegin()
+        {
+            // Same as begin, however runs after first update
+        }
+
         public void OnUpdate()
         {
             if (!Enabled.CachedValue && _wasBeginCalled) return;
@@ -193,7 +198,7 @@ namespace FenUISharp.Objects
                 Begin();
                 DispatchBehaviorEvent(BehaviorEventType.AfterBegin);
 
-                _wasBeginCalled = true;
+                // _wasBeginCalled = true;
             }
 
             // Check for transform/layout/surface rebuild
@@ -250,6 +255,15 @@ namespace FenUISharp.Objects
         public void OnLateUpdate()
         {
             DispatchBehaviorEvent(BehaviorEventType.AfterLateUpdate);
+
+            if (!_wasBeginCalled)
+            {
+                DispatchBehaviorEvent(BehaviorEventType.BeforeLateBegin);
+                LateBegin();
+                DispatchBehaviorEvent(BehaviorEventType.AfterLateBegin);
+
+                _wasBeginCalled = true;
+            }
 
             // Run own late update behavior before children
             LateUpdate();

@@ -17,6 +17,7 @@ namespace FenUISharp.Objects.Text.Model
             this.Underlined = copy.Underlined;
             this.FontSize = copy.FontSize;
             this.Color = copy.Color;
+            this.BackgroundColor = copy.BackgroundColor;
             this.BlurRadius = copy.BlurRadius;
         }
 
@@ -25,6 +26,7 @@ namespace FenUISharp.Objects.Text.Model
         public bool Underlined { get; set; } = false;
         public float FontSize { get; set; } = 16;
         public Func<SKColor> Color { get; set; } = new Func<SKColor>(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface);
+        public Func<SKColor> BackgroundColor { get; set; } = new Func<SKColor>(() => SKColors.Transparent);
 
         public float BlurRadius { get; set; } = 0;
         public float Opacity { get; set; } = 1;

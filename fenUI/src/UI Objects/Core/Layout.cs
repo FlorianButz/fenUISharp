@@ -12,6 +12,8 @@ namespace FenUISharp.Objects
 
         public State<float> MarginHorizontal { get; init; }
         public State<float> MarginVertical { get; init; }
+        public State<float> AbsoluteMarginHorizontal { get; init; }
+        public State<float> AbsoluteMarginVertical { get; init; }
         public State<bool> StretchHorizontal { get; init; }
         public State<bool> StretchVertical { get; init; }
 
@@ -26,6 +28,8 @@ namespace FenUISharp.Objects
 
             MarginHorizontal = new(() => 0f, this);
             MarginVertical = new(() => 0f, this);
+            AbsoluteMarginHorizontal = new(() => 0f, this);
+            AbsoluteMarginVertical = new(() => 0f, this);
             StretchHorizontal = new(() => false, this);
             StretchVertical = new(() => false, this);
         }
@@ -35,13 +39,15 @@ namespace FenUISharp.Objects
             var anchor = AlignmentAnchor.CachedValue;
             var align = Alignment.CachedValue;
 
+            Vector2 absoluteMarginCorrection = new(-AbsoluteMarginHorizontal.CachedValue * (Alignment.CachedValue.x - 0.5f) * 2, -AbsoluteMarginVertical.CachedValue * (Alignment.CachedValue.y - 0.5f) * 2);
+
             Vector2 sizeOffset = new(size.x * anchor.x, size.y * anchor.y);
             Vector2 relativeParentPos = new Vector2(
-                (Owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Bounds.Width ?? 0)) * align.x,
-                (Owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Bounds.Height ?? 0)) * align.y);
+                (Owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Bounds.Width ?? 0)) * align.x + absoluteMarginCorrection.x,
+                (Owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Bounds.Height ?? 0)) * align.y + absoluteMarginCorrection.y);
 
             // A ghost is actually haunting this and I have no idea why it does what it does; edit: seems to be working now; edit 2: it did not work. DO NOT ADD THE LOCAL POSITION TO THIS THING!
-            // var returnPos = relativeParentPos - sizeOffset; // Basically not needed anymore, though I'll leave it here so I get reminded of the mistakes in my past
+            // var returnPos = relativeParentPos - sizeOffset; // Basically not needed anymore, though I'll leave it here so I get reminded of the mistakes from my past
 
             offset = ProcessLayoutPositioning?.Invoke(relativeParentPos) ?? relativeParentPos;
             anchorCorrection = sizeOffset;
@@ -51,8 +57,10 @@ namespace FenUISharp.Objects
         {
             Vector2 stretchSize = new((Owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Bounds.Width ?? 0)) - MarginHorizontal.CachedValue * 2,
                 (Owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Bounds.Height ?? 0)) - MarginVertical.CachedValue * 2);
-            
-            return new(StretchHorizontal.CachedValue ? stretchSize.x : localSize.x, StretchVertical.CachedValue ? stretchSize.y : localSize.y);
+
+            var absoluteCorrection = new Vector2(AbsoluteMarginHorizontal.CachedValue * 2, AbsoluteMarginVertical.CachedValue * 2);
+
+            return new Vector2(StretchHorizontal.CachedValue ? stretchSize.x : localSize.x, StretchVertical.CachedValue ? stretchSize.y : localSize.y) - absoluteCorrection;
         }
 
         public void Dispose()
@@ -61,6 +69,8 @@ namespace FenUISharp.Objects
             AlignmentAnchor.Dispose();
             MarginHorizontal.Dispose();
             MarginVertical.Dispose();
+            AbsoluteMarginHorizontal.Dispose();
+            AbsoluteMarginVertical.Dispose();
             StretchHorizontal.Dispose();
             StretchVertical.Dispose();
         }
