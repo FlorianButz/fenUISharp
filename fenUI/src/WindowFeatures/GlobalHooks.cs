@@ -141,8 +141,10 @@ namespace FenUISharp.WinFeatures
                 if (wParam == (IntPtr)WM_KEYDOWN)
                 {
                     if (!_pressedKeys.Contains(keyInfo.vkCode))
+                    {
+                        _pressedKeys.Add(keyInfo.vkCode);
                         instance.OnKeyPressed?.Invoke(keyInfo.vkCode);
-                    _pressedKeys.Add(keyInfo.vkCode);
+                    }
 
                     instance.OnKeyTyped?.Invoke(keyInfo.vkCode);
                 }

@@ -103,7 +103,7 @@ namespace FenUISharp
         public Action OnWindowClose { get; set; }
         public Action OnWindowDestroy { get; set; }
 
-        public Action<char> Char { get; set; }
+        internal Action<char> OnKeyboardInputTextReceived { get; set; }
 
         #endregion
 
@@ -272,12 +272,12 @@ namespace FenUISharp
         {
             FContext.WithWindow(this); // Make sure to activate this window for the current thread
 
-            WindowKeyboardInput = new();
-
             // Initialize FRenderContext
             CreateAndUpdateRenderContext(_startWithType);
 
             FContext.WithRootViewPane(null);
+
+            WindowKeyboardInput = new(this);
 
             RootViewPane = new(null);
             RootViewPane.Layout.Alignment.Value = () => new(0.5f, 0.5f);
@@ -785,7 +785,7 @@ namespace FenUISharp
             switch (msg)
             {
                 case 0x0102: // Keyboard input
-                    Dispatcher.Invoke(() =>  Char?.Invoke((char)wParam));
+                    Dispatcher.Invoke(() =>  OnKeyboardInputTextReceived?.Invoke((char)wParam));
                     break;
 
                 case (int)WindowMessages.WM_DEVICECHANGE:
