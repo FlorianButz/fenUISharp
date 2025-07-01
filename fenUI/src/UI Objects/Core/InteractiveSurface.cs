@@ -25,6 +25,16 @@ namespace FenUISharp.Objects
         public bool IsMouseDown { get; set; }
         public bool IsDragging { get; set; }
 
+        /// <summary>
+        /// Specifies the time frame in which a mouse action has to be completed twice to be counted as a double mouse action
+        /// </summary>
+        public float DoubleMouseActionTimeFrame { get; set; } = 0.6f;
+
+        /// <summary>
+        /// Specifies the time in which a mouse action has to be held to be counted as a long mouse action
+        /// </summary>
+        public float LongMouseActionTime { get; set; } = 1f;
+
         public bool MouseInteractionCallbackOnChildMouseInteraction { get; set; } = false;
 
         // Mouse Actions
@@ -35,6 +45,18 @@ namespace FenUISharp.Objects
 
         public Action<MouseInputCode>? OnMouseAction { get; set; }
 
+        // Advanced mouse action
+
+        /// <summary>
+        /// When a specific action is executed twice in quick succession such as a double left click
+        /// </summary>
+        public Action<MouseInputButton>? OnDoubleMouseAction { get; set; }
+
+        /// <summary>
+        /// When a specific action is held down for a long time
+        /// </summary>
+        public Action<MouseInputButton>? OnLongMouseAction { get; set; }
+ 
         // Scrolling
 
         public Action<float>? OnMouseScroll { get; set; }
@@ -51,6 +73,9 @@ namespace FenUISharp.Objects
         private Vector2 _startGlobalMousePos;
         private Vector2 _lastGlobalMousePos;
 
+        private MouseInputCode _lastInputMouseState;
+        private DateTime _lastInputMouseStateTime;
+        private int _lastInputID = 0; // Used for long press detection
 
         private bool ParentIgnoreChild { get => (Owner.Parent?.InteractiveSurface.IgnoreChildInteractions.CachedValue ?? false) || (Owner.Parent?.InteractiveSurface.ParentIgnoreChild ?? false); }
 
@@ -271,6 +296,32 @@ namespace FenUISharp.Objects
             else if (code.button == MouseInputButton.Left && code.state == MouseInputState.Up) IsMouseDown = false;
 
             OnMouseAction?.Invoke(code);
+
+            // Special actions
+
+            // Double mouse action
+            if (_lastInputMouseState.button == code.button && code.state == MouseInputState.Up)
+            {
+                // Check if the action was executed in the given time frame
+                if ((DateTime.Now - _lastInputMouseStateTime).TotalSeconds <= DoubleMouseActionTimeFrame)
+                    OnDoubleMouseAction?.Invoke(code.button);
+
+                _lastInputMouseState = code;
+                _lastInputMouseStateTime = DateTime.Now;
+            }
+
+            // Long press
+            if (code.state == MouseInputState.Down)
+            {
+                _lastInputID++;
+                var id = _lastInputID;
+                
+                Dispatcher.InvokeLater(() =>
+                {
+                    if (_lastInputID == id)
+                        OnLongMouseAction?.Invoke(code.button);
+                }, LongMouseActionTime);
+            }
         }
 
         // Helper testing functions
