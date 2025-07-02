@@ -12,7 +12,7 @@ namespace FenUISharp.Objects
 
         public FBlurPane(Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
-            BlurMaterial = new(() => new BlurMaterial(() => Shape.SurfaceDrawRect, () => Composition.GrabBehindPlusBuffer(Shape.GlobalBounds, HighQualityBlur ? 0.3f : 0.02f)) { BlurRadius = () => HighQualityBlur ? 15 : 5 }, this);
+            BlurMaterial = new(() => new BlurMaterial(() => Composition.GrabBehindPlusBuffer(Shape.GlobalBounds, HighQualityBlur ? 0.3f : 0.02f)) { BlurRadius = () => HighQualityBlur ? 15 : 5 }, this);
 
             RenderMaterial.Value = () => new MaterialCompose(
                 () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.PanelMaterial().WithOverride(new() { ["BorderColor"] = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface.WithAlpha(50) }),
@@ -41,7 +41,7 @@ namespace FenUISharp.Objects
             using (var paint = GetRenderPaint())
             using (var panelPath = GetPanelPath())
             {
-                RenderMaterial.CachedValue.DrawWithMaterial(canvas, panelPath, paint);
+                RenderMaterial.CachedValue.DrawWithMaterial(canvas, panelPath, this, paint);
             }
         }
     }

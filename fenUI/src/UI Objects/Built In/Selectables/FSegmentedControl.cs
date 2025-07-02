@@ -164,12 +164,12 @@ namespace FenUISharp.Objects
             using var paint = GetRenderPaint();
             using var basePath = SKSquircle.CreateSquircle(Shape.LocalBounds, CornerRadius.CachedValue);
 
-            RenderMaterial.CachedValue.DrawWithMaterial(canvas, basePath, paint);
+            RenderMaterial.CachedValue.DrawWithMaterial(canvas, basePath, this, paint);
             RenderMaterial.CachedValue.WithOverride(new()
             {
                 // TODO: Refactor to expose this color
                 ["BaseColor"] = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary
-            }).DrawWithMaterial(canvas, selectionPath, paint);
+            }).DrawWithMaterial(canvas, selectionPath, this, paint);
         }
     }
 

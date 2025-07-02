@@ -1,3 +1,4 @@
+using FenUISharp.Objects;
 using SkiaSharp;
 
 namespace FenUISharp.Materials
@@ -10,7 +11,7 @@ namespace FenUISharp.Materials
             set => SetProp("BaseColor", value);
         }
 
-        protected override void Draw(SKCanvas targetCanvas, SKPath path, SKPaint paint)
+        protected override void Draw(SKCanvas targetCanvas, SKPath path, UIObject caller, SKPaint paint)
         {
             paint.Color = BaseColor();
             targetCanvas.DrawPath(path, paint);

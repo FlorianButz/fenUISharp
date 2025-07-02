@@ -13,17 +13,19 @@ namespace FenUISharp.Objects.Buttons
         public Action? OnClick { get; set; }
 
         public State<float> CornerRadius { get; init; }
+        public State<SKColor> HoverMix { get; init; }
+
+        public float HoverPixelAddition { get; set; } = 1f;
 
         // Basic animation fields
         protected AnimatorComponent animatorComponent;
         internal SKColor currentHoverMix;
 
-        protected const float PIXEL_ADD = 1f; // Just a global constant for the size change in the animation
-
         public Button(Action? onClick = null, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
             this.OnClick = onClick;
 
+            HoverMix = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix, this);
             RenderMaterial.Value = FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.InteractableMaterial;
             currentHoverMix = SKColors.Transparent;
 
@@ -40,10 +42,10 @@ namespace FenUISharp.Objects.Buttons
 
             animatorComponent.OnValueUpdate += (t) =>
             {
-                var hoveredMix = RMath.Lerp(SKColors.Transparent, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix, 0.1f);
+                var hoveredMix = RMath.Lerp(SKColors.Transparent, HoverMix.CachedValue, 0.1f);
                 currentHoverMix = RMath.Lerp(SKColors.Transparent, hoveredMix, t);
 
-                float pixelsAdd = PIXEL_ADD;
+                float pixelsAdd = HoverPixelAddition;
                 float sx = (Transform.Size.CachedValue.x + pixelsAdd) / Transform.Size.CachedValue.x;
                 float sy = (Transform.Size.CachedValue.y + pixelsAdd / 2) / Transform.Size.CachedValue.y;
 
@@ -61,6 +63,7 @@ namespace FenUISharp.Objects.Buttons
         {
             base.Dispose();
             CornerRadius.Dispose();
+            HoverMix.Dispose();
         }
 
         public override void OnInternalStateChanged<T>(T value)
@@ -75,7 +78,7 @@ namespace FenUISharp.Objects.Buttons
         {
             if (animatorComponent.IsRunning) return;
 
-            var hoveredMix = RMath.Lerp(SKColors.Transparent, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix, 0.1f);
+            var hoveredMix = RMath.Lerp(SKColors.Transparent, HoverMix.CachedValue, 0.1f);
             currentHoverMix = RMath.Lerp(SKColors.Transparent, hoveredMix, InteractiveSurface.IsMouseHovering ? 1 : 0);
         }
 
@@ -118,7 +121,7 @@ namespace FenUISharp.Objects.Buttons
             using (var path = SKSquircle.CreateSquircle(Shape.LocalBounds, CornerRadius.CachedValue))
             {
                 using var paint = GetRenderPaint();
-                RenderMaterial.CachedValue.DrawWithMaterial(canvas, path, paint);
+                RenderMaterial.CachedValue.DrawWithMaterial(canvas, path, this, paint);
             }
         }
 

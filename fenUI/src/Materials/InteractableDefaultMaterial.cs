@@ -1,3 +1,4 @@
+using FenUISharp.Objects;
 using SkiaSharp;
 
 namespace FenUISharp.Materials
@@ -34,7 +35,7 @@ namespace FenUISharp.Materials
             set => SetProp("DropShadowRadius", value);
         }
         
-        protected override void Draw(SKCanvas targetCanvas, SKPath path, SKPaint paint)
+        protected override void Draw(SKCanvas targetCanvas, SKPath path, UIObject caller, SKPaint paint)
         {
             var bounds = path.Bounds;
             targetCanvas.Translate(0.5f, 0.5f);

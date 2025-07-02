@@ -95,7 +95,7 @@ namespace FenUISharp.Objects.Buttons
             RenderMaterial.CachedValue.WithOverride(new (){
                 ["BaseColor"] = () => currentBackground,
                 ["BorderColor"] = () => currentBorder
-            }).DrawWithMaterial(canvas, backgroundRect, paint);
+            }).DrawWithMaterial(canvas, backgroundRect, this, paint);
 
             // Knob
             float knobLeft = RMath.Lerp(bounds.Left, bounds.Right - _width, _animTime);

@@ -1,3 +1,4 @@
+using FenUISharp.Objects;
 using SkiaSharp;
 
 namespace FenUISharp.Materials
@@ -8,12 +9,6 @@ namespace FenUISharp.Materials
         {
             get => GetProp<Func<SKColor>>("BaseColor", () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary);
             set => SetProp("BaseColor", value);
-        }
-
-        public Func<SKRect> LocalFullBounds
-        {
-            get => GetProp<Func<SKRect>>("LocalFullBounds", () => SKRect.Create(0, 0, 1, 1));
-            set => SetProp("LocalFullBounds", value);
         }
 
         public Func<SKImage?> GrabPassFunction
@@ -28,13 +23,12 @@ namespace FenUISharp.Materials
             set => SetProp("BlurRadius", value);
         }
 
-        public BlurMaterial(Func<SKRect> LocalFullBounds, Func<SKImage?> GrabPassFunction)
+        public BlurMaterial(Func<SKImage?> GrabPassFunction)
         {
-            this.LocalFullBounds = LocalFullBounds;
             this.GrabPassFunction = GrabPassFunction;
         }
 
-        protected override void Draw(SKCanvas targetCanvas, SKPath path, SKPaint paint)
+        protected override void Draw(SKCanvas targetCanvas, SKPath path, UIObject caller, SKPaint paint)
         {
             int unmodified = targetCanvas.Save();
 
@@ -49,7 +43,7 @@ namespace FenUISharp.Materials
             using (var blur = SKImageFilter.CreateBlur(BlurRadius(), BlurRadius()))
                 paint.ImageFilter = blur;
 
-            var displayArea = LocalFullBounds();
+            var displayArea = caller.Shape.SurfaceDrawRect;
             targetCanvas.DrawImage(windowArea, displayArea, sampling: new(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
 
             targetCanvas.RestoreToCount(unmodified);

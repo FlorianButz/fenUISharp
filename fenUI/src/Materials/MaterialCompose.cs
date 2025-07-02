@@ -1,3 +1,4 @@
+using FenUISharp.Objects;
 using SkiaSharp;
 
 namespace FenUISharp.Materials
@@ -13,10 +14,10 @@ namespace FenUISharp.Materials
             TopMaterial = topMaterial;
         }
 
-        protected override void Draw(SKCanvas targetCanvas, SKPath path, SKPaint paint)
+        protected override void Draw(SKCanvas targetCanvas, SKPath path, UIObject caller, SKPaint paint)
         {
-            BottomMaterial().DrawWithMaterial(targetCanvas, path, paint);
-            TopMaterial().DrawWithMaterial(targetCanvas, path, paint);
+            BottomMaterial().DrawWithMaterial(targetCanvas, path, caller, paint);
+            TopMaterial().DrawWithMaterial(targetCanvas, path, caller, paint);
         }
     }
 }

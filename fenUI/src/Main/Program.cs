@@ -15,7 +15,7 @@ namespace FenUISharpTest1
             FenUI.Init();
             FenUI.SetupAppModel("FlorianButz.fenUI");
 
-            NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.Software, windowSize: new Vector2(900, 800));
+            NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(900, 800));
 
             window.SystemDarkMode = true;
             // window.WindowThemeManager.SetTheme(Resources.GetTheme("default-light"));

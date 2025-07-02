@@ -21,7 +21,7 @@ namespace FenUISharp
             using var roundRect = new SKRoundRect(Shape.LocalBounds, 2);
             using var paint = GetRenderPaint();
 
-            RenderMaterial.CachedValue.DrawWithMaterial(canvas, roundRect, paint);
+            RenderMaterial.CachedValue.DrawWithMaterial(canvas, roundRect, this, paint);
         }
     }
 }

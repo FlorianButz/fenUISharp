@@ -1,4 +1,5 @@
 using FenUISharp.Mathematics;
+using FenUISharp.Objects;
 using SkiaSharp;
 
 namespace FenUISharp.Materials
@@ -41,7 +42,7 @@ namespace FenUISharp.Materials
             set => SetProp("BorderSize", value);
         }
 
-        protected override void Draw(SKCanvas targetCanvas, SKPath path, SKPaint paint)
+        protected override void Draw(SKCanvas targetCanvas, SKPath path, UIObject caller, SKPaint paint)
         {
             if (BorderSize() % 2 == 1)
                 targetCanvas.Translate(0.5f, 0.5f);

@@ -95,9 +95,6 @@ namespace FenUISharp
                     IsAltPressed = true;
                     break;
             }
-
-            Console.WriteLine(vkCode);
-
             _window.Dispatcher.Invoke(() => OnKeyPressed?.Invoke(c));
         }
 

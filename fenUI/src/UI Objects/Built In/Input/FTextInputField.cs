@@ -4,23 +4,66 @@ using FenUISharp.Mathematics;
 using FenUISharp.Objects.Buttons;
 using FenUISharp.Objects.Text;
 using FenUISharp.Objects.Text.Model;
+using FenUISharp.States;
 using FenUISharp.WinFeatures;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace FenUISharp.Objects
 {
-    public class FTextInputField : Button
+    public class FTextInputField : Button, IStateListener
     {
-        private FText label;
-        private StringBuilder text = new();
+        public FText Label { get; init; }
 
-        public string PlaceholderText = "Type in text...";
+        public string Text
+        {
+            get
+            {
+                return text.ToString();
+            }
+        }
 
-        public Vector2 TextPadding = new(10f, 5f);
+        private string _Text
+        {
+            get
+            {
+                if (TextInputMode == TextInputFieldMode.Password)
+                {
+                    string returnString = "";
+                    for (int i = 0; i < Text.Length; i++) returnString += "*";
+                    return returnString;
+                }
+                return Text;
+            }
+        }
+
+        public string PlaceholderText { get; set; } = "Type in text...";
+
+        public (Vector2 HorizontalPadding, Vector2 VerticalPadding) TextPadding = (new(new(10f, 10f)), new(new(5f, 5f)));
+
+        public enum TextInputFieldMode { Any, Alphabetic, Numeric, Alphanumeric, Password }
+        public TextInputFieldMode TextInputMode { get; set; } = TextInputFieldMode.Any;
+
+        private int _caretIndex = 0;
+        public int CaretIndex
+        {
+            get => _caretIndex; set
+            {
+                _caretIndex = RMath.Clamp(value, 0, text.Length);
+                if (!FContext.GetKeyboardInputManager().IsShiftPressed) _selectionIndex = _caretIndex;
+            }
+        }
+
+        public State<SKColor> TextSelectionColor { get; init; }
+
+        public State<SKColor> CaretColor { get; init; }
+        public State<float> CaretWidth { get; init; }
+        public State<float> CaretHeight { get; init; }
+        public State<float> CaretBlinkSpeed { get; init; }
 
         private const char ARROW_LEFT = (char)37;
         private const char ARROW_RIGHT = (char)39;
@@ -40,15 +83,7 @@ namespace FenUISharp.Objects
         private const char SELALL = '\u0001'; // Ctrl + A
         private const char TAB = '\u0009'; // Tabulator
 
-        private int _caretIndex = 0;
-        public int CaretIndex
-        {
-            get => _caretIndex; set
-            {
-                _caretIndex = RMath.Clamp(value, 0, text.Length);
-                if (!FContext.GetKeyboardInputManager().IsShiftPressed) _selectionIndex = _caretIndex;
-            }
-        }
+        private StringBuilder text = new();
 
         private int _selectionIndex = 0;
         private float _lastTypedTimer = 0f;
@@ -56,19 +91,29 @@ namespace FenUISharp.Objects
 
         public FTextInputField(FText label)
         {
-            this.label = label;
+            this.Label = label;
             label.LayoutModel = new WrapLayout(label) { AllowLinebreakChar = false, AllowLinebreakOnOverflow = false, AllowEllipsis = false };
             label.Model = TextModelFactory.CreateBasic(text.ToString());
             label.SetParent(this);
 
+            HoverMix.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix.WithAlpha(75);
+            RenderMaterial.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.PanelMaterial();
+
+            CaretBlinkSpeed = new(() => 1, this);
+            CaretWidth = new(() => 1, this);
+            CaretHeight = new(() => 18, this);
+            CaretColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary.AddMix(new(50, 50, 50)), this);
+            TextSelectionColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary.MultiplyMix(new(180, 180, 180)), this);
+
             label.Padding.SetStaticState(0);
             label.Layout.StretchVertical.SetStaticState(true);
-            label.Layout.AbsoluteMarginVertical.SetStaticState(TextPadding.y);
-            label.Layout.AbsoluteMarginHorizontal.SetStaticState(TextPadding.x);
+            // label.Layout.AbsoluteMarginHorizontal.SetStaticState(TextPadding.HorizontalPadding);
+            // Label.Layout.AbsoluteMarginVertical.SetResponsiveState(() => TextPadding.VerticalPadding);
 
             new CursorComponent(this, Cursor.IBEAM);
 
-            Transform.Size.SetResponsiveState(() => new Vector2(300 + TextPadding.x * 2, 25 + TextPadding.y * 2));
+            Transform.Size.SetStaticState(new Vector2(300, 30));
+            // Transform.Size.SetResponsiveState(() => new Vector2(300 + (TextPadding.Item1.x + TextPadding.Item1.y), 25 + (TextPadding.Item2.x + TextPadding.Item2.y)));
 
             InteractiveSurface.EnableMouseActions.SetStaticState(true);
             InteractiveSurface.OnMouseAction += OnMouseAction;
@@ -81,24 +126,30 @@ namespace FenUISharp.Objects
             FContext.GetKeyboardInputManager().OnKeyTyped += OnKeyPressed;
         }
 
+        public override void OnInternalStateChanged<T>(T value)
+        {
+            base.OnInternalStateChanged(value);
+            UpdateText();
+        }
+
         private void OnDoubleMouseAction(MouseInputButton button)
         {
             if (button == MouseInputButton.Left)
             {
                 CaretIndex--;
-                while (CaretIndex > 0 && !char.IsLetterOrDigit(text[CaretIndex]))
+                while (CaretIndex > 0 && !char.IsLetterOrDigit(_Text[CaretIndex]))
                     CaretIndex--;
 
-                while (CaretIndex > 0 && char.IsLetterOrDigit(text[CaretIndex - 1]))
+                while (CaretIndex > 0 && char.IsLetterOrDigit(_Text[CaretIndex - 1]))
                     CaretIndex--;
 
                 var selectionIndex = CaretIndex;
 
                 CaretIndex++;
-                while (CaretIndex < text.Length && !char.IsLetterOrDigit(text[CaretIndex - 1]))
+                while (CaretIndex < _Text.Length && !char.IsLetterOrDigit(_Text[CaretIndex - 1]))
                     CaretIndex++;
 
-                while (CaretIndex < text.Length && char.IsLetterOrDigit(text[CaretIndex]))
+                while (CaretIndex < _Text.Length && char.IsLetterOrDigit(_Text[CaretIndex]))
                     CaretIndex++;
 
                 _selectionIndex = selectionIndex;
@@ -109,6 +160,12 @@ namespace FenUISharp.Objects
         public override void Dispose()
         {
             base.Dispose();
+
+            CaretBlinkSpeed.Dispose();
+            CaretColor.Dispose();
+            CaretWidth.Dispose();
+            CaretHeight.Dispose();
+            TextSelectionColor.Dispose();
 
             FContext.GetKeyboardInputManager().OnTextTyped -= OnKeyTyped;
             FContext.GetKeyboardInputManager().OnKeyTyped -= OnKeyPressed;
@@ -123,10 +180,10 @@ namespace FenUISharp.Objects
 
                     if (FContext.GetKeyboardInputManager().IsControlPressed)
                     {
-                        while (CaretIndex > 0 && !char.IsLetterOrDigit(text[CaretIndex]))
+                        while (CaretIndex > 0 && !char.IsLetterOrDigit(_Text[CaretIndex]))
                             CaretIndex--;
 
-                        while (CaretIndex > 0 && char.IsLetterOrDigit(text[CaretIndex - 1]))
+                        while (CaretIndex > 0 && char.IsLetterOrDigit(_Text[CaretIndex - 1]))
                             CaretIndex--;
                     }
 
@@ -137,19 +194,21 @@ namespace FenUISharp.Objects
 
                     if (FContext.GetKeyboardInputManager().IsControlPressed)
                     {
-                        while (CaretIndex < text.Length && !char.IsLetterOrDigit(text[CaretIndex - 1]))
+                        while (CaretIndex < _Text.Length && !char.IsLetterOrDigit(_Text[CaretIndex - 1]))
                             CaretIndex++;
 
-                        while (CaretIndex < text.Length && char.IsLetterOrDigit(text[CaretIndex]))
+                        while (CaretIndex < _Text.Length && char.IsLetterOrDigit(_Text[CaretIndex]))
                             CaretIndex++;
                     }
                     UpdateText();
                     break;
                 case ARROW_UP:
                     CaretIndex = 0;
+                    UpdateText();
                     break;
                 case ARROW_DOWN:
-                    CaretIndex = text.Length;
+                    CaretIndex = _Text.Length;
+                    UpdateText();
                     break;
                 default:
                     break;
@@ -201,8 +260,8 @@ namespace FenUISharp.Objects
 
         private int MousePosToCaretIndex(Vector2 mousePos)
         {
-            Vector2 localMousePos = label.Transform.GlobalToDrawLocal(mousePos);
-            List<Glyph> glyphs = label.LayoutModel.ProcessModel(label.Model, Shape.LocalBounds);
+            Vector2 localMousePos = Label.Transform.GlobalToDrawLocal(mousePos);
+            List<Glyph> glyphs = Label.LayoutModel.ProcessModel(Label.Model, Shape.LocalBounds);
 
             for (int i = 0; i < glyphs.Count; i++)
             {
@@ -228,8 +287,6 @@ namespace FenUISharp.Objects
 
         private void OnKeyTyped(char c)
         {
-            // if (char.IsControl(c) && (c != BACKSPACE && c != PASTE)) return;
-
             int oldCaretPos = CaretIndex;
 
             switch (c)
@@ -252,15 +309,15 @@ namespace FenUISharp.Objects
                     RemoveSelectedText();
                     break;
 
-                case TAB:
-                    string tabInsert = "    ";
+                // case TAB:
+                //     string tabInsert = "    ";
 
-                    text.Insert(CaretIndex, tabInsert);
-                    CaretIndex += tabInsert.Length;
-                    break;
+                //     text.Insert(CaretIndex, tabInsert);
+                //     CaretIndex += tabInsert.Length;
+                //     break;
 
                 case BACKSPACE:
-                    if (text.Length == 0) return;
+                    if (_Text.Length == 0) return;
 
                     if (_selectionIndex == CaretIndex)
                     {
@@ -276,16 +333,16 @@ namespace FenUISharp.Objects
 
                 case CONTROL_BACKSPACE:
                     // Make sure we don't go out of bounds
-                    if (text.Length == 0)
+                    if (_Text.Length == 0)
                         return;
 
                     if (_selectionIndex == CaretIndex)
                     {
                         CaretIndex--;
-                        while (CaretIndex > 0 && !char.IsLetterOrDigit(text[CaretIndex]))
+                        while (CaretIndex > 0 && !char.IsLetterOrDigit(_Text[CaretIndex]))
                             CaretIndex--;
 
-                        while (CaretIndex > 0 && char.IsLetterOrDigit(text[CaretIndex - 1]))
+                        while (CaretIndex > 0 && char.IsLetterOrDigit(_Text[CaretIndex - 1]))
                             CaretIndex--;
 
                         int lengthToRemove = (oldCaretPos - CaretIndex);
@@ -296,7 +353,7 @@ namespace FenUISharp.Objects
                     break;
 
                 case SELALL:
-                    CaretIndex = text.Length;
+                    CaretIndex = _Text.Length;
                     _selectionIndex = 0;
                     break;
 
@@ -308,6 +365,21 @@ namespace FenUISharp.Objects
                     text.Insert(CaretIndex, c);
                     CaretIndex++;
                     _selectionIndex = CaretIndex;
+
+                    if (GetWidthFromLeftToCaret() > GetVisibleBounds().Width)
+                    {
+                        float widthOfChar;
+                        if (_Text.Length == 0 || _Text.Length - CaretIndex <= 0)
+                            widthOfChar = 0;
+                        else
+                        {
+                            var model = CreateTextModel(_Text[CaretIndex - 1].ToString());
+                            var measuredBound = Label.LayoutModel.GetBoundingRect(model, SKRect.Create(0, 0, 99999, Label.Shape.LocalBounds.Height), 0);
+                            widthOfChar = measuredBound.Width;
+                        }
+
+                        viewPosition = MathF.Max(viewPosition + widthOfChar, 0); // Add the width of the char to the view pos
+                    }
                     break;
             }
 
@@ -322,7 +394,7 @@ namespace FenUISharp.Objects
             int selEnd = (int)MathF.Max(CaretIndex, _selectionIndex);
             int selLength = selEnd - selStart;
 
-            return text.ToString().Substring(selStart, selLength);
+            return _Text.Substring(selStart, selLength);
         }
 
         private void RemoveSelectedText()
@@ -341,80 +413,91 @@ namespace FenUISharp.Objects
 
         private Vector2 GetCaretPos()
         {
-            if (CaretIndex == 0 || text.Length == 0)
-                return Transform.GlobalToDrawLocal(label.Transform.DrawLocalToGlobal(new Vector2(0, label.Shape.LocalBounds.MidY)));
+            if (CaretIndex == 0 || _Text.Length == 0)
+                return Transform.GlobalToDrawLocal(Label.Transform.DrawLocalToGlobal(new Vector2(0, Label.Shape.LocalBounds.MidY)));
 
-            var textToCaret = text.ToString().Substring(0, CaretIndex);
+            var textToCaret = _Text.Substring(0, CaretIndex);
 
             var model = CreateTextModel(textToCaret);
-            var bound = label.LayoutModel.GetBoundingRect(model, SKRect.Create(0, 0, 99999, label.Shape.LocalBounds.Height));
+            var bound = Label.LayoutModel.GetBoundingRect(model, SKRect.Create(0, 0, 99999, Label.Shape.LocalBounds.Height), 1);
             float xPos = bound.Width;
 
             if ((CaretIndex - 1) >= 0)
             {
-                var textToCaretS = text.ToString().Substring(CaretIndex - 1, 1);
+                var textToCaretS = _Text.Substring(CaretIndex - 1, 1);
                 var modelS = CreateTextModel(textToCaretS);
-                xPos -= label.LayoutModel.GetBoundingRect(modelS, SKRect.Create(0, 0, 99999, label.Shape.LocalBounds.Height)).Width / 2;
+                xPos -= Label.LayoutModel.GetBoundingRect(modelS, SKRect.Create(0, 0, 99999, Label.Shape.LocalBounds.Height), 0).Width / 2;
             }
+            xPos += 2f;
 
-            xPos += 2.5f;
-
-            return Transform.GlobalToDrawLocal(label.Transform.DrawLocalToGlobal(new Vector2(xPos, label.Shape.LocalBounds.MidY)));
+            return Transform.GlobalToDrawLocal(Label.Transform.DrawLocalToGlobal(new Vector2(xPos, Label.Shape.LocalBounds.MidY)));
         }
 
         private float viewPosition = 0f;
 
         private void UpdateText()
         {
-            if (string.IsNullOrWhiteSpace(text.ToString()))
-                label.Model = CreateTextModel(PlaceholderText);
+            ValidateText();
+
+            if (string.IsNullOrWhiteSpace(_Text))
+                Label.Model = CreateTextModel(PlaceholderText);
             else
-                label.Model = CreateTextModel();
+                Label.Model = CreateTextModel();
 
-            var bound = label.LayoutModel.GetBoundingRect(label.Model, SKRect.Create(0, 0, 99999, label.Shape.LocalBounds.Height));
-            label.Layout.Alignment.SetStaticState(new(1f, 0.5f));
-            label.Layout.AlignmentAnchor.SetStaticState(new(1f, 0.5f));
+            var bound = Label.LayoutModel.GetBoundingRect(Label.Model, SKRect.Create(0, 0, 99999, Label.Shape.LocalBounds.Height));
+            Label.Layout.Alignment.SetStaticState(new(1f, 0.5f));
+            Label.Layout.AlignmentAnchor.SetStaticState(new(1f, 0.5f));
+            Label.Layout.AbsoluteMarginVertical.SetStaticState(TextPadding.VerticalPadding);
 
-            label.Transform.Size.SetStaticState(new(MathF.Max(bound.Width + TextPadding.x * 2, Shape.LocalBounds.Width), bound.Height));
+            Label.Transform.Size.SetStaticState(new(MathF.Max(bound.Width + TextPadding.Item1.x + TextPadding.Item1.y, Shape.LocalBounds.Width), 0));
 
             // Make sure caret stays in-bounds
             // Calculate text (from right to caret pos); subtract the width of the label and apply that as offset
 
-            var visibleBounds = Shape.LocalBounds;
-            visibleBounds.Inflate(-TextPadding.x, -TextPadding.y);
+            var visibleBounds = GetVisibleBounds();
 
-            float textWidthFromRightToCaret;
-            if (text.Length == 0 || text.Length - CaretIndex <= 0)
-                textWidthFromRightToCaret = visibleBounds.Width;
-            else
-            {
-                var textToCaret = text.ToString().Substring(CaretIndex, text.Length - CaretIndex);
-
-                var model = CreateTextModel(textToCaret);
-                var measuredBound = label.LayoutModel.GetBoundingRect(model, SKRect.Create(0, 0, 99999, label.Shape.LocalBounds.Height));
-                textWidthFromRightToCaret = measuredBound.Width;
-            }
-
-            float textWidthFromLeftToCaret;
-            if (text.Length == 0 || CaretIndex == 0)
-                textWidthFromLeftToCaret = visibleBounds.Width;
-            else
-            {
-                var textToCaret = text.ToString().Substring(0, CaretIndex);
-
-                var model = CreateTextModel(textToCaret);
-                var measuredBound = label.LayoutModel.GetBoundingRect(model, SKRect.Create(0, 0, 99999, label.Shape.LocalBounds.Height));
-                textWidthFromLeftToCaret = measuredBound.Width;
-            }
+            float textWidthFromRightToCaret = GetWidthFromRightToCaret();
 
             if ((textWidthFromRightToCaret - visibleBounds.Width) > 0)
-                viewPosition = RMath.Clamp(MathF.Max(textWidthFromRightToCaret - visibleBounds.Width, viewPosition), 0, float.MaxValue);
-            else if ((textWidthFromLeftToCaret - visibleBounds.Width) > 0)
-                viewPosition = -RMath.Clamp(MathF.Min(textWidthFromLeftToCaret - visibleBounds.Width, viewPosition), 0, float.MaxValue);
+                viewPosition = RMath.Clamp(MathF.Max(textWidthFromRightToCaret + 1 /* Add back a small padding to account for inaccuracies*/ - visibleBounds.Width, viewPosition), 0, float.MaxValue);
+            if ((textWidthFromRightToCaret - viewPosition) < 0)
+                viewPosition = RMath.Clamp(MathF.Min(textWidthFromRightToCaret, viewPosition), float.MinValue, viewPosition);
 
-            Console.WriteLine("V" + viewPosition);
+            Label.Transform.LocalPosition.SetStaticState(new(viewPosition + TextPadding.HorizontalPadding.x, 0));
+        }
 
-            label.Transform.LocalPosition.SetStaticState(new(viewPosition, 0));
+        string lastValidInput = "";
+        void ValidateText()
+        {
+            switch (TextInputMode)
+            {
+                case TextInputFieldMode.Alphabetic:
+                    text = new(Regex.Replace(text.ToString(), @"[^A-Za-z]", ""));
+                    break;
+                case TextInputFieldMode.Numeric:
+                    if (string.IsNullOrWhiteSpace(text.ToString()))
+                    {
+                        text = new("0");
+                        CaretIndex = 1;
+                        break;
+                    }
+                    if (!float.TryParse(text.ToString(), out var _))
+                    {
+                        text = new(lastValidInput);
+                        if (!float.TryParse(text.ToString(), out var __))
+                            text = new(Regex.Replace(text.ToString(), @"[^0-9.,]", ""));
+                    }
+                    break;
+                case TextInputFieldMode.Alphanumeric:
+                    text = new(Regex.Replace(text.ToString(), @"[^A-Za-z0-9,.]", ""));
+                    break;
+            }
+
+            lastValidInput = _Text;
+
+            var lastSelection = _selectionIndex;
+            CaretIndex = _caretIndex; // Make sure to trigger setter
+            _selectionIndex = RMath.Clamp(lastSelection, 0, _Text.Length);
         }
 
         TextModel CreateTextModel(string? overrideText = null)
@@ -437,9 +520,9 @@ namespace FenUISharp.Objects
                 int selEnd = (int)MathF.Max(CaretIndex, _selectionIndex);
                 int selLength = selEnd - selStart;
 
-                returnList.Add(new TextSpan(text.ToString().Substring(0, selStart), style));
-                returnList.Add(new TextSpan(text.ToString().Substring(selStart, selLength), selectedStyle));
-                returnList.Add(new TextSpan(text.ToString().Substring(selEnd, text.Length - selEnd), style));
+                returnList.Add(new TextSpan(_Text.Substring(0, selStart), style));
+                returnList.Add(new TextSpan(_Text.Substring(selStart, selLength), selectedStyle));
+                returnList.Add(new TextSpan(_Text.Substring(selEnd, _Text.Length - selEnd), style));
             }
             else
                 returnList.Add(new TextSpan(overrideText, style));
@@ -447,11 +530,52 @@ namespace FenUISharp.Objects
             return new(returnList, algn, FTypeface.Default);
         }
 
+        SKRect GetVisibleBounds()
+        {
+            var visibleBounds = Shape.LocalBounds;
+            return new SKRect(
+                visibleBounds.Left + TextPadding.Item1.x,
+                visibleBounds.Top + TextPadding.Item2.x,
+                visibleBounds.Right - TextPadding.Item1.y,
+                visibleBounds.Bottom - TextPadding.Item2.y
+            );
+        }
+
+        float GetWidthFromRightToCaret()
+        {
+            float textWidthFromRightToCaret;
+            if (_Text.Length == 0 || _Text.Length - CaretIndex <= 0)
+                textWidthFromRightToCaret = 0;
+            else
+            {
+                var textToCaret = _Text.Substring(CaretIndex, _Text.Length - CaretIndex);
+
+                var model = CreateTextModel(textToCaret);
+                var measuredBound = Label.LayoutModel.GetBoundingRect(model, SKRect.Create(0, 0, 99999, Label.Shape.LocalBounds.Height), 0);
+                textWidthFromRightToCaret = measuredBound.Width;
+            }
+            return textWidthFromRightToCaret;
+        }
+
+        float GetWidthFromLeftToCaret()
+        {
+            float textWidthFromLeftToCaret;
+            if (_Text.Length == 0 || CaretIndex == 0)
+                textWidthFromLeftToCaret = 0;
+            else
+            {
+                var textToCaret = _Text.Substring(0, CaretIndex);
+
+                var model = CreateTextModel(textToCaret);
+                var measuredBound = Label.LayoutModel.GetBoundingRect(model, SKRect.Create(0, 0, 99999, Label.Shape.LocalBounds.Height), 0);
+                textWidthFromLeftToCaret = measuredBound.Width;
+            }
+            return textWidthFromLeftToCaret;
+        }
+
         public override void DrawChildren(SKCanvas? canvas)
         {
-            var localBounds = Shape.LocalBounds;
-            localBounds.Inflate(-TextPadding.x, -TextPadding.y);
-            canvas?.ClipRect(localBounds, antialias: true);
+            canvas?.ClipRect(GetVisibleBounds(), antialias: true);
 
             base.DrawChildren(canvas);
         }
@@ -460,13 +584,15 @@ namespace FenUISharp.Objects
         {
             base.AfterRender(canvas);
 
-            int caretHeight = 18;
-            int caretWidth = 1;
             var caretPos = GetCaretPos();
-            var caretRect = SKRect.Create(caretPos.x - caretWidth / 2, caretPos.y - caretHeight / 2, caretWidth, caretHeight);
-            // using var roundRect = new SKRoundRect(caretRect, 2);
+            var caretRect = SKRect.Create(caretPos.x - CaretWidth.CachedValue / 2, caretPos.y - CaretHeight.CachedValue / 2, CaretWidth.CachedValue, CaretHeight.CachedValue);
+            
+            using var paint = GetRenderPaint();
+            paint.Color = CaretColor.CachedValue.WithAlpha((byte)RMath.Clamp(_lastTypedTimer > 0 ? 255 : (MathF.Sin(FContext.Time * MathF.PI * CaretBlinkSpeed.CachedValue) + 1) * 255, 0, 255));
 
-            canvas.DrawRect(caretRect, new SKPaint() { Color = SKColors.Yellow.WithAlpha((byte)RMath.Clamp((_lastTypedTimer > 0 ? 255 : (MathF.Sin(FContext.Time * 10) + 1) * 255), 0, 255)) });
+            using var caretRoundRect = new SKRoundRect(caretRect, CaretWidth.CachedValue / 2);
+
+            canvas.DrawRoundRect(caretRoundRect, paint);
         }
 
         [DllImport("user32.dll")]
@@ -499,6 +625,22 @@ namespace FenUISharp.Objects
         const uint CF_TEXT = 1;
         const uint GMEM_MOVEABLE = 0x0002;
 
+        // TODO: Maybe have to write a proper function in the future
+        static string CleanInput(string strIn)
+        {
+            return strIn;
+
+            try
+            {
+                return Regex.Replace(strIn, @"[^ -~äöüÄÖÜß]", "",
+                                        RegexOptions.None, TimeSpan.FromSeconds(1.5));
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                return String.Empty;
+            }
+        }
+
         static bool TryGetClipboardText(out string result)
         {
             result = null;
@@ -522,7 +664,7 @@ namespace FenUISharp.Objects
                 return false;
             }
 
-            result = Marshal.PtrToStringAnsi(ptr);
+            result = CleanInput(Marshal.PtrToStringAnsi(ptr) ?? "");
             GlobalUnlock(handle);
             CloseClipboard();
             return result != null;

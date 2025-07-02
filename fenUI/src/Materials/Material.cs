@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using FenUISharp.Objects;
 using SkiaSharp;
 
 namespace FenUISharp.Materials
@@ -27,35 +28,35 @@ namespace FenUISharp.Materials
 
         protected SKPaint GetDefaultPaint() => new() { IsAntialias = true, IsDither = true };
 
-        public void DrawWithMaterial(SKCanvas targetCanvas, SKRect rect, SKPaint? paint = null)
+        public void DrawWithMaterial(SKCanvas targetCanvas, SKRect rect, UIObject caller, SKPaint? paint = null)
         {
             using var tempPath = new SKPath();
             tempPath.AddRect(rect);
-            DrawWithMaterial(targetCanvas, tempPath, paint);
+            DrawWithMaterial(targetCanvas, tempPath, caller, paint);
         }
 
-        public void DrawWithMaterial(SKCanvas targetCanvas, SKRoundRect rect, SKPaint? paint = null)
+        public void DrawWithMaterial(SKCanvas targetCanvas, SKRoundRect rect, UIObject caller, SKPaint? paint = null)
         {
             using var tempPath = new SKPath();
             tempPath.AddRoundRect(rect);
-            DrawWithMaterial(targetCanvas, tempPath, paint);
+            DrawWithMaterial(targetCanvas, tempPath, caller, paint);
         }
 
-        public void DrawWithMaterial(SKCanvas targetCanvas, SKPoint position, float radius, SKPaint? paint = null)
+        public void DrawWithMaterial(SKCanvas targetCanvas, SKPoint position, float radius, UIObject caller, SKPaint? paint = null)
         {
             using var tempPath = new SKPath();
             tempPath.AddCircle(position.X, position.Y, radius);
-            DrawWithMaterial(targetCanvas, tempPath, paint);
+            DrawWithMaterial(targetCanvas, tempPath, caller, paint);
         }
 
-        public void DrawWithMaterial(SKCanvas targetCanvas, SKPath path, SKPaint? paint = null)
+        public void DrawWithMaterial(SKCanvas targetCanvas, SKPath path, UIObject caller, SKPaint? paint = null)
         {
             using var tempPath = new SKPath(path);
             using var tempPaint = paint?.Clone() ?? GetDefaultPaint();
-            Draw(targetCanvas, tempPath, tempPaint);
+            Draw(targetCanvas, tempPath, caller, tempPaint);
         }
 
-        protected abstract void Draw(SKCanvas targetCanvas, SKPath path, SKPaint paint);
+        protected abstract void Draw(SKCanvas targetCanvas, SKPath path, UIObject caller, SKPaint paint);
 
         public override bool Equals(object? obj)
         {

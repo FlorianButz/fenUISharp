@@ -34,7 +34,7 @@ namespace FenUISharp.Objects
         {
             using var paint = GetRenderPaint();
             using var path = GetPanelPath(rect);
-            RenderMaterial.CachedValue.DrawWithMaterial(canvas, path, paint);
+            RenderMaterial.CachedValue.DrawWithMaterial(canvas, path, this, paint);
         }
 
         public SKPath GetPanelPath(SKRect? rect = null)

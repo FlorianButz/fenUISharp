@@ -27,5 +27,5 @@ namespace FenUISharp
     }
 
     public enum MouseInputState : int { Down = 0, Up = 1 }
-    public enum MouseInputButton : int { Left = 0, Right = 1, Middle = 2 } 
+    public enum MouseInputButton : int { Left = 0, Right = 1, Middle = 2, None = 3 } 
 }

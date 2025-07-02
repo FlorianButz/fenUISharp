@@ -304,7 +304,10 @@ namespace FenUISharp.Objects
             {
                 // Check if the action was executed in the given time frame
                 if ((DateTime.Now - _lastInputMouseStateTime).TotalSeconds <= DoubleMouseActionTimeFrame)
+                {
+                    _lastInputMouseState = new() { button = MouseInputButton.None }; // Reset state
                     OnDoubleMouseAction?.Invoke(code.button);
+                }
 
                 _lastInputMouseState = code;
                 _lastInputMouseStateTime = DateTime.Now;

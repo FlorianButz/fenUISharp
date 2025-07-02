@@ -282,7 +282,7 @@ namespace FenUISharp.Objects
         {
             var paint = GetRenderPaint();
 
-            RenderMaterial.CachedValue.DrawWithMaterial(canvas, tailPath, paint);
+            RenderMaterial.CachedValue.DrawWithMaterial(canvas, tailPath, this, paint);
 
             // Clip only tail area
             canvas.ClipPath(this.tailPath, SKClipOperation.Difference, true);

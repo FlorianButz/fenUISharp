@@ -12,8 +12,8 @@ namespace FenUISharp.Objects
 
         public State<float> MarginHorizontal { get; init; }
         public State<float> MarginVertical { get; init; }
-        public State<float> AbsoluteMarginHorizontal { get; init; }
-        public State<float> AbsoluteMarginVertical { get; init; }
+        public State<Vector2> AbsoluteMarginHorizontal { get; init; }
+        public State<Vector2> AbsoluteMarginVertical { get; init; }
         public State<bool> StretchHorizontal { get; init; }
         public State<bool> StretchVertical { get; init; }
 
@@ -28,8 +28,8 @@ namespace FenUISharp.Objects
 
             MarginHorizontal = new(() => 0f, this);
             MarginVertical = new(() => 0f, this);
-            AbsoluteMarginHorizontal = new(() => 0f, this);
-            AbsoluteMarginVertical = new(() => 0f, this);
+            AbsoluteMarginHorizontal = new(() => new(0f, 0f), this);
+            AbsoluteMarginVertical = new(() => new(0f, 0f), this);
             StretchHorizontal = new(() => false, this);
             StretchVertical = new(() => false, this);
         }
@@ -39,7 +39,10 @@ namespace FenUISharp.Objects
             var anchor = AlignmentAnchor.CachedValue;
             var align = Alignment.CachedValue;
 
-            Vector2 absoluteMarginCorrection = new(-AbsoluteMarginHorizontal.CachedValue * (Alignment.CachedValue.x - 0.5f) * 2, -AbsoluteMarginVertical.CachedValue * (Alignment.CachedValue.y - 0.5f) * 2);
+            // Vector2 absoluteMarginCorrection = new(-AbsoluteMarginHorizontal.CachedValue.y * (Alignment.CachedValue.x - 0.5f) * 2, -AbsoluteMarginVertical.CachedValue.y * (Alignment.CachedValue.y - 0.5f) * 2);
+            Vector2 absoluteMarginCorrection = new(
+                AbsoluteMarginHorizontal.CachedValue.x * (1 - align.x) - AbsoluteMarginHorizontal.CachedValue.y * align.x,
+                AbsoluteMarginVertical.CachedValue.x * (1 - align.y) - AbsoluteMarginVertical.CachedValue.y * align.y);
 
             Vector2 sizeOffset = new(size.x * anchor.x, size.y * anchor.y);
             Vector2 relativeParentPos = new Vector2(
@@ -58,7 +61,7 @@ namespace FenUISharp.Objects
             Vector2 stretchSize = new((Owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Bounds.Width ?? 0)) - MarginHorizontal.CachedValue * 2,
                 (Owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Bounds.Height ?? 0)) - MarginVertical.CachedValue * 2);
 
-            var absoluteCorrection = new Vector2(AbsoluteMarginHorizontal.CachedValue * 2, AbsoluteMarginVertical.CachedValue * 2);
+            var absoluteCorrection = new Vector2(AbsoluteMarginHorizontal.CachedValue.x + AbsoluteMarginHorizontal.CachedValue.y, AbsoluteMarginVertical.CachedValue.x + AbsoluteMarginVertical.CachedValue.y);
 
             return new Vector2(StretchHorizontal.CachedValue ? stretchSize.x : localSize.x, StretchVertical.CachedValue ? stretchSize.y : localSize.y) - absoluteCorrection;
         }
