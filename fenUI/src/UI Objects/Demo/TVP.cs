@@ -26,16 +26,6 @@ namespace FenUISharp.Objects
 
             StackContentComponent layout = new(panel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
 
-            // textInputField.Layout.StretchHorizontal.SetStaticState(true);
-            // textInputField.Layout.AbsoluteMarginHorizontal.SetStaticState(new(0, 100));
-            // textInputField.Layout.Alignment.SetStaticState(new(1, 0.5f));
-            // textInputField.Layout.AlignmentAnchor.SetStaticState(new(1, 0.5f));
-
-            // textInputField.RenderMaterial.Value = () => new MaterialCompose(
-            //     () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.PanelMaterial().WithOverride(new() { ["BorderColor"] = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface.WithAlpha(50) }),
-            //     () => new BlurMaterial(() => textInputField.Composition.GrabBehindPlusBuffer(textInputField.Shape.GlobalBounds, 0.05f))
-            // );
-
             {
                 FText title = new(TextModelFactory.CreateBasic("Images", 20, bold: true), size: () => new Vector2(200, 75));
                 title.SetParent(panel);
@@ -293,6 +283,8 @@ namespace FenUISharp.Objects
 
                 FTextInputField textInputField = new(new FText(TextModelFactory.CreateBasic("")));
                 textInputField.SetParent(subpanel);
+                FTextInputField textInputFieldPassword = new(new FText(TextModelFactory.CreateBasic(""))) { PlaceholderText = "Type in password...", TextInputMode = FTextInputField.TextInputFieldMode.Password };
+                textInputFieldPassword.SetParent(subpanel);
 
                 sublayout.FullUpdateLayout();
             }
