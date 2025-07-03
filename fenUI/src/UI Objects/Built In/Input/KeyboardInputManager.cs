@@ -31,9 +31,12 @@ namespace FenUISharp
         private const char VK_LMENU = (char)0xA4;
         private const char VK_RMENU = (char)0xA5;
 
+        private List<KeyBind> keybinds;
+
         public KeyboardInputManager(Window window)
         {
             this._window = window;
+            keybinds = new();
 
             WindowFeatures.GlobalHooks.OnKeyTyped += KeyTyped;
             WindowFeatures.GlobalHooks.OnKeyPressed += KeyPressed;
@@ -95,6 +98,19 @@ namespace FenUISharp
                     IsAltPressed = true;
                     break;
             }
+
+            foreach (var keybind in keybinds.ToList())
+            {
+                if (vkCode == keybind.VKCode)
+                {
+                    if (keybind.Flags.HasFlag(KeyBindFlags.Control) && !IsControlPressed) continue;
+                    if (keybind.Flags.HasFlag(KeyBindFlags.Alt) && !IsAltPressed) continue;
+                    if (keybind.Flags.HasFlag(KeyBindFlags.Shift) && !IsShiftPressed) continue;
+
+                    _window.Dispatcher.Invoke(() => keybind.OnKeybindExecuted?.Invoke());
+                }
+            }
+
             _window.Dispatcher.Invoke(() => OnKeyPressed?.Invoke(c));
         }
 
@@ -107,10 +123,27 @@ namespace FenUISharp
             return vkCode;
         }
 
+        public void RegisterKeybind(KeyBind keybind) =>
+            keybinds.Add(keybind);
+
+        public void UnregisterKeybind(KeyBind keybind) =>
+            keybinds.Remove(keybind);
+
         public void Dispose()
         {
             WindowFeatures.GlobalHooks.OnKeyPressed -= KeyPressed;
             WindowFeatures.GlobalHooks.OnKeyReleased -= KeyReleased;
         }
+    }
+
+    [Flags]
+    public enum KeyBindFlags { None = 0, Control = 1, Alt = 2, Shift = 4 }
+
+    public struct KeyBind
+    {
+        public KeyBindFlags Flags { get; init; }
+        public int VKCode { get; init; }
+
+        public Action? OnKeybindExecuted { get; set; }
     }
 }
