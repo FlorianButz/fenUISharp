@@ -15,6 +15,7 @@ namespace FenUISharp.Objects
         public int DistanceToTarget { get; set; } = 15;
 
         public bool DisposeOnClose { get; set; } = false;
+        public bool AllowEscapeClosing { get; set; } = true;
 
         public State<Vector2> GlobalTargetPoint { get; init; }
         public SKRect GlobalBounds { get; set; }
@@ -22,9 +23,14 @@ namespace FenUISharp.Objects
         private AnimatorComponent _inAnimation;
         private StackContentComponent? layout;
 
+        private KeyBind closeKeybind;
+
         public FPopupPanel(Func<Vector2> size, bool addLayout = true) : base(() => new(0, 0), size)
         {
             GlobalTargetPoint = new(() => new(0, 0), this);
+
+            closeKeybind = new() { VKCode = 0x1B, OnKeybindExecuted = () => { if (AllowEscapeClosing) Close(); } };
+            FContext.GetKeyboardInputManager().RegisterKeybind(closeKeybind);
 
             if (addLayout)
             {
@@ -365,6 +371,7 @@ namespace FenUISharp.Objects
 
             GlobalTargetPoint.Dispose();
             WindowFeatures.GlobalHooks.OnMouseAction -= OnGlobalMouseAction;
+            FContext.GetKeyboardInputManager().UnregisterKeybind(closeKeybind);
         }
     }
 }
