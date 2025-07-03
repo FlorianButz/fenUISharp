@@ -40,14 +40,11 @@ namespace FenUISharp.Objects
             return pickedColor;
         }
 
-        protected override void MouseAction(MouseInputCode inputCode)
+        protected override void OnInteract()
         {
-            base.MouseAction(inputCode);
+            base.OnInteract();
 
-            if (inputCode.button == MouseInputButton.Left && inputCode.state == MouseInputState.Up)
-            {
-                OpenPicker();
-            }
+            OpenPicker();
         }
 
         private FPopupPanel? activePickerPanel;
@@ -61,7 +58,7 @@ namespace FenUISharp.Objects
 
             if(activePickerPanel == null)
                 CreatePicker();
-            activePickerPanel?.Show(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
+            activePickerPanel?.ToggleShow(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
         }
 
         private void CreatePicker()

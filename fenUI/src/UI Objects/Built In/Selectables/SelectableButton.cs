@@ -46,18 +46,15 @@ namespace FenUISharp.Objects.Buttons
             Invalidate(Invalidation.SurfaceDirty);
         }
 
-        protected override void MouseAction(MouseInputCode inputCode)
+        protected override void OnInteract()
         {
-            base.MouseAction(inputCode);
+            base.OnInteract();
 
-            if (inputCode.button == MouseInputButton.Left && inputCode.state == MouseInputState.Up)
-            {
-                IsSelected = (IsSelected && CanUnselect) ? !IsSelected : true;
-                OnUserSelectionChanged?.Invoke(IsSelected);
-                Invalidate(Invalidation.SurfaceDirty);
-            }
+            IsSelected = (IsSelected && CanUnselect) ? !IsSelected : true;
+            OnUserSelectionChanged?.Invoke(IsSelected);
+            Invalidate(Invalidation.SurfaceDirty);
         }
-        
+
         public override void Render(SKCanvas canvas)
         {
             if (IsSelected)

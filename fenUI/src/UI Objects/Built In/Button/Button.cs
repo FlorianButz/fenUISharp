@@ -17,13 +17,23 @@ namespace FenUISharp.Objects.Buttons
 
         public float HoverPixelAddition { get; set; } = 1f;
 
+        protected SelectableComponent selectableComponent;
+
         // Basic animation fields
         protected AnimatorComponent animatorComponent;
         internal SKColor currentHoverMix;
 
+        private KeyBind spaceInteract;
+
         public Button(Action? onClick = null, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
             this.OnClick = onClick;
+
+            spaceInteract = new() { VKCode = 0x20, OnKeybindExecuted = OnInteract };
+
+            selectableComponent = new SelectableComponent(this, this.InteractiveSurface);
+            selectableComponent.OnSelectionGained += () => FContext.GetKeyboardInputManager().RegisterKeybind(spaceInteract);
+            selectableComponent.OnSelectionLost += () => FContext.GetKeyboardInputManager().UnregisterKeybind(spaceInteract);
 
             HoverMix = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix, this);
             RenderMaterial.Value = FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.InteractableMaterial;
@@ -54,7 +64,7 @@ namespace FenUISharp.Objects.Buttons
             };
 
             Padding.SetStaticState(10);
-            
+
             Transform.SnapPositionToPixelGrid.SetStaticState(true);
             UpdateColors();
         }
@@ -103,15 +113,21 @@ namespace FenUISharp.Objects.Buttons
             if (inputCode.button == MouseInputButton.Left && inputCode.state == MouseInputState.Down)
             {
                 animatorComponent.Inverse = true;
-                animatorComponent.Start();
+                animatorComponent.Restart();
             }
             else if (inputCode.button == MouseInputButton.Left && inputCode.state == MouseInputState.Up)
             {
+                OnInteract();
                 animatorComponent.Inverse = false;
-                animatorComponent.Start();
-
-                OnClick?.Invoke();
+                animatorComponent.Restart();
             }
+        }
+
+        protected virtual void OnInteract()
+        {
+            animatorComponent.Inverse = true;
+            animatorComponent.Restart();
+            OnClick?.Invoke();
         }
 
         public override void Render(SKCanvas canvas)
@@ -128,7 +144,7 @@ namespace FenUISharp.Objects.Buttons
         public override void AfterRender(SKCanvas canvas)
         {
             base.AfterRender(canvas);
-            
+
             using (var path = SKSquircle.CreateSquircle(Shape.LocalBounds, CornerRadius.CachedValue))
             {
                 using var paint = GetRenderPaint();

@@ -70,8 +70,8 @@ namespace FenUISharp.Objects
         public State<float> CaretHeight { get; init; }
         public State<float> CaretBlinkSpeed { get; init; }
 
-        public Action<string> OnTextChanged { get; set; }
-        public Action<string> OnEnter { get; set; }
+        public Action<string>? OnTextChanged { get; set; }
+        public Action<string>? OnEnter { get; set; }
 
         private const char ARROW_LEFT = (char)37;
         private const char ARROW_RIGHT = (char)39;
@@ -88,7 +88,7 @@ namespace FenUISharp.Objects
         private const char ENTER = '\u000D';
 
         private const char SELALL = '\u0001'; // Ctrl + A
-        private const char TAB = '\u0009'; // Tabulator
+        // private const char TAB = '\u0009'; // Tabulator
 
         private StringBuilder text = new();
 
@@ -106,7 +106,7 @@ namespace FenUISharp.Objects
             HoverMix.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix.WithAlpha(75);
             RenderMaterial.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.PanelMaterial();
 
-            CaretBlinkSpeed = new(() => 1, this);
+            CaretBlinkSpeed = new(() => 2.5f, this);
             CaretWidth = new(() => 1, this);
             CaretHeight = new(() => 18, this);
             CaretColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary.AddMix(new(50, 50, 50)), this);
@@ -180,7 +180,8 @@ namespace FenUISharp.Objects
 
         private void OnKeyPressed(char obj)
         {
-            // TODO: Check for selection
+            if (!selectableComponent.IsSelected) return;
+            
             switch (obj)
             {
                 case ARROW_LEFT:
@@ -241,8 +242,8 @@ namespace FenUISharp.Objects
             if (_lastTypedTimer > 0)
                 _lastTypedTimer -= FContext.DeltaTime;
 
-            // if()
-            Invalidate(Invalidation.SurfaceDirty);
+            if(selectableComponent.IsSelected)
+                Invalidate(Invalidation.SurfaceDirty);
         }
 
         private void OnDrag(Vector2 vector)
@@ -298,6 +299,7 @@ namespace FenUISharp.Objects
 
         private void OnKeyTyped(char c)
         {
+            if (!selectableComponent.IsSelected) return;
             int oldCaretPos = CaretIndex;
 
             switch (c)
@@ -595,6 +597,8 @@ namespace FenUISharp.Objects
         public override void AfterRender(SKCanvas canvas)
         {
             base.AfterRender(canvas);
+
+            if (!selectableComponent.IsSelected) return;
 
             var caretPos = GetCaretPos();
             var caretRect = SKRect.Create(caretPos.x - CaretWidth.CachedValue / 2, caretPos.y - CaretHeight.CachedValue / 2, CaretWidth.CachedValue, CaretHeight.CachedValue);

@@ -101,11 +101,15 @@ namespace FenUISharp
 
             foreach (var keybind in keybinds.ToList())
             {
-                if (vkCode == keybind.VKCode)
+                if (vkCode == keybind.VKCode || keybind.AliasVKCodes != null && keybind.AliasVKCodes.Contains(vkCode))
                 {
                     if (keybind.Flags.HasFlag(KeyBindFlags.Control) && !IsControlPressed) continue;
                     if (keybind.Flags.HasFlag(KeyBindFlags.Alt) && !IsAltPressed) continue;
                     if (keybind.Flags.HasFlag(KeyBindFlags.Shift) && !IsShiftPressed) continue;
+
+                    if (!keybind.Flags.HasFlag(KeyBindFlags.Control) && IsControlPressed) continue;
+                    if (!keybind.Flags.HasFlag(KeyBindFlags.Alt) && IsAltPressed) continue;
+                    if (!keybind.Flags.HasFlag(KeyBindFlags.Shift) && IsShiftPressed) continue;
 
                     _window.Dispatcher.Invoke(() => keybind.OnKeybindExecuted?.Invoke());
                 }
@@ -143,7 +147,8 @@ namespace FenUISharp
     {
         public KeyBindFlags Flags { get; init; }
         public int VKCode { get; init; }
-
+        public int[] AliasVKCodes { get; init; }
+        
         public Action? OnKeybindExecuted { get; set; }
     }
 }

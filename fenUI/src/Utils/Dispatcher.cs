@@ -20,8 +20,8 @@ namespace FenUISharp
                 itemsToProcess.Add(call);
             }
 
-            try
-            {
+            // try
+            // {
                 foreach (var call in itemsToProcess)
                 {
                     if (call != null)
@@ -74,15 +74,15 @@ namespace FenUISharp
                         }
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Error while processing update queue: " + e.Message);
+            // }
+            // catch (Exception e)
+            // {
+            //     Console.WriteLine("Error while processing update queue: " + e.Message);
 
-                // Clear everything on error
-                while (dispatcherCalls.TryDequeue(out _)) { }
-                uniqueIds.Clear();
-            }
+            //     // Clear everything on error
+            //     while (dispatcherCalls.TryDequeue(out _)) { }
+            //     uniqueIds.Clear();
+            // }
         }
 
         /// <summary>

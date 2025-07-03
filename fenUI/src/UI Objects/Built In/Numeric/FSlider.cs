@@ -1,3 +1,4 @@
+using FenUISharp.Behavior;
 using FenUISharp.Mathematics;
 using FenUISharp.States;
 using FenUISharp.Themes;
@@ -67,11 +68,25 @@ namespace FenUISharp.Objects
         public Action<float>? OnValueChanged { get; set; }
         public Action<float>? OnUserValueChanged { get; set; }
 
+        private KeyBind increment;
+        private KeyBind decrement;
+
+        protected SelectableComponent selectableComponent;
+
         public FSlider(Func<Vector2>? position = null, float width = 100) : base(position, () => new(width, 3))
         {
             InteractiveSurface.EnableMouseActions.SetStaticState(true);
             InteractiveSurface.OnMouseAction += MouseAction;
             InteractiveSurface.OnDrag += OnDragSlider;
+
+            increment = new() { VKCode = 39, OnKeybindExecuted = Increment };
+            decrement = new() { VKCode = 37, OnKeybindExecuted = Decrement };
+
+            selectableComponent = new SelectableComponent(this, this.InteractiveSurface);
+            selectableComponent.OnSelectionGained += () => FContext.GetKeyboardInputManager().RegisterKeybind(increment);
+            selectableComponent.OnSelectionLost += () => FContext.GetKeyboardInputManager().UnregisterKeybind(increment);
+            selectableComponent.OnSelectionGained += () => FContext.GetKeyboardInputManager().RegisterKeybind(decrement);
+            selectableComponent.OnSelectionLost += () => FContext.GetKeyboardInputManager().UnregisterKeybind(decrement);
 
             MinValue = new(() => 0, this);
             MaxValue = new(() => 1, this);
@@ -90,6 +105,36 @@ namespace FenUISharp.Objects
             InteractiveSurface.ExtendInteractionRadius.SetStaticState(2);
 
             KnobPositionSpring = new(5f, 1.4f);
+        }
+
+        private void Increment()
+        {
+            var lastValue = GetValue();
+
+            Value += (SnappingInterval != 0) ? SnappingInterval : (MaxValue.CachedValue - MinValue.CachedValue) / 10;
+
+            var val = GetValue();
+
+            if (lastValue != val)
+            {
+                OnValueChanged?.Invoke(Value);
+                OnUserValueChanged?.Invoke(Value);
+            }
+        }
+
+        private void Decrement()
+        {
+            var lastValue = GetValue();
+
+            Value -= (SnappingInterval != 0) ? SnappingInterval : (MaxValue.CachedValue - MinValue.CachedValue) / 10;
+
+            var val = GetValue();
+
+            if (lastValue != val)
+            {
+                OnValueChanged?.Invoke(Value);
+                OnUserValueChanged?.Invoke(Value);
+            }
         }
 
         private void MouseAction(MouseInputCode code)
@@ -286,7 +331,7 @@ namespace FenUISharp.Objects
         protected virtual void RenderHotspots(SKCanvas canvas, List<float> hotspots)
         {
             if (hotspots.Count > MaxSnapIndicators) return; // If too many, don't render them at all
-            
+
             using var paint = GetRenderPaint();
 
             canvas.Save();

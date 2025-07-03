@@ -65,6 +65,7 @@ namespace FenUISharp.Objects
             dispatcher.Invoke(() =>
             {
                 if (code.button != MouseInputButton.Left || code.state != MouseInputState.Down) return;
+                if (_inAnimation.IsRunning) return;    // Don't during show/close anims
 
                 if (!Shape.GlobalBounds.Contains(new SKPoint(FContext.GetCurrentWindow().ClientMousePosition.x, FContext.GetCurrentWindow().ClientMousePosition.y)))
                     Close(); // Close this pop-up
@@ -73,45 +74,45 @@ namespace FenUISharp.Objects
 
         public bool IsShowing { get; private set; }
 
+        public void ToggleShow(Func<Vector2>? targetPoint = null)
+        {
+            if (IsShowing) Close();
+            else Show(targetPoint);
+        }
+
         public void Show(Func<Vector2>? targetPoint = null)
         {
             if (_inAnimation.IsRunning) return;
+            if (IsShowing) return;
 
-            Close(() =>
+            Enabled.SetStaticState(true);
+            FContext.GetCurrentDispatcher().InvokeLater(() =>
             {
-                Enabled.SetStaticState(true);
+                InteractiveSurface.IgnoreInteractions.SetStaticState(false);
+                InteractiveSurface.IgnoreChildInteractions.SetStaticState(false);
+                Visible.SetStaticState(true);
+            }, 5L);
+            if (targetPoint != null)
+                GlobalTargetPoint.SetResponsiveState(targetPoint);
 
-                // TODO: Add option to have it force opened
-
-                FContext.GetCurrentDispatcher().InvokeLater(() =>
-                {
-                    InteractiveSurface.IgnoreInteractions.SetStaticState(false);
-                    InteractiveSurface.IgnoreChildInteractions.SetStaticState(false);
-                    Visible.SetStaticState(true);
-                }, 5L);
-                if (targetPoint != null)
-                    GlobalTargetPoint.SetResponsiveState(targetPoint);
-
-                IsShowing = true;
-                _inAnimation.OnComplete = () =>
-                {
-                    IsShowing = true;
-                    OnCompleteAnim();
-                };
-
-                _inAnimation.Duration = 0.75f;
-                _inAnimation.Inverse = false;
-                _inAnimation.Restart();
-                OnStartAnim();
-            });
+            IsShowing = true; // Set this only once, here
+            _inAnimation.OnComplete = () =>
+            {
+                // Remove the duplicate IsShowing = true
+                OnCompleteAnim();
+            };
+            _inAnimation.Duration = 0.75f;
+            _inAnimation.Inverse = false;
+            _inAnimation.Restart();
+            OnStartAnim();
         }
 
         public void Close(Action? onComplete = null)
         {
-            if (!IsShowing)
+            // Add a flag to track if we're in the process of closing
+            if (!IsShowing && !_inAnimation.IsRunning)
             {
-                if (!_inAnimation.IsRunning)
-                    onComplete?.Invoke();
+                onComplete?.Invoke();
                 return;
             }
 
@@ -122,26 +123,21 @@ namespace FenUISharp.Objects
             }
 
             IsShowing = false;
-
             _inAnimation.Inverse = true;
             _inAnimation.Duration = 0.175f;
             _inAnimation.OnComplete = () =>
             {
                 InteractiveSurface.IgnoreInteractions.SetStaticState(true);
                 InteractiveSurface.IgnoreChildInteractions.SetStaticState(true);
-
                 FContext.GetCurrentDispatcher().InvokeLater(() =>
                 {
                     Visible.SetStaticState(false);
                     Enabled.SetStaticState(false);
                 }, 1L);
                 onComplete?.Invoke();
-
                 OnCompleteAnim();
-
                 if (DisposeOnClose) Dispose();
             };
-
             _inAnimation.Restart();
         }
 

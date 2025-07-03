@@ -30,12 +30,23 @@ namespace FenUISharp.Objects
         public Action<float>? OnValueChanged { get; set; }
         public Action<float>? OnUserValueChanged { get; set; }
 
+        private KeyBind increment;
+        private KeyBind decrement;
+
         // TODO: Fix scroller lines for different popup orientations
 
         public FNumericScroller(FText label, Func<string>? formatProvider = null, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position: position, size: size ?? (() => new(30, 25)))
         {
             Label = label;
             label.SetParent(this);
+
+            increment = new() { VKCode = 39, AliasVKCodes = new[] { 0x26 }, OnKeybindExecuted = () => { OpenPopup(true); Increment(); } };
+            decrement = new() { VKCode = 37, AliasVKCodes = new[] { 0x28 }, OnKeybindExecuted = () => { OpenPopup(true); Decrement(); } };
+
+            selectableComponent.OnSelectionGained += () => FContext.GetKeyboardInputManager().RegisterKeybind(increment);
+            selectableComponent.OnSelectionLost += () => FContext.GetKeyboardInputManager().UnregisterKeybind(increment);
+            selectableComponent.OnSelectionGained += () => FContext.GetKeyboardInputManager().RegisterKeybind(decrement);
+            selectableComponent.OnSelectionLost += () => FContext.GetKeyboardInputManager().UnregisterKeybind(decrement);
 
             RenderMaterial.Value = FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.TransparentInteractableMaterial;
 
@@ -100,23 +111,24 @@ namespace FenUISharp.Objects
             Invalidate(Invalidation.SurfaceDirty | Invalidation.LayoutDirty);
         }
 
-        protected override void MouseAction(MouseInputCode inputCode)
+        protected override void OnInteract()
         {
-            base.MouseAction(inputCode);
+            base.OnInteract();
 
-            if (inputCode.button == MouseInputButton.Left && inputCode.state == MouseInputState.Up)
-            {
-                OpenPopup();
-            }
+            OpenPopup();
         }
 
         private FPopupPanel? activePopup;
 
-        public void OpenPopup()
+        public void OpenPopup(bool stayOpen = false)
         {
             if(activePopup == null) 
                 CreatePopup();
-            activePopup?.Show(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
+
+            if(stayOpen)
+                activePopup?.Show(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
+            else
+                activePopup?.ToggleShow(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
         }
 
         private void CreatePopup()
