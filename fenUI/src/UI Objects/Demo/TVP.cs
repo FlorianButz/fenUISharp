@@ -26,16 +26,15 @@ namespace FenUISharp.Objects
 
             StackContentComponent layout = new(panel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
 
-            FTextInputField textInputField = new(new FText(TextModelFactory.CreateBasic("")));
             // textInputField.Layout.StretchHorizontal.SetStaticState(true);
             // textInputField.Layout.AbsoluteMarginHorizontal.SetStaticState(new(0, 100));
             // textInputField.Layout.Alignment.SetStaticState(new(1, 0.5f));
             // textInputField.Layout.AlignmentAnchor.SetStaticState(new(1, 0.5f));
 
-            textInputField.RenderMaterial.Value = () => new MaterialCompose(
-                () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.PanelMaterial().WithOverride(new() { ["BorderColor"] = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface.WithAlpha(50) }),
-                () => new BlurMaterial(() => textInputField.Composition.GrabBehindPlusBuffer(textInputField.Shape.GlobalBounds, 0.05f))
-            );
+            // textInputField.RenderMaterial.Value = () => new MaterialCompose(
+            //     () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.PanelMaterial().WithOverride(new() { ["BorderColor"] = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface.WithAlpha(50) }),
+            //     () => new BlurMaterial(() => textInputField.Composition.GrabBehindPlusBuffer(textInputField.Shape.GlobalBounds, 0.05f))
+            // );
 
             {
                 FText title = new(TextModelFactory.CreateBasic("Images", 20, bold: true), size: () => new Vector2(200, 75));
@@ -270,7 +269,7 @@ namespace FenUISharp.Objects
                 {
                     [TextModelFactory.CreateBasic("Text 1")] = (x) => { },
                     [TextModelFactory.CreateBasic("Text 2")] = (x) => { },
-                    [TextModelFactory.CreateBasic("Text 3")] = (x) => { }
+                    [TextModelFactory.CreateBasic("Text 2")] = (x) => { }
                 }), 2);
                 segmentedControl2.SetParent(subpanel);
 
@@ -286,11 +285,14 @@ namespace FenUISharp.Objects
                 subpanel.SetParent(panel);
 
                 StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.SizeToFit);
-                sublayout.Pad.SetStaticState(10);
-                sublayout.Gap.SetStaticState(5);
+                sublayout.Pad.SetStaticState(25);
+                sublayout.Gap.SetStaticState(30);
 
                 FColorPatch colorPatch = new(SKColors.Red);
                 colorPatch.SetParent(subpanel);
+
+                FTextInputField textInputField = new(new FText(TextModelFactory.CreateBasic("")));
+                textInputField.SetParent(subpanel);
 
                 sublayout.FullUpdateLayout();
             }

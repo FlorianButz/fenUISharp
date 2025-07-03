@@ -25,6 +25,11 @@ namespace FenUISharp.Objects
             {
                 return text.ToString();
             }
+            set
+            {
+                text = new(value);
+                UpdateText();
+            }
         }
 
         private string _Text
@@ -65,20 +70,22 @@ namespace FenUISharp.Objects
         public State<float> CaretHeight { get; init; }
         public State<float> CaretBlinkSpeed { get; init; }
 
+        public Action<string> OnTextChanged { get; set; }
+        public Action<string> OnEnter { get; set; }
+
         private const char ARROW_LEFT = (char)37;
         private const char ARROW_RIGHT = (char)39;
         private const char ARROW_UP = (char)0x26;
         private const char ARROW_DOWN = (char)0x28;
         private const char BACKSPACE = (char)8;
         private const char CONTROL_BACKSPACE = (char)127;
-        private const char NEWLINE1 = '\r';
-        private const char NEWLINE2 = '\n';
         private const char ESCAPE = '\u001B';
 
         private const char PASTE = '\u0016'; // Ctrl + V
         private const char COPY = '\u0003'; // Ctrl + C
         private const char CUT = '\u0018';
         private const char UNDO = '\u001A';
+        private const char ENTER = '\u000D';
 
         private const char SELALL = '\u0001'; // Ctrl + A
         private const char TAB = '\u0009'; // Tabulator
@@ -173,6 +180,7 @@ namespace FenUISharp.Objects
 
         private void OnKeyPressed(char obj)
         {
+            // TODO: Check for selection
             switch (obj)
             {
                 case ARROW_LEFT:
@@ -209,6 +217,9 @@ namespace FenUISharp.Objects
                 case ARROW_DOWN:
                     CaretIndex = _Text.Length;
                     UpdateText();
+                    break;
+                case ENTER:
+                    OnEnter?.Invoke(Text);
                     break;
                 default:
                     break;
@@ -383,6 +394,7 @@ namespace FenUISharp.Objects
                     break;
             }
 
+            OnTextChanged?.Invoke(Text);
             UpdateText();
         }
 
