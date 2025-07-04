@@ -53,6 +53,7 @@ namespace FenUISharp.Objects
 
             Model = model; // First create the buttons
             buttonGroup.Select(initiallySelected); // Then activate initial selection
+            lastGlobalRect = () => buttonGroup.Buttons[buttonGroup.LatestSelection].Shape.GlobalBounds;
 
             Selection = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary, this);
             Background = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Surface, this);
