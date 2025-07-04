@@ -15,7 +15,7 @@ namespace FenUISharp.Objects
         public enum ImageScaleMode { Stretch, Fit, Contain }
         public State<ImageScaleMode> ScaleMode { get; private init; }
 
-        public FImage(Func<SKImage> image, bool drawBackground = false, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
+        public FImage(Func<SKImage> image, bool drawBackground = false, bool dynamicColor = false, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
             _drawBasePanel = drawBackground;
 
@@ -25,7 +25,7 @@ namespace FenUISharp.Objects
 
             CornerRadius.SetResponsiveState(() => Transform.Size.CachedValue.y / 1.5f);
 
-            TintColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface, this);
+            TintColor = new(() => dynamicColor ? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface : SKColors.White, this);
             Padding.Value = () => 10;
         }
 

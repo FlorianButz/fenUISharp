@@ -82,6 +82,8 @@ namespace FenUISharp.Objects
             increment = new() { VKCode = 39, OnKeybindExecuted = Increment };
             decrement = new() { VKCode = 37, OnKeybindExecuted = Decrement };
 
+            RenderMaterial.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.InteractableMaterial();
+
             selectableComponent = new SelectableComponent(this, this.InteractiveSurface);
             selectableComponent.OnSelectionGained += () => FContext.GetKeyboardInputManager().RegisterKeybind(increment);
             selectableComponent.OnSelectionLost += () => FContext.GetKeyboardInputManager().UnregisterKeybind(increment);
@@ -288,7 +290,8 @@ namespace FenUISharp.Objects
             RenderMaterial.CachedValue.WithOverride(new()
             {
                 ["BaseColor"] = () => Bar.CachedValue,
-                ["BorderColor"] = () => BarBorder.CachedValue
+                ["BorderColor"] = () => BarBorder.CachedValue,
+                ["DropShadowRadius"] = () => 0f
             }).DrawWithMaterial(canvas, barRoundRect, this, paint);
         }
 
@@ -302,7 +305,8 @@ namespace FenUISharp.Objects
                 RenderMaterial.CachedValue.WithOverride(new()
                 {
                     ["BaseColor"] = () => BarFill.CachedValue,
-                    ["BorderColor"] = () => SKColors.Transparent
+                    ["BorderColor"] = () => SKColors.Transparent,
+                    ["DropShadowRadius"] = () => 0f
                 }).DrawWithMaterial(canvas, barRoundRect, this, paint);
             }
         }
@@ -325,7 +329,6 @@ namespace FenUISharp.Objects
                 SKRect snapRect = SKRect.Create(
                     RMath.Lerp(Shape.LocalBounds.Left, Shape.LocalBounds.Right, value) - SnappingHandleSize.x / 2,
                     Shape.LocalBounds.MidY - SnappingHandleSize.y / 2, SnappingHandleSize.x, SnappingHandleSize.y);
-                snapRect.Offset(0.5f, 0.5f);
                 using var snapRoundRect = new SKRoundRect(snapRect, SnappingHandleCornerRadius);
 
                 RenderMaterial.CachedValue.WithOverride(new()

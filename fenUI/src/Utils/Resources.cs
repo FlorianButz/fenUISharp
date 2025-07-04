@@ -67,7 +67,7 @@ namespace FenUISharp
                 SecondaryVariant = new SKColor(200, 200, 200),
 
                 Background = new SKColor(245, 245, 245),
-                Surface = new SKColor(255, 255, 255),
+                Surface = new SKColor(245, 245, 245),
                 SurfaceVariant = new SKColor(240, 240, 240),
 
                 OnPrimary = new SKColor(255, 255, 255),
@@ -75,8 +75,8 @@ namespace FenUISharp
                 OnBackground = new SKColor(30, 30, 30),
                 OnSurface = new SKColor(45, 45, 45),
 
-                PrimaryBorder = new SKColor(122, 161, 255),
-                SecondaryBorder = new SKColor(204, 204, 204),
+                PrimaryBorder = new SKColor(122, 161, 255, 100),
+                SecondaryBorder = new SKColor(204, 204, 204, 100),
 
                 Shadow = new SKColor(0, 0, 0, 35),
 

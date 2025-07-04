@@ -1,3 +1,4 @@
+using FenUISharp.Mathematics;
 using FenUISharp.Objects;
 using SkiaSharp;
 
@@ -25,7 +26,7 @@ namespace FenUISharp.Materials
 
         public Func<SKColor> HightlightColor
         {
-            get => GetProp<Func<SKColor>>("HightlightColor", () => new SKColor(112, 102, 107, 100));
+            get => GetProp<Func<SKColor>>("HightlightColor", () => BaseColor().AddMix(new(25, 25, 25)).MultiplyMix(new(255, 255, 255, 100)));
             set => SetProp("HightlightColor", value);
         }
         
@@ -34,7 +35,7 @@ namespace FenUISharp.Materials
             get => GetProp<Func<float>>("DropShadowRadius", () => 2);
             set => SetProp("DropShadowRadius", value);
         }
-        
+
         protected override void Draw(SKCanvas targetCanvas, SKPath path, UIObject caller, SKPaint paint)
         {
             var bounds = path.Bounds;
@@ -89,6 +90,8 @@ namespace FenUISharp.Materials
 
                 targetCanvas.DrawPath(path, paint);
             }
+            
+            targetCanvas.Translate(-0.5f, -0.5f);
         }
     }
 }
