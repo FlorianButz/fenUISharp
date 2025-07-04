@@ -289,6 +289,28 @@ namespace FenUISharp.Objects
                 sublayout.FullUpdateLayout();
             }
 
+            {
+                FText title = new(TextModelFactory.CreateBasic("Theme", 20, bold: true), size: () => new Vector2(200, 75));
+                title.SetParent(panel);
+
+                FPanel subpanel = new();
+                subpanel.Transform.Size.SetStaticState(new(500, 0));
+                subpanel.SetParent(panel);
+
+                StackContentComponent sublayout = new(subpanel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.SizeToFit);
+                sublayout.Pad.SetStaticState(10);
+                sublayout.Gap.SetStaticState(5);
+
+                FSegmentedControl segmentedControl1 = new(new(new()
+                {
+                    [TextModelFactory.CreateBasic("Light")] = (x) => { FContext.GetCurrentWindow().WindowThemeManager.SetTheme(Resources.GetTheme("default-light")); FContext.GetCurrentWindow().SystemDarkMode = false; },
+                    [TextModelFactory.CreateBasic("Dark")] = (x) => { FContext.GetCurrentWindow().WindowThemeManager.SetTheme(Resources.GetTheme("default-dark")); FContext.GetCurrentWindow().SystemDarkMode = true; }
+                }), 1);
+                segmentedControl1.SetParent(subpanel);
+
+                sublayout.FullUpdateLayout();
+            }
+
             // TODO: Fix layout update order
             FContext.GetCurrentDispatcher().InvokeLater(() => layout.FullUpdateLayout(), 2L);
             return new List<UIObject>() { panel };

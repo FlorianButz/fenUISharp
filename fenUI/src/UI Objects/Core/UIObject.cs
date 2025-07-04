@@ -104,6 +104,7 @@ namespace FenUISharp.Objects
         {
             // On theme changed
             // RenderMaterial.ReevaluateValue(true);
+            Invalidate(Invalidation.SurfaceDirty);
         }
 
         public void RecursiveInvalidate(Invalidation invalidation)
