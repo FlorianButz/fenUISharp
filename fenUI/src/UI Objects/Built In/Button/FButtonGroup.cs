@@ -22,6 +22,25 @@ namespace FenUISharp.Objects.Buttons
         // Will return the latest selected. More useful for button groups that don't allow multi selection
         public int LatestSelection { get; private set; } = 0;
 
+        public void Select(int button)
+        {
+            Select(Buttons[button]);
+        }
+
+        public void Select(SelectableButton button)
+        {
+            if (!AllowMultiSelect) Buttons.ForEach(x => { if (x != button && x.IsSelected) x.SetSelected(false); });
+            UpdateButtonGroup();
+
+            LatestSelection = Buttons.IndexOf(button);
+
+            bool[] buttons = new bool[Buttons.Count];
+            for (int i = 0; i < Buttons.Count; i++) buttons[i] = Buttons[i].IsSelected;
+            
+            OnUserSelectionChanged?.Invoke(buttons);
+            OnSelectionChanged?.Invoke(buttons);
+        }
+
         public void Add(SelectableButton button)
         {
             Buttons.Add(button);
@@ -29,7 +48,7 @@ namespace FenUISharp.Objects.Buttons
             if (AlwaysMustSelectOne && Buttons.Where(x => x.IsSelected).Count() == 0) button.SetSelected(true);
             else if (AlwaysMustSelectOne && Buttons.Where(x => x.IsSelected).Count() != 0 && !AllowMultiSelect) button.SetSelected(false);
 
-            button.OnUserSelectionChanged += (x) => OnButtonChanged(x, button);
+            button.OnUserSelectionChanged += OnButtonChanged;
             button.ButtonGroup = this;
         }
 
@@ -39,7 +58,7 @@ namespace FenUISharp.Objects.Buttons
 
             UpdateButtonGroup();
 
-            button.OnUserSelectionChanged -= (x) => OnButtonChanged(x, button);
+            button.OnUserSelectionChanged -= OnButtonChanged;
             if(button.ButtonGroup == this) button.ButtonGroup = null;
         }
 

@@ -14,11 +14,11 @@ namespace FenUISharp.Objects.Buttons
 
         public FButtonGroup? ButtonGroup { get; internal set; }
 
-        public Action<bool>? OnSelectionChanged { get; set; }
-        public Action<bool>? OnSelectionChangedSilent { get; set; }
-        public Action<bool>? OnUserSelectionChanged { get; set; }
+        public Action<bool, SelectableButton>? OnSelectionChanged { get; set; }
+        public Action<bool, SelectableButton>? OnSelectionChangedSilent { get; set; }
+        public Action<bool, SelectableButton>? OnUserSelectionChanged { get; set; }
 
-        public SelectableButton(Action? onClick = null, Action<bool>? onSelectionChanged = null, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(onClick, size, position)
+        public SelectableButton(Action? onClick = null, Action<bool, SelectableButton>? onSelectionChanged = null, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(onClick, size, position)
         {
             OnSelectionChanged = onSelectionChanged;
             InteractiveSurface.EnableMouseActions.SetStaticState(true);
@@ -35,14 +35,14 @@ namespace FenUISharp.Objects.Buttons
         public void SetSelected(bool isSelected)
         {
             _isSelected = isSelected;
-            OnSelectionChanged?.Invoke(isSelected);
+            OnSelectionChanged?.Invoke(isSelected, this);
             Invalidate(Invalidation.SurfaceDirty);
         }
 
         public void SilentSetSelected(bool isSelected)
         {
             _isSelected = isSelected;
-            OnSelectionChangedSilent?.Invoke(isSelected);
+            OnSelectionChangedSilent?.Invoke(isSelected, this);
             Invalidate(Invalidation.SurfaceDirty);
         }
 
@@ -51,7 +51,7 @@ namespace FenUISharp.Objects.Buttons
             base.OnInteract();
 
             IsSelected = (IsSelected && CanUnselect) ? !IsSelected : true;
-            OnUserSelectionChanged?.Invoke(IsSelected);
+            OnUserSelectionChanged?.Invoke(IsSelected, this);
             Invalidate(Invalidation.SurfaceDirty);
         }
 

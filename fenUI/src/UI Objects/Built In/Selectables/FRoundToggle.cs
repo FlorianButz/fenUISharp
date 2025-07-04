@@ -30,9 +30,9 @@ namespace FenUISharp.Objects.Buttons
             Transform.Size.SetStaticState(new(WIDTH, HEIGHT));
             Transform.LocalPosition.SetResponsiveState(position ?? (() => new(0, 0)));
 
-            OnSelectionChangedSilent += (x) => AnimationSpring.ResetVector(new(x ? 1 : 0, 0));
-            OnSelectionChanged += (x) => toggleAnimator.Restart();
-            OnUserSelectionChanged += (x) => toggleAnimator.Restart();
+            OnSelectionChangedSilent += (x, y) => AnimationSpring.ResetVector(new(x ? 1 : 0, 0));
+            OnSelectionChanged += (x, y) => toggleAnimator.Restart();
+            OnUserSelectionChanged += (x, y) => toggleAnimator.Restart();
 
             InteractiveSurface.OnMouseExit += MouseExit;
             Transform.SnapPositionToPixelGrid.SetStaticState(true); // Technically good

@@ -3,6 +3,7 @@ using FenUISharp.Mathematics;
 using FenUISharp.Objects.Buttons;
 using FenUISharp.Objects.Text;
 using FenUISharp.Objects.Text.Model;
+using FenUISharp.States;
 using SkiaSharp;
 
 namespace FenUISharp.Objects
@@ -15,6 +16,11 @@ namespace FenUISharp.Objects
         private Dictionary<FSegmentedSelectionPaneSelectableButton, Action<int>> instantiatedTextButtons = new();
         private StackContentComponent layout;
         private FButtonGroup buttonGroup;
+
+        public State<SKColor> Selection { get; init; }
+        public State<SKColor> Background { get; init; }
+        public State<SKColor> Text { get; init; }
+        public State<SKColor> TextSelected { get; init; }
 
         private SKPath? selectionPath;
         private Spring rectSpringXY;
@@ -37,22 +43,25 @@ namespace FenUISharp.Objects
             buttonGroup = new();
             buttonGroup.AlwaysMustSelectOne = true;
             buttonGroup.AllowMultiSelect = false;
-            
+
             buttonGroup.OnUserSelectionChanged += (x) => OnSlcChanged(buttonGroup.LatestSelection);
+            buttonGroup.OnUserSelectionChanged += (x) => OnAnySlcChanged(buttonGroup.LatestSelection);
             buttonGroup.OnSelectionChanged += (x) => OnSelectionChanged?.Invoke(buttonGroup.LatestSelection);
+            buttonGroup.OnSelectionChanged += (x) => OnAnySlcChanged(buttonGroup.LatestSelection);
 
             InteractiveSurface.MouseInteractionCallbackOnChildMouseInteraction = true;
 
-            Model = model;
+            Model = model; // First create the buttons
+            buttonGroup.Select(initiallySelected); // Then activate initial selection
 
-            // Need to wait 2 ticks for all the shapes to update properly. Otherwise it will still animate
-            FContext.GetCurrentDispatcher().InvokeLater(() => SilentSetSelected(initiallySelected), 2L);
-            FContext.GetCurrentDispatcher().InvokeLater(() => Invalidate(Invalidation.SurfaceDirty), 2L);
+            Selection = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary, this);
+            Background = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Surface, this);
+            Text = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface, this);
+            TextSelected = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface, this);
 
             RenderMaterial.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.InteractableMaterial().WithOverride(new()
             {
-                // TODO: Refactor to expose color
-                ["BaseColor"] = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Surface  
+                ["BaseColor"] = () => Background.CachedValue
             });
         }
 
@@ -77,6 +86,8 @@ namespace FenUISharp.Objects
 
         private void OnSlcChanged(int index)
         {
+            int beforeSelection = lastSelection;
+
             FSegmentedSelectionPaneSelectableButton selectedButton = (FSegmentedSelectionPaneSelectableButton)buttonGroup.Buttons[index];
             instantiatedTextButtons.TryGetValue(selectedButton, out var action);
 
@@ -88,10 +99,36 @@ namespace FenUISharp.Objects
             }
         }
 
-        private SKRect lastGlobalRect;
+        private void OnAnySlcChanged(int index)
+        {
+            lastIndex = index;
+            UpdateText();
+        }
+
+        private void UpdateText()
+        {
+            // Make sure to update selected text buttons (for color updates)
+            foreach (var item in instantiatedTextButtons)
+                item.Key.Label.Invalidate(Invalidation.SurfaceDirty);
+        }
+
+        private int lastIndex;
+        private void OnMouseDownSubControl(int index)
+        {
+            lastIndex = index;
+            UpdateText();
+        }
+
+        private Func<SKRect> lastGlobalRect;
         private void OnMouseEnterSubControl(FSegmentedSelectionPaneSelectableButton button)
         {
-            lastGlobalRect = button.Shape.GlobalBounds;
+            lastGlobalRect = () => button.Shape.GlobalBounds;
+
+            if (InteractiveSurface.IsMouseDown)
+            {
+                lastIndex = buttonGroup.Buttons.IndexOf(button);
+                UpdateText();
+            }
         }
 
         private void SetModel(SelectPaneModel value)
@@ -102,8 +139,8 @@ namespace FenUISharp.Objects
             int index = 0;
             foreach (var toInstantiate in _model.ValuePairs)
             {
-                // TODO: Refactor to expose text color
-                var instance = new FSegmentedSelectionPaneSelectableButton(new FText(TextModelFactory.CopyBasic(toInstantiate.Key, textColor: () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface)));
+                var capturedIndex = index;
+                var instance = new FSegmentedSelectionPaneSelectableButton(new FText(TextModelFactory.CopyBasic(toInstantiate.Key, textColor: () => lastIndex == capturedIndex ? TextSelected.CachedValue : Text.CachedValue)));
                 instantiatedTextButtons.Add(instance, toInstantiate.Value);
                 instance.SetParent(this);
 
@@ -111,6 +148,11 @@ namespace FenUISharp.Objects
                 instance.InteractiveSurface.OnMouseEnter += () =>
                 {
                     OnMouseEnterSubControl(capturedInstance);
+                };
+                instance.InteractiveSurface.OnMouseAction += (x) =>
+                {
+                    if(x.state == 0 && x.button == 0)
+                        OnMouseDownSubControl(capturedIndex);
                 };
 
                 instance.CornerRadius.SetResponsiveState(() => CornerRadius.CachedValue);
@@ -125,20 +167,20 @@ namespace FenUISharp.Objects
         private void ClearOld()
         {
             foreach (var instance in instantiatedTextButtons)
-            {   
+            {
                 buttonGroup.Remove(instance.Key);
                 instance.Key.Dispose();
             }
             instantiatedTextButtons = new();
         }
 
-        protected override void Update()
+        protected override void LateUpdate()
         {
-            base.Update();
+            base.LateUpdate();
 
             var lastPos = rectSpringXY.GetLastValue();
 
-            var globbounds = InteractiveSurface.IsMouseDown ? lastGlobalRect : buttonGroup.Buttons[buttonGroup.LatestSelection].Shape.GlobalBounds;
+            var globbounds = InteractiveSurface.IsMouseDown ? lastGlobalRect() : buttonGroup.Buttons[buttonGroup.LatestSelection].Shape.GlobalBounds;
             globbounds.Inflate(-buttonGroup.Buttons[buttonGroup.LatestSelection].Padding.CachedValue, -buttonGroup.Buttons[buttonGroup.LatestSelection].Padding.CachedValue);
             var bounds = Transform.GlobalToDrawLocal(globbounds);
 
@@ -157,15 +199,14 @@ namespace FenUISharp.Objects
 
         public override void Render(SKCanvas canvas)
         {
-            base.Render(canvas); // TODO: Enable again later
+            base.Render(canvas);
 
             if (selectionPath == null) return;
 
             using var paint = GetRenderPaint();
             RenderMaterial.CachedValue.WithOverride(new()
             {
-                // TODO: Refactor to expose this color
-                ["BaseColor"] = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary
+                ["BaseColor"] = () => Selection.CachedValue
             }).DrawWithMaterial(canvas, selectionPath, this, paint);
         }
     }
