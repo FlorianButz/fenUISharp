@@ -17,7 +17,7 @@ namespace FenUISharp.Objects
 
         public FPanel(Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
-            CornerRadius = new(() => 20, this);
+            CornerRadius = new(() => 35, this);
             UseSquircle = new(() => true, this);
             Transform.SnapPositionToPixelGrid.SetStaticState(true);
             RenderMaterial.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.PanelMaterial();

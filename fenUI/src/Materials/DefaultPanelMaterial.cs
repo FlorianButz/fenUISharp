@@ -32,7 +32,7 @@ namespace FenUISharp.Materials
 
         public Func<float> DropShadowRadius
         {
-            get => GetProp<Func<float>>("DropShadowRadius", () => 4);
+            get => GetProp<Func<float>>("DropShadowRadius", () => 6);
             set => SetProp("DropShadowRadius", value);
         }
 

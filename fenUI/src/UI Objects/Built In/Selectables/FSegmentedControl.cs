@@ -157,14 +157,11 @@ namespace FenUISharp.Objects
 
         public override void Render(SKCanvas canvas)
         {
-            // base.Render(canvas); // TODO: Enable again later
+            base.Render(canvas); // TODO: Enable again later
 
             if (selectionPath == null) return;
 
             using var paint = GetRenderPaint();
-            using var basePath = SKSquircle.CreateSquircle(Shape.LocalBounds, CornerRadius.CachedValue);
-
-            RenderMaterial.CachedValue.DrawWithMaterial(canvas, basePath, this, paint);
             RenderMaterial.CachedValue.WithOverride(new()
             {
                 // TODO: Refactor to expose this color
