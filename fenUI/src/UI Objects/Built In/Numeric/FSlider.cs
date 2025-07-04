@@ -270,47 +270,26 @@ namespace FenUISharp.Objects
         protected virtual void RenderKnob(SKCanvas canvas, SKRect knobRect)
         {
             using var paint = GetRenderPaint();
-
-            paint.Color = KnobFill.CachedValue;
-
-            using (var shadow = SKImageFilter.CreateDropShadow(0, 1, 5, 5, KnobShadow.CachedValue))
-                paint.ImageFilter = shadow;
-
             using var knobRoundRect = new SKRoundRect(knobRect, KnobCornerRadius);
-            canvas.DrawRoundRect(knobRoundRect, paint);
 
-            if (KnobBorderSize > 0)
+            RenderMaterial.CachedValue.WithOverride(new()
             {
-                paint.Color = KnobBorder.CachedValue;
-                paint.IsStroke = true;
-                paint.StrokeWidth = KnobBorderSize;
-
-                canvas.DrawRoundRect(knobRoundRect, paint);
-            }
-
-            knobRoundRect.Dispose();
+                ["BaseColor"] = () => KnobFill.CachedValue,
+                ["BorderColor"] = () => KnobBorder.CachedValue
+            }).DrawWithMaterial(canvas, knobRoundRect, this, paint);
         }
 
         protected virtual void RenderBackground(SKCanvas canvas, SKRect rect)
         {
             // Unfilled Bar
             using var paint = GetRenderPaint();
-
-            paint.Color = Bar.CachedValue;
-
             using var barRoundRect = new SKRoundRect(rect, BarCornerRadius);
-            canvas.DrawRoundRect(barRoundRect, paint);
 
-            if (BarBorderSize > 0)
+            RenderMaterial.CachedValue.WithOverride(new()
             {
-                paint.Color = BarBorder.CachedValue;
-                paint.IsStroke = true;
-                paint.StrokeWidth = BarBorderSize;
-
-                canvas.DrawRoundRect(barRoundRect, paint);
-            }
-
-            barRoundRect.Dispose();
+                ["BaseColor"] = () => Bar.CachedValue,
+                ["BorderColor"] = () => BarBorder.CachedValue
+            }).DrawWithMaterial(canvas, barRoundRect, this, paint);
         }
 
         protected virtual void RenderFilledBackground(SKCanvas canvas, SKRect rect)
@@ -318,13 +297,13 @@ namespace FenUISharp.Objects
             if (DisplayFill)
             { // Filled Bar
                 using var paint = GetRenderPaint();
-
-                paint.Color = BarFill.CachedValue;
-
                 using var barRoundRect = new SKRoundRect(rect, BarCornerRadius);
-                canvas.DrawRoundRect(barRoundRect, paint);
 
-                barRoundRect.Dispose();
+                RenderMaterial.CachedValue.WithOverride(new()
+                {
+                    ["BaseColor"] = () => BarFill.CachedValue,
+                    ["BorderColor"] = () => SKColors.Transparent
+                }).DrawWithMaterial(canvas, barRoundRect, this, paint);
             }
         }
 
@@ -343,20 +322,17 @@ namespace FenUISharp.Objects
             {
                 float value = RMath.Remap(hotspots[i], MinValue.CachedValue, MaxValue.CachedValue, 0, 1);
 
-                if (DisplayFill && _value > value)
-                    paint.Color = BarFill.CachedValue;
-                else
-                    paint.Color = SnappingHandle.CachedValue;
-
                 SKRect snapRect = SKRect.Create(
                     RMath.Lerp(Shape.LocalBounds.Left, Shape.LocalBounds.Right, value) - SnappingHandleSize.x / 2,
                     Shape.LocalBounds.MidY - SnappingHandleSize.y / 2, SnappingHandleSize.x, SnappingHandleSize.y);
                 snapRect.Offset(0.5f, 0.5f);
-
                 using var snapRoundRect = new SKRoundRect(snapRect, SnappingHandleCornerRadius);
-                canvas.DrawRoundRect(snapRoundRect, paint);
 
-                snapRoundRect.Dispose();
+                RenderMaterial.CachedValue.WithOverride(new()
+                {
+                    ["BaseColor"] = () => (DisplayFill && _value > value) ? BarFill.CachedValue : SnappingHandle.CachedValue,
+                    ["BorderColor"] = () => SKColors.Transparent
+                }).DrawWithMaterial(canvas, snapRoundRect, this, paint);
             }
 
             canvas.Restore();

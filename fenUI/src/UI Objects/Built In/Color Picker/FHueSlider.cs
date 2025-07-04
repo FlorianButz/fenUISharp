@@ -3,7 +3,7 @@ using SkiaSharp;
 
 namespace FenUISharp.Objects
 {
-    public class FHueSlider : FSlider
+    internal class FHueSlider : FSlider
     {
         public FHueSlider()
         {

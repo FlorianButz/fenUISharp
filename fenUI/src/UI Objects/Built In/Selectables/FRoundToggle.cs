@@ -105,10 +105,10 @@ namespace FenUISharp.Objects.Buttons
             knobRect.Inflate(-2, -2);
             using var knobRectRound = new SKRoundRect(knobRect, 20);
 
-            using var shadow = SKImageFilter.CreateDropShadow(0, 2, 5, 5, FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Shadow);
-            paint.ImageFilter = shadow;
-            paint.Color = KnobColor.CachedValue;
-            canvas.DrawRoundRect(knobRectRound, paint);
+            RenderMaterial.CachedValue.WithOverride(new (){
+                ["BaseColor"] = () => KnobColor.CachedValue,
+                ["BorderColor"] = () => SKColors.Transparent
+            }).DrawWithMaterial(canvas, knobRectRound, this, paint);
         }
 
 
