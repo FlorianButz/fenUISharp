@@ -9,17 +9,16 @@ namespace FenUISharp.States
         public bool ManualResolve { get; set; } = false;
 
         public Func<T> Value { private get => GetValue(); set => SetResponsiveState(value); }
-        public T CachedValue { get => _lastValue; }
+        public T CachedValue { get => _processor(_lastValue); }
 
         private List<StateEntry<T>> values = new();
         private Func<List<StateEntry<T>>, StateEntry<T>> _resolver;
+        private Func<T, T> _processor;
 
         private T _lastValue;
 
         private List<IStateListener> _listener = new();
         private List<Action<T>> _action = new();
-
-        private bool isStaticValue = false;
 
         public State(Func<T> defaultValue, Action<T>? action = null, bool manualResolve = false)
         {
@@ -29,6 +28,7 @@ namespace FenUISharp.States
             values.Add(new() { Value = defaultValue, Priority = 0 });
             this._lastValue = defaultValue();
             this._resolver = entries => entries.OrderBy(x => x.Priority).Last();
+            this._processor = value => value;
 
             this.ManualResolve = manualResolve;
 
@@ -45,9 +45,10 @@ namespace FenUISharp.States
             // Add initial value
             values.Add(new() { Value = defaultValue, Priority = 0 });
             this._lastValue = defaultValue();
+            this._resolver = entries => entries.OrderBy(x => x.Priority).Last();
+            this._processor = value => value;
 
             this.ManualResolve = manualResolve;
-            this._resolver = entries => entries.OrderBy(x => x.Priority).Last();
 
             // I guess this is stupid since it requires removing the state in a dispose method, meaning every state would need to be disposed
             if (FContext.GetCurrentWindow() == null)
@@ -62,10 +63,23 @@ namespace FenUISharp.States
             return _resolver(values).Value;
         }
 
+        /// <summary>
+        /// A resolver can modify the order in which entries are prioritized. By default, the highest priority is the active value
+        /// </summary>
+        /// <param name="resolver"></param>
         public void SetResolver(Func<List<StateEntry<T>>, StateEntry<T>> resolver)
         {
             _resolver = resolver;
             UpdateList();
+        }
+
+        /// <summary>
+        /// A processor can modify the returned value. This can be used for clamping
+        /// </summary>
+        /// <param name="processor"></param>
+        public void SetProcessor(Func<T, T> processor)
+        {
+            _processor = processor;
         }
 
         public void SetStaticState(T value, uint priority = 0)
@@ -109,12 +123,8 @@ namespace FenUISharp.States
 
             _lastValue = value;
 
-            isStaticValue = winningEntry.IsStatic;
-
             if (!EqualityComparer<T>.Default.Equals(last, value))
-            {
                 FContext.GetCurrentDispatcher().Invoke(() => Notify(value));
-            }
         }
 
 
