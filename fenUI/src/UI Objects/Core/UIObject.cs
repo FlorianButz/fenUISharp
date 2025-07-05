@@ -1,4 +1,5 @@
 using FenUISharp.Behavior;
+using FenUISharp.Behavior.RuntimeEffects;
 using FenUISharp.Materials;
 using FenUISharp.Mathematics;
 using FenUISharp.States;
@@ -14,6 +15,7 @@ namespace FenUISharp.Objects
         public Shape Shape { get; init; }
         public Compositor Composition { get; init; }
         public InteractiveSurface InteractiveSurface { get; init; }
+        public ImageEffects ImageEffects { get; init; }
 
         public State<Material> RenderMaterial { get; init; }
 
@@ -73,8 +75,12 @@ namespace FenUISharp.Objects
             Shape = new(this);
             Composition = new(this);
             InteractiveSurface = new(this, FContext.GetCurrentDispatcher(), () => Shape.GlobalBounds);
+
             Quality = new(() => 1f, (x) => Invalidate(Invalidation.SurfaceDirty));
+            Quality.SetResolver(StateResolverTemplates.SmallestFloatResolver);
+
             Padding = new(() => 2, (x) => Invalidate(Invalidation.SurfaceDirty)); // Default to use 2 padding. Helps to reduce sharp edges on lower quality settings
+            Padding.SetResolver(StateResolverTemplates.BiggestIntResolver);
 
             Transform.LocalPosition.Value = position ?? (() => Vector2.Zero);
             Transform.Size.Value = size ?? (() => new(100, 100));
@@ -87,6 +93,8 @@ namespace FenUISharp.Objects
 
             BehaviorComponents = new();
             Children = new();
+
+            ImageEffects = new(this);
 
             // Make sure to initially invalidate
             Invalidate(Invalidation.All);
@@ -285,8 +293,10 @@ namespace FenUISharp.Objects
             if (canvas == null) return;
 
             DispatchBehaviorEvent(BehaviorEventType.BeforeRender, canvas);
+
             Render(canvas);
             AfterRender(canvas);
+
             DispatchBehaviorEvent(BehaviorEventType.AfterRender, canvas);
 
             // Debug bounds
