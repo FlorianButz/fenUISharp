@@ -10,6 +10,12 @@ namespace FenUISharp.Objects
         public State<Vector2> Alignment { get; init; }
         public State<Vector2> AlignmentAnchor { get; init; }
 
+        public State<float> MaxWidth { get; init; }
+        public State<float> MaxHeight { get; init; }
+
+        public State<float> MinWidth { get; init; }
+        public State<float> MinHeight { get; init; }
+
         public State<float> MarginHorizontal { get; init; }
         public State<float> MarginVertical { get; init; }
         public State<Vector2> AbsoluteMarginHorizontal { get; init; }
@@ -22,6 +28,12 @@ namespace FenUISharp.Objects
         public Layout(UIObject owner)
         {
             this.Owner = owner;
+
+            MaxWidth = new(() => float.MaxValue, this);
+            MaxHeight = new(() => float.MaxValue, this);
+
+            MinWidth = new(() => 0, this);
+            MinHeight = new(() => 0, this);
 
             Alignment = new(() => new(0.5f, 0.5f), this);
             AlignmentAnchor = new(() => new(0.5f, 0.5f), this);
@@ -39,12 +51,14 @@ namespace FenUISharp.Objects
             var anchor = AlignmentAnchor.CachedValue;
             var align = Alignment.CachedValue;
 
+            var clampedSize = GetSize(size);
+
             // Vector2 absoluteMarginCorrection = new(-AbsoluteMarginHorizontal.CachedValue.y * (Alignment.CachedValue.x - 0.5f) * 2, -AbsoluteMarginVertical.CachedValue.y * (Alignment.CachedValue.y - 0.5f) * 2);
             Vector2 absoluteMarginCorrection = new(
                 AbsoluteMarginHorizontal.CachedValue.x * (1 - align.x) - AbsoluteMarginHorizontal.CachedValue.y * align.x,
                 AbsoluteMarginVertical.CachedValue.x * (1 - align.y) - AbsoluteMarginVertical.CachedValue.y * align.y);
 
-            Vector2 sizeOffset = new(size.x * anchor.x, size.y * anchor.y);
+            Vector2 sizeOffset = new(clampedSize.x * anchor.x, clampedSize.y * anchor.y);
             Vector2 relativeParentPos = new Vector2(
                 (Owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Bounds.Width ?? 0)) * align.x + absoluteMarginCorrection.x,
                 (Owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Bounds.Height ?? 0)) * align.y + absoluteMarginCorrection.y);
@@ -58,12 +72,19 @@ namespace FenUISharp.Objects
 
         public Vector2 ApplyLayoutToSize(Vector2 localSize)
         {
+            var clampedSize = GetSize(localSize);
+
             Vector2 stretchSize = new((Owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Bounds.Width ?? 0)) - MarginHorizontal.CachedValue * 2,
                 (Owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Bounds.Height ?? 0)) - MarginVertical.CachedValue * 2);
 
             var absoluteCorrection = new Vector2(AbsoluteMarginHorizontal.CachedValue.x + AbsoluteMarginHorizontal.CachedValue.y, AbsoluteMarginVertical.CachedValue.x + AbsoluteMarginVertical.CachedValue.y);
 
-            return new Vector2(StretchHorizontal.CachedValue ? stretchSize.x : localSize.x, StretchVertical.CachedValue ? stretchSize.y : localSize.y) - absoluteCorrection;
+            return GetSize(new Vector2(StretchHorizontal.CachedValue ? stretchSize.x : clampedSize.x, StretchVertical.CachedValue ? stretchSize.y : clampedSize.y) - absoluteCorrection);
+        }
+
+        public Vector2 GetSize(in Vector2 size)
+        {
+            return Vector2.Clamp(size, new(MinWidth.CachedValue, MinHeight.CachedValue), new(MaxWidth.CachedValue, MaxHeight.CachedValue));
         }
 
         public void Dispose()

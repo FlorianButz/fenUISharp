@@ -288,7 +288,7 @@ namespace FenUISharp.Objects
             uniforms["iIOR"] = IOR;
             uniforms["iStrength"] = 1f;
             uniforms["iChromaticAberration"] = ChromaticAberrationAmount;
-            uniforms["iCornerRadius"] = RMath.Clamp(CornerRadius.CachedValue, 0f, Math.Min(Transform.Size.CachedValue.x / 2, Transform.Size.CachedValue.y / 2)) * res;
+            uniforms["iCornerRadius"] = RMath.Clamp(CornerRadius.CachedValue, 0f, Math.Min(Layout.GetSize(Transform.Size.CachedValue).x / 2, Layout.GetSize(Transform.Size.CachedValue).y / 2)) * res;
             uniforms["iFresnelStrength"] = FresnelStrength;
 
             var children = new SKRuntimeEffectChildren(effect); // Content behind the glass

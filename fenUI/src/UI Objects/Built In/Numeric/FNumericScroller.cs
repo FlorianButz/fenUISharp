@@ -135,7 +135,7 @@ namespace FenUISharp.Objects
         {
             activePopup = new FPopupPanel(() => new(70, 30), false);
             activePopup.CornerRadius.SetStaticState(30);
-            activePopup.DistanceToTarget = (int)(Transform.Size.CachedValue.y / 2 - 5);
+            activePopup.DistanceToTarget = (int)(Layout.GetSize(Transform.Size.CachedValue).y / 2 - 5);
 
             activePopup.InteractiveSurface.EnableMouseScrolling.SetStaticState(true);
             activePopup.InteractiveSurface.OnMouseScroll += OnPopupScroll;

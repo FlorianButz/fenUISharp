@@ -52,7 +52,7 @@ namespace FenUISharp.Objects
             Position = LocalPosition.CachedValue + (CalculatedLayoutOff - CalculatedAnchorCorrection);
 
             // Pivot calculations
-            Vector2 pivot = new(Size.CachedValue.x * Anchor.CachedValue.x, Size.CachedValue.y * Anchor.CachedValue.y); // TODO: Check if that even works
+            Vector2 pivot = new(Owner.Layout.GetSize(Owner.Transform.Size.CachedValue).x * Anchor.CachedValue.x, Owner.Layout.GetSize(Owner.Transform.Size.CachedValue).y * Anchor.CachedValue.y); // TODO: Check if that even works
 
             if (SnapPositionToPixelGrid.CachedValue)
                 Position = new(MathF.Round(Position.x), MathF.Round(Position.y));
