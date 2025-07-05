@@ -14,6 +14,7 @@ namespace FenUISharp
         {
             FenUI.Init();
             FenUI.SetupAppModel("FlorianButz.fenUI");
+            FenUI.EnableDebugFunctions();
             FenUI.Demo();
         }
     }

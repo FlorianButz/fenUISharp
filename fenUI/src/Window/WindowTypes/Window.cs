@@ -143,6 +143,7 @@ namespace FenUISharp
         )
         {
             if (!FenUI.HasBeenInitialized) throw new Exception("FenUI has to be initialized before creating a window.");
+            FenUI.activeInstances.Add(this);
             Dispatcher = new();
 
             WindowTitle = title;
@@ -629,7 +630,7 @@ namespace FenUISharp
 
             WindowKeyboardInput.Dispose();
 
-            // Console.WriteLine("Destroyed " + Thread.CurrentThread.ManagedThreadId);
+            FenUI.activeInstances.Remove(this);
         }
 
         public void DisposeAndDestroyWindow()

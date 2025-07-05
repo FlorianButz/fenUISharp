@@ -12,6 +12,9 @@ namespace FenUISharp
         public static string ResourceLibName => "fenUI";
         public static Version FenUIVersion => new(0, 0, 2);
 
+        internal static List<Window> activeInstances { get; private set; } = new();
+
+
         [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         static extern int SetCurrentProcessExplicitAppUserModelID(string AppID);
 
@@ -55,10 +58,32 @@ namespace FenUISharp
             SetCurrentProcessExplicitAppUserModelID(appModelId);
         }
 
+        internal static bool debugEnabled { get; private set; } = false;
+
+        /// <summary>
+        /// Enables several debug features like displaying object bounds with F7 and area cache with F8
+        /// </summary>
+        public static void EnableDebugFunctions()
+        {
+            if (!HasBeenInitialized) throw new Exception("FenUI has to be initialized first.");
+            if (debugEnabled) return;
+            debugEnabled = true;
+
+            WindowFeatures.GlobalHooks.OnKeyPressed += (x) =>
+            {
+                if (x == 0x77) { // F8
+                    activeInstances.ForEach(x => x.DebugDisplayAreaCache = !x.DebugDisplayAreaCache);
+                    activeInstances.ForEach(x => x.FullRedraw());
+                } else if (x == 0x76) { // F7
+                    activeInstances.ForEach(x => x.DebugDisplayBounds = !x.DebugDisplayBounds);
+                    activeInstances.ForEach(x => x.FullRedraw());
+                }
+            };
+        }
 
         public static void Demo()
         {
-            NativeWindow window = new NativeWindow("Test 1", "testClass", Window.RenderContextType.DirectX, windowSize: new Vector2(900, 800));
+            NativeWindow window = new NativeWindow("Demo", "demoClass", Window.RenderContextType.DirectX, windowSize: new Vector2(900, 800));
 
             window.SystemDarkMode = true;
             // window.WindowThemeManager.SetTheme(Resources.GetTheme("default-light"));
