@@ -1,4 +1,4 @@
-using FenUISharp.Components.Text.Layout;
+using FenUISharp.Objects.Text.Layout;
 using SkiaSharp;
 
 namespace FenUISharp.Objects.Text.Model

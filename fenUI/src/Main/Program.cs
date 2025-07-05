@@ -5,9 +5,9 @@ using FenUISharp.Objects;
 using FenUISharp.Themes;
 using SkiaSharp;
 
-namespace FenUISharpTest1
+namespace FenUISharp
 {
-    class Programw
+    class Program
     {
         [STAThread]
         static void Main()

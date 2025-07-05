@@ -1,6 +1,6 @@
 using SkiaSharp;
 
-namespace FenUISharp.Components.Text.Model
+namespace FenUISharp.Objects.Text.Layout
 {
     public class FTypeface
     {

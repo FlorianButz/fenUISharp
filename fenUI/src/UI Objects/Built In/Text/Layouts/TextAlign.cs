@@ -1,4 +1,4 @@
-namespace FenUISharp.Components.Text.Layout
+namespace FenUISharp.Objects.Text.Layout
 {
     public class TextAlign
     {

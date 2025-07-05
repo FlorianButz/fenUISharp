@@ -4,7 +4,7 @@ using FenUISharp.Objects.Text.Model;
 using FenUISharp.Objects.Text.Rendering;
 using SkiaSharp;
 
-namespace FenUISharp.Components.Text.Layout
+namespace FenUISharp.Objects.Text.Layout
 {
     public class WrapLayout : TextLayout
     {

@@ -1,9 +1,8 @@
 using FenUISharp.Behavior;
-using FenUISharp.Components.Text.Layout;
+using FenUISharp.Objects.Text.Layout;
 using FenUISharp.Mathematics;
 using FenUISharp.Objects.Buttons;
 using FenUISharp.Objects.Text;
-using FenUISharp.Objects.Text.Model;
 using FenUISharp.States;
 using FenUISharp.WinFeatures;
 using SkiaSharp;
@@ -12,6 +11,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using FenUISharp.Objects.Text.Model;
 
 namespace FenUISharp.Objects
 {
@@ -525,7 +525,7 @@ namespace FenUISharp.Objects
                 Underlined = false
             };
             TextStyle selectedStyle = new(style) { BackgroundColor = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary.WithAlpha(150) };
-            TextAlign algn = new() { HorizontalAlign = Components.Text.Layout.TextAlign.AlignType.Start, VerticalAlign = Components.Text.Layout.TextAlign.AlignType.Middle };
+            TextAlign algn = new() { HorizontalAlign = TextAlign.AlignType.Start, VerticalAlign = TextAlign.AlignType.Middle };
 
             var returnList = new List<TextSpan>() { };
             if (overrideText == null)
@@ -541,7 +541,7 @@ namespace FenUISharp.Objects
             else
                 returnList.Add(new TextSpan(overrideText, style));
 
-            return new(returnList, algn, FTypeface.Default);
+            return new(returnList, algn, Objects.Text.Model.FTypeface.Default);
         }
 
         SKRect GetVisibleBounds()

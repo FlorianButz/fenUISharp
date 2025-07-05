@@ -1,12 +1,10 @@
 
 using FenUISharp.Behavior;
-using FenUISharp.Components;
-using FenUISharp.Components.Text.Layout;
+using FenUISharp.Objects.Text.Layout;
 using FenUISharp.Materials;
 using FenUISharp.Mathematics;
 using FenUISharp.Objects.Buttons;
 using FenUISharp.Objects.Text;
-using FenUISharp.Objects.Text.Layout;
 using FenUISharp.Objects.Text.Model;
 using FenUISharp.States;
 using FenUISharp.WinFeatures;

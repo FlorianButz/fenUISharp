@@ -2,7 +2,7 @@ using FenUISharp.Objects.Text;
 using FenUISharp.Objects.Text.Model;
 using SkiaSharp;
 
-namespace FenUISharp.Components.Text.Layout
+namespace FenUISharp.Objects.Text.Layout
 {
     public abstract class TextLayout
     {

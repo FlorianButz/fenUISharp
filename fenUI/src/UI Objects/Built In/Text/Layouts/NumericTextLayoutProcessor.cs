@@ -6,7 +6,7 @@ using FenUISharp.Objects.Text.Layout;
 using FenUISharp.Objects.Text.Model;
 using SkiaSharp;
 
-namespace FenUISharp.Components.Text.Layout
+namespace FenUISharp.Objects.Text.Layout
 {
     public class NumericTextLayoutProcessor : LayoutProcessor
     {
