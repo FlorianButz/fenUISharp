@@ -429,7 +429,6 @@ namespace FenUISharp.Behavior
                 else
                     childList[c].Transform.LocalPosition.SetStaticState(new Vector2(0, currentPos));
 
-
                 if (!(childList.Count <= c || ChildLocalPosition.Capacity <= c))
                     ChildLocalPosition.Insert(c, childList[c].Transform.LocalPosition.CachedValue); // Since the value is statically assigned it should already be updated in the cached value
 
@@ -440,7 +439,8 @@ namespace FenUISharp.Behavior
             contentSize = Math.Abs(contentSize + Pad.CachedValue);
             contentSizePerpendicular += Pad.CachedValue * 2;
 
-            Vector2 calculatedOwnerSize = Owner.Transform.Size.CachedValue;
+            // Use shape so the _pageSize is not false when using stretching
+            Vector2 calculatedOwnerSize = new(Owner.Shape.LocalBounds.Width, Owner.Shape.LocalBounds.Height);
 
             switch (StackBehavior)
             {
@@ -449,8 +449,8 @@ namespace FenUISharp.Behavior
                     if (StackType == ContentStackType.Vertical) calculatedOwnerSize = new Vector2(contentSizePerpendicular, contentSize);
                     break;
                 case ContentStackBehavior.SizeToFit:
-                    if (StackType == ContentStackType.Horizontal) calculatedOwnerSize = new Vector2(contentSize, Owner.Transform.Size.CachedValue.y);
-                    if (StackType == ContentStackType.Vertical) calculatedOwnerSize = new Vector2(Owner.Transform.Size.CachedValue.x, contentSize);
+                    if (StackType == ContentStackType.Horizontal) calculatedOwnerSize = new Vector2(contentSize, Owner.Layout.GetSize(Owner.Transform.Size.CachedValue).y);
+                    if (StackType == ContentStackType.Vertical) calculatedOwnerSize = new Vector2(Owner.Layout.GetSize(Owner.Transform.Size.CachedValue).x, contentSize);
                     break;
             }
 
