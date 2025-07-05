@@ -1,56 +1,53 @@
 namespace FenUISharp.States
 {
+    /// <summary>
+    /// A State is a generic priority aware responsive value type
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class State<T> : IDisposable
     {
-        private Func<T>? _value;
-        private Func<T> _defaultValue;
+        public bool ManualResolve { get; set; } = false;
 
-        public Func<T> Value { private get => (_value == null) ? _defaultValue : _value; set => SetResponsiveState(value); }
-        public T CachedValue { get => _lastValue ?? _defaultValue(); }
-        private T? _lastValue;
+        public Func<T> Value { private get => GetValue(); set => SetResponsiveState(value); }
+        public T CachedValue { get => _lastValue; }
+
+        private List<StateEntry<T>> values = new();
+        private Func<List<StateEntry<T>>, StateEntry<T>> _resolver;
+
+        private T _lastValue;
 
         private List<IStateListener> _listener = new();
         private List<Action<T>> _action = new();
 
-        public bool ManualResolve { get; set; } = false;
-
         private bool isStaticValue = false;
 
-        public void SetStaticState(T value)
+        public State(Func<T> defaultValue, Action<T>? action = null, bool manualResolve = false)
         {
-            if (!EqualityComparer<T>.Default.Equals(_lastValue, value))
-            {
-                _lastValue = value;
+            if (action != null) Subscribe(action);
 
-                // Make sure to notify at the start of update
-                FContext.GetCurrentDispatcher().Invoke(() => Notify(value));
-            }
+            // Add initial value
+            values.Add(new() { Value = defaultValue, Priority = 0 });
+            this._lastValue = defaultValue();
+            this._resolver = entries => entries.OrderBy(x => x.Priority).Last();
 
-            isStaticValue = true;
-        }
+            this.ManualResolve = manualResolve;
 
-        public void SetResponsiveState(Func<T> value)
-        {
-            var v = value();
-            if (!EqualityComparer<T>.Default.Equals(_lastValue, v))
-            {
-                _lastValue = v;
-                _value = value;
-
-                // Make sure to notify at the start of update
-                FContext.GetCurrentDispatcher().Invoke(() => Notify(v));
-            }
-
-            isStaticValue = false;
+            if (FContext.GetCurrentWindow() == null)
+                throw new Exception("States can only be declared in a valid FenUISharp window context");
+            else
+                FContext.GetCurrentWindow().OnPreUpdate += Update;
         }
 
         public State(Func<T> defaultValue, IStateListener? listener = null, bool manualResolve = false)
         {
             if (listener != null) Subscribe(listener);
-            this._defaultValue = defaultValue;
+
+            // Add initial value
+            values.Add(new() { Value = defaultValue, Priority = 0 });
+            this._lastValue = defaultValue();
 
             this.ManualResolve = manualResolve;
-            this._lastValue = defaultValue();
+            this._resolver = entries => entries.OrderBy(x => x.Priority).Last();
 
             // I guess this is stupid since it requires removing the state in a dispose method, meaning every state would need to be disposed
             if (FContext.GetCurrentWindow() == null)
@@ -59,24 +56,72 @@ namespace FenUISharp.States
                 FContext.GetCurrentWindow().OnPreUpdate += Update;
         }
 
+        private Func<T> GetValue()
+        {
+            if (values.Count == 0) throw new InvalidOperationException("No values available");
+            return _resolver(values).Value;
+        }
+
+        public void SetResolver(Func<List<StateEntry<T>>, StateEntry<T>> resolver)
+        {
+            _resolver = resolver;
+            UpdateList();
+        }
+
+        public void SetStaticState(T value, uint priority = 0)
+        {
+            // Always add 1 to priority, so the default value does not get overriden
+            if (priority != uint.MaxValue)
+                priority++;
+
+            // Replace if priority already exists
+            if (values.Any(x => x.Priority == priority)) values.RemoveAll(x => x.Priority == priority);
+            values.Add(new() { Value = () => value, Priority = priority, IsStatic = true });
+
+            UpdateList();
+        }
+
+        public void SetResponsiveState(Func<T> value, uint priority = 0)
+        {
+            if (priority != uint.MaxValue)
+                priority++;
+
+            // Replace if priority already exists
+            if (values.Any(x => x.Priority == priority)) values.RemoveAll(x => x.Priority == priority);
+            values.Add(new() { Value = value, Priority = priority });
+
+            UpdateList();
+        }
+
+        public void DissolvePriority(uint priority)
+        {
+            if (values.Any(x => x.Priority == priority)) values.RemoveAll(x => x.Priority == priority);
+        }
+
+        public void UpdateList()
+        {
+            if (values.Count == 0) return;
+
+            var winningEntry = _resolver(values);
+
+            var last = _lastValue;
+            var value = winningEntry.Value();
+
+            _lastValue = value;
+
+            isStaticValue = winningEntry.IsStatic;
+
+            if (!EqualityComparer<T>.Default.Equals(last, value))
+            {
+                FContext.GetCurrentDispatcher().Invoke(() => Notify(value));
+            }
+        }
+
+
         private void Update()
         {
             if (!ManualResolve)
                 ReevaluateValue();
-        }
-
-        public State(Func<T> defaultValue, Action<T>? action = null, bool manualResolve = false)
-        {
-            if (action != null) Subscribe(action);
-            this._defaultValue = defaultValue;
-
-            this.ManualResolve = manualResolve;
-            this._lastValue = defaultValue();
-
-            if (FContext.GetCurrentWindow() == null)
-                throw new Exception("States can only be declared in a valid FenUISharp window context");
-            else
-                FContext.GetCurrentWindow().OnPreUpdate += Update;
         }
 
         public void ReevaluateValue(bool forceReevaluation = false)
@@ -107,5 +152,30 @@ namespace FenUISharp.States
             if (FContext.GetCurrentWindow() != null)
                 FContext.GetCurrentWindow().OnPreUpdate -= Update;
         }
+    }
+
+    /// <summary>
+    /// Adds often used resolvers for the State class
+    /// </summary>
+    public static class StateResolverTemplates
+    {
+        public static Func<List<StateEntry<float>>, StateEntry<float>> BiggestFloatResolver =>
+            entries => entries.OrderBy(e => e.Value()).Last();
+
+        public static Func<List<StateEntry<int>>, StateEntry<int>> BiggestIntResolver =>
+            entries => entries.OrderBy(e => e.Value()).Last();
+
+        public static Func<List<StateEntry<float>>, StateEntry<float>> SmallestFloatResolver =>
+            entries => entries.OrderByDescending(e => e.Value()).Last();
+
+        public static Func<List<StateEntry<int>>, StateEntry<int>> SmallestIntResolver =>
+            entries => entries.OrderByDescending(e => e.Value()).Last();
+    }
+
+    public struct StateEntry<T>
+    {
+        public bool IsStatic;
+        public Func<T> Value;
+        public uint Priority;
     }
 }
