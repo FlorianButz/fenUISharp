@@ -126,11 +126,10 @@ namespace FenUISharp.States
 
         public void ReevaluateValue(bool forceReevaluation = false)
         {
-            if (Value == null || isStaticValue) return;
+            if (Value == null) return;
             var value = Value();
 
-            if (_lastValue == null) Notify(value);
-            else if (!EqualityComparer<T>.Default.Equals(_lastValue, value) || forceReevaluation) Notify(value);
+            if (!EqualityComparer<T>.Default.Equals(_lastValue, value) || forceReevaluation) Notify(value);
 
             _lastValue = value;
         }
