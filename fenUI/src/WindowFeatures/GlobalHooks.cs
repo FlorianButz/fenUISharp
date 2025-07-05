@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using FenUISharp.Mathematics;
+using FenUISharp.Native;
 
 namespace FenUISharp.WinFeatures
 {

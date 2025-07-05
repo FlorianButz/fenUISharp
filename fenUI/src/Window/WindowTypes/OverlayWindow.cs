@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using FenUISharp.Mathematics;
+using FenUISharp.Native;
 using Microsoft.Win32;
 using SkiaSharp;
 

@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using FenUISharp.Mathematics;
+using FenUISharp.Native;
 using Microsoft.Win32;
 using SkiaSharp;
 
@@ -17,7 +18,7 @@ namespace FenUISharp
             AllowResizing = false;
         }
 
-        public override void UpdateWindowFrame()
+        internal override void UpdateWindowFrame()
         {
             base.UpdateWindowFrame();
 

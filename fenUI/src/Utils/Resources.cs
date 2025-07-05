@@ -58,8 +58,8 @@ namespace FenUISharp
 
             var lightTheme = new Theme
             {
-                Primary = new SKColor(54, 89, 174),
-                PrimaryVariant = new SKColor(38, 62, 123),
+                Primary = new SKColor(80, 120, 22),
+                PrimaryVariant = new SKColor(54, 89, 174),
 
                 Secondary = new SKColor(235, 235, 235),
                 SecondaryVariant = new SKColor(200, 200, 200),
