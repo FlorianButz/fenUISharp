@@ -4,6 +4,7 @@ using FenUISharp.Mathematics;
 using FenUISharp.Objects.Buttons;
 using FenUISharp.Objects.Text;
 using FenUISharp.Objects.Text.Model;
+using FenUISharp.Objects.Text.Layout;
 using FenUISharp.States;
 using SkiaSharp;
 
@@ -123,7 +124,7 @@ namespace FenUISharp.Objects
                     "B: " + x.Blue + "\n" +
                     "\n" +
                     x
-                , align: new() { HorizontalAlign = Components.Text.Layout.TextAlign.AlignType.Start }, textSize: 12);
+                , align: new() { HorizontalAlign = TextAlign.AlignType.Start }, textSize: 12);
             };
         }
 
