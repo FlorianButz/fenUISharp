@@ -16,6 +16,11 @@ namespace FenUISharp.Objects
 
         public State<bool> SnapPositionToPixelGrid { get; init; }
 
+        /// <summary>
+        /// The actual size of the object taking min and max size from Layout into account
+        /// </summary>
+        public Vector2 VisibleSize { get => Owner.Layout.GetSize(Size.CachedValue); }
+
         public State<Vector2> Size { get; init; }
         public State<Vector2> Scale { get; init; }
         public State<float> Rotation { get; init; }

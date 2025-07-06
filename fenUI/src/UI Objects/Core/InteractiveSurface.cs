@@ -43,6 +43,8 @@ namespace FenUISharp.Objects
         public Action? OnMouseStay { get; set; }
         public Action? OnMouseExit { get; set; }
 
+        public Action<Vector2>? OnMouseMove { get; set; }
+
         public Action<MouseInputCode>? OnMouseAction { get; set; }
 
         // Advanced mouse action
@@ -80,11 +82,13 @@ namespace FenUISharp.Objects
         private bool ParentIgnoreChild { get => (Owner.Parent?.InteractiveSurface.IgnoreChildInteractions.CachedValue ?? false) || (Owner.Parent?.InteractiveSurface.ParentIgnoreChild ?? false); }
 
         [ThreadStatic]
-        private static List<InteractiveSurface> _surfaces = new();
+        private static List<InteractiveSurface> _surfaces;
 
         [ThreadStatic]
         private static InteractiveSurface? _topmostSurface;
+        [ThreadStatic]
         private static InteractiveSurface? _topmostSurfaceMouseAction;
+        [ThreadStatic]
         private static InteractiveSurface? _topmostSurfaceMouseScroll;
 
         [ThreadStatic]
@@ -110,6 +114,7 @@ namespace FenUISharp.Objects
 
             if (activeInstances == 0)
             {
+                _surfaces = new();
                 FContext.GetCurrentWindow().OnPreUpdate += CacheTopmostMouseAction;
                 FContext.GetCurrentWindow().OnPreUpdate += CacheTopmostMouseScroll;
             }
@@ -205,6 +210,7 @@ namespace FenUISharp.Objects
         private void FuncOnMouseMove()
         {
             if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+            OnMouseMove?.Invoke(FContext.GetCurrentWindow().ClientMousePosition);
 
             FuncProcessDrag();
 

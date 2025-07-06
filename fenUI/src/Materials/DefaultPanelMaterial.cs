@@ -14,13 +14,13 @@ namespace FenUISharp.Materials
 
         public Func<SKColor> BorderColor
         {
-            get => GetProp<Func<SKColor>>("BorderColor", () => BaseColor().AddMix(new SKColor(50, 50, 50)));
+            get => GetProp<Func<SKColor>>("BorderColor", () => BaseColor().AddMix(new SKColor(50, 50, 50, 0)));
             set => SetProp("BorderColor", value);
         }
 
         public Func<SKColor> DarkBorderColor
         {
-            get => GetProp<Func<SKColor>>("DarkBorderColor", () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Background.MultiplyMix(new SKColor(200, 200, 200, 150)));
+            get => GetProp<Func<SKColor>>("DarkBorderColor", () => BorderColor().MultiplyMix(new SKColor(200, 200, 200, 150)));
             set => SetProp("DarkBorderColor", value);
         }
 

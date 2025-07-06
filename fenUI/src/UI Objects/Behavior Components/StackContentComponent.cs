@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using FenUISharp.Behavior.Layout;
 using FenUISharp.Mathematics;
 using FenUISharp.Objects;
 using FenUISharp.RuntimeEffects;
@@ -7,7 +8,7 @@ using SkiaSharp;
 
 namespace FenUISharp.Behavior
 {
-    public class StackContentComponent : BehaviorComponent, IStateListener
+    public class StackContentComponent : LayoutComponent, IStateListener
     {
         public enum ContentStackType { Horizontal, Vertical }
         public enum ContentStackBehavior { Overflow, SizeToFit, SizeToFitAll, Scroll }
@@ -511,10 +512,10 @@ namespace FenUISharp.Behavior
             scrollBar.ScrollPosition = _scrollDisplayPosition;
         }
 
-        public void FullUpdateLayout()
+        public override void FullUpdateLayout()
         {
             _positionDirty = true;
-            Owner.Invalidate(UIObject.Invalidation.LayoutDirty);
+            // Owner.Invalidate(UIObject.Invalidation.LayoutDirty);
         }
 
         public void OnInternalStateChanged<T>(T value)

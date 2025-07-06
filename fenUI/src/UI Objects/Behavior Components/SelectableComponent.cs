@@ -16,7 +16,7 @@ namespace FenUISharp.Behavior
         private KeyBind reverseTabKeybind;
 
         [ThreadStatic]
-        private static List<SelectableComponent> selectableComponents = new();
+        private static List<SelectableComponent> selectableComponents;
 
         [ThreadStatic]
         private static SelectableComponent? currentlySelected;
@@ -31,6 +31,8 @@ namespace FenUISharp.Behavior
         public SelectableComponent(UIObject owner, InteractiveSurface surface) : base(owner)
         {
             this.Surface = surface;
+
+            if (selectableComponents == null) selectableComponents = new();
 
             if (selectableComponents.Count <= 0)
             {

@@ -31,6 +31,7 @@ namespace FenUISharp.Behavior
         BeforeRender, AfterRender,
         BeforeDrawChildren, AfterDrawChildren,
         BeforeDrawChild, AfterDrawChild,
+        BeforeEarlyUpdate, AfterEarlyUpdate,
         BeforeUpdate, AfterUpdate,
         BeforeLateUpdate, AfterLateUpdate,
         BeforeTransform, AfterTransform,

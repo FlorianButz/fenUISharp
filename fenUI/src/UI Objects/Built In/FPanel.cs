@@ -15,12 +15,18 @@ namespace FenUISharp.Objects
 
         protected bool _drawBasePanel = true;
 
-        public FPanel(Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
+        public FPanel(Func<Vector2>? position = null, Func<Vector2>? size = null, float? cornerRadius = null, Func<SKColor>? color = null) : base(position, size)
         {
-            CornerRadius = new(() => 35, this);
+            CornerRadius = new(() => cornerRadius ?? 35, this);
             UseSquircle = new(() => true, this);
+
             Transform.SnapPositionToPixelGrid.SetStaticState(true);
-            RenderMaterial.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.PanelMaterial();
+
+            if(color == null)
+                RenderMaterial.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.PanelMaterial();
+            else
+                RenderMaterial.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.PanelMaterial().WithOverride(new Dictionary<string, object>() { ["BaseColor"] = color });
+
             Padding.Value = () => 20;
         }
 

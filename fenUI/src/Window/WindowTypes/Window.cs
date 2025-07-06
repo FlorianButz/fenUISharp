@@ -347,6 +347,7 @@ namespace FenUISharp
             if (!isPaused)
                 OnPreUpdate?.Invoke();
 
+            RootViewPane.OnEarlyUpdate();
             RootViewPane.OnUpdate();        // First update iteration
 
             if (!isPaused)
@@ -690,6 +691,7 @@ namespace FenUISharp
         {
             RenderContext?.OnEndResize();
 
+            RootViewPane.Layout.RecursivelyUpdateLayout();
             Dispatcher.Invoke(() => FullRedraw()); // Make sure it gets executed a tick later
         }
 

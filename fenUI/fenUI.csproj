@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 <PropertyGroup>
-  <!-- <OutputType>Library</OutputType> -->
-  <OutputType>Exe</OutputType>
+  <OutputType>Library</OutputType>
+  <!-- <OutputType>Exe</OutputType> -->
   <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
   <UseWindowsSDKContracts>true</UseWindowsSDKContracts>
     <ImplicitUsings>enable</ImplicitUsings>

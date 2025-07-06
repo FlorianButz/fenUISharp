@@ -1,3 +1,4 @@
+using FenUISharp.Behavior.Layout;
 using FenUISharp.Mathematics;
 using FenUISharp.States;
 
@@ -81,6 +82,13 @@ namespace FenUISharp.Objects
 
             return GetSize(new Vector2(StretchHorizontal.CachedValue ? stretchSize.x : clampedSize.x, StretchVertical.CachedValue ? stretchSize.y : clampedSize.y) - absoluteCorrection);
         }
+
+        public void RecursivelyUpdateLayout()
+        {
+            Owner.RecursiveInvalidate(UIObject.Invalidation.LayoutDirty);
+        }
+
+
 
         public Vector2 GetSize(in Vector2 size)
         {

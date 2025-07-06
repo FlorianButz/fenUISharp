@@ -1,4 +1,5 @@
 using FenUISharp.Behavior;
+using FenUISharp.Behavior.Layout;
 using FenUISharp.Behavior.RuntimeEffects;
 using FenUISharp.Materials;
 using FenUISharp.Mathematics;
@@ -26,6 +27,8 @@ namespace FenUISharp.Objects
 
         public State<bool> Enabled { get; init; }
         public State<bool> Visible { get; init; }
+
+        public bool IsParentRoot { get => Parent == FContext.GetRootViewPane(); }
 
         /// <summary>
         /// This is highly recommended and disabling it can lead to very poor performance
@@ -74,7 +77,7 @@ namespace FenUISharp.Objects
             Layout = new(this);
             Shape = new(this);
             Composition = new(this);
-            InteractiveSurface = new(this, FContext.GetCurrentDispatcher(), () => Shape.GlobalBounds);
+            InteractiveSurface = new(this, FContext.GetCurrentDispatcher(), () => Transform.DrawLocalToGlobal(Shape.LocalBounds));
 
             Quality = new(() => 1f, (x) => Invalidate(Invalidation.SurfaceDirty));
             Quality.SetResolver(StateResolverTemplates.SmallestFloatResolver);
@@ -129,6 +132,12 @@ namespace FenUISharp.Objects
                 if (Parent != null)
                     Parent.InvalidationState |= Invalidation.LayoutDirty;
                 Composition.GetZOrderedListOfChildren(this).ForEach(x => x.InvalidationState |= Invalidation.LayoutDirty);
+
+                // Update layout components:
+                List<LayoutComponent> layoutComponents = new List<LayoutComponent>();
+                layoutComponents = SearchForLayoutComponentsRecursive(Parent ?? this);
+                layoutComponents.Reverse();
+                layoutComponents.ForEach(x => x.FullUpdateLayout());
             }
 
             InvalidationState |= invalidation;
@@ -137,6 +146,19 @@ namespace FenUISharp.Objects
             if (InvalidationState != Invalidation.Clean && InvalidationState != Invalidation.ChildDirty) WindowRedrawThisObject = true;
 
             OnInvalidate(invalidation);
+        }
+
+        private List<LayoutComponent> SearchForLayoutComponentsRecursive(UIObject obj)
+        {
+            List<LayoutComponent> returnList = new();
+
+            obj.BehaviorComponents.ForEach((x) => { if (x is LayoutComponent) returnList.Add((LayoutComponent)x); });
+            obj.Children.ForEach((x) => x.SearchForLayoutComponentsRecursive(x).ForEach((y) =>
+            {
+                if (!returnList.Contains((LayoutComponent)y)) returnList.Add((LayoutComponent)y);
+            }));
+
+            return returnList;
         }
 
         protected virtual void OnInvalidate(Invalidation invalidation)
@@ -263,7 +285,7 @@ namespace FenUISharp.Objects
 
         public void OnLateUpdate()
         {
-            DispatchBehaviorEvent(BehaviorEventType.AfterLateUpdate);
+            DispatchBehaviorEvent(BehaviorEventType.BeforeLateUpdate);
 
             if (!_wasBeginCalled)
             {
@@ -286,6 +308,24 @@ namespace FenUISharp.Objects
         protected virtual void LateUpdate()
         {
             // Late update behavior
+        }
+
+        public void OnEarlyUpdate()
+        {
+            DispatchBehaviorEvent(BehaviorEventType.BeforeEarlyUpdate);
+            
+            // Run own early update behavior before children
+            EarlyUpdate();
+
+            // Recursively early update all objects
+            Composition.GetZOrderedListOfChildren(this).ForEach(x => x.OnEarlyUpdate());
+
+            DispatchBehaviorEvent(BehaviorEventType.AfterEarlyUpdate);
+        }
+
+        protected virtual void EarlyUpdate()
+        {
+            // Update behavior
         }
 
         public void RenderToSurface(SKCanvas? canvas)
