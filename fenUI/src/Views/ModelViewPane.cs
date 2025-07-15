@@ -9,7 +9,7 @@ namespace FenUISharp.Objects
         private List<UIObject>? _modelItems;
 
         private View? _model;
-        public View? ViewModel { get => _model; set { SetViewAnimated(value); _model = value; } }
+        public View? ViewModel { get => _model; set { SetViewAnimated(value); } }
 
         public bool AnimateViewModelSwap { get; set; } = true;
         public Action<float>? OnAnimationValueUpdated { get; set; }
@@ -24,17 +24,16 @@ namespace FenUISharp.Objects
             this._model = model;
             UpdateView();
 
-            ImageEffects.ApplyEffectsToChildren.SetStaticState(true);
+            ImageEffects.InheritFromParent.SetStaticState(true);
 
             _viewTransitionComponent = new(this, Easing.EaseInCubic, Easing.EaseOutCubic);
             _viewTransitionComponent.OnValueUpdate += (x) => OnAnimationValueUpdated?.Invoke(x);
             _viewTransitionComponent.Duration = 0.25f;
+            Transform.Anchor.SetStaticState(new(0.5f, 0.5f));
 
             OnAnimationValueUpdated += (x) =>
             {
                 Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(x, 0, 1, 1, 0.95f));
-                // Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(1, 0, 1, 1, 0.95f));
-                ImageEffects.Opacity.SetStaticState(RMath.Remap(x, 0, 1, 1, 0f));
             };
         }
 
@@ -77,7 +76,6 @@ namespace FenUISharp.Objects
 
         protected void UpdateView()
         {
-            DisposeItems();
             if (_model == null) return;
 
             _model.PaneRoot = this;

@@ -100,7 +100,7 @@ namespace FenUISharp.Objects
             GlobalSurface = new(globalSurface, (x) => { });
             this.Dispatcher = dispatcher;
 
-            ExtendInteractionRadius = new(() => 0, (x) => { });
+            ExtendInteractionRadius = new(() => 2, (x) => { });
             IgnoreInteractions = new(() => false, (x) => { });
             IgnoreChildInteractions = new(() => false, (x) => { });
 
@@ -185,7 +185,7 @@ namespace FenUISharp.Objects
 
         private void Global_FuncOnMouseScroll(float obj)
         {
-            if (!Owner.GlobalEnabled || !Owner.GlobalVisible || _topmostSurfaceMouseScroll != this) return;
+            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
 
             _lastDelta += obj;
             Dispatcher.InvokeWithID(() => FuncOnMouseScroll(), $"{uniqueID}-mousescroll");
@@ -335,9 +335,10 @@ namespace FenUISharp.Objects
 
         // Helper testing functions
 
-        public bool TestForGlobalPoint(Vector2 point)
+        public bool TestForGlobalPoint(in Vector2 point)
         {
             return GetGlobalInteractionRect().Contains(point.x, point.y) && (Owner.Parent != null ? Owner.Parent.InteractiveSurface.TestForGlobalPoint(point) : true);
+            // return GetGlobalInteractionRect().Contains(point.x, point.y);
         }
 
         private bool TestIfTopMost_MouseInteraction()

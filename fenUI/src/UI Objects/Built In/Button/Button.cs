@@ -43,6 +43,8 @@ namespace FenUISharp.Objects.Buttons
             InteractiveSurface.EnableMouseActions.SetStaticState(true);
             InteractiveSurface.OnMouseAction += MouseAction;
 
+            ImageEffects.Opacity.SetResponsiveState(() => InteractiveSurface.IgnoreInteractions.CachedValue ? 0.5f : 1f, 10);
+
             animatorComponent = new AnimatorComponent(this, Easing.EaseOutCubic);
             animatorComponent.Duration = 0.15f;
 

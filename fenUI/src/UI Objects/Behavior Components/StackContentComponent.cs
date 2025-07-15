@@ -226,15 +226,16 @@ namespace FenUISharp.Behavior
 
             if (EnableEdgeBlur)
             {
-                if (Owner._childSurface.TryGetSurface(out var surf))
-                {
-                    float l = FadeLength / 2f;
-                    var topBounds = new SKRect(bounds.Left, bounds.Top, bounds.Right, bounds.Top + l);
-                    var bottomBounds = new SKRect(bounds.Left, bounds.Bottom - l, bounds.Right, bounds.Bottom);
+                // TODO: Reimplement
+                // if (Owner._childSurface.TryGetSurface(out var surf))
+                // {
+                //     float l = FadeLength / 2f;
+                //     var topBounds = new SKRect(bounds.Left, bounds.Top, bounds.Right, bounds.Top + l);
+                //     var bottomBounds = new SKRect(bounds.Left, bounds.Bottom - l, bounds.Right, bounds.Bottom);
 
-                    VariableBlur.ApplyBlur(surf, topBounds, Owner.Padding.CachedValue, new(0, 1), maxBlur: 3);
-                    VariableBlur.ApplyBlur(surf, bottomBounds, Owner.Padding.CachedValue, new(0, -1), maxBlur: 3);
-                }
+                //     VariableBlur.ApplyBlur(surf, topBounds, Owner.Padding.CachedValue, new(0, 1), maxBlur: 3);
+                //     VariableBlur.ApplyBlur(surf, bottomBounds, Owner.Padding.CachedValue, new(0, -1), maxBlur: 3);
+                // }
             }
         }
 

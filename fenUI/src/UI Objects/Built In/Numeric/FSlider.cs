@@ -104,7 +104,7 @@ namespace FenUISharp.Objects
             SnappingHandle = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SecondaryVariant, this);
 
             Padding.SetStaticState(15);
-            InteractiveSurface.ExtendInteractionRadius.SetStaticState(2);
+            InteractiveSurface.ExtendInteractionRadius.SetStaticState(10);
 
             KnobPositionSpring = new(5f, 1.4f);
         }

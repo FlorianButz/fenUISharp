@@ -330,8 +330,6 @@ namespace FenUISharp
                     nextFrameTime = currentTime + frameInterval;
                 }
 
-                GetAllUIObjects().ForEach(x => x.WindowRedrawThisObject = false);
-
                 // await Task.Delay(needsRender ? 1 : 16); // If not rendering, sleep longer (saves CPU); Edit: Not good, since the Update method inside the UIObjects gets skipped then; Edit: Maybe that's not that bad, but right now I don't want to refactor stuff to work like that
                 Thread.Sleep(1);
             }
@@ -397,6 +395,9 @@ namespace FenUISharp
                             var bounds = component.Shape.GlobalBounds;
                             bounds.Inflate(2, 2);
                             _canvas.DrawRect(bounds, new SKPaint() { IsStroke = true, StrokeWidth = 1f, Color = SKColors.Blue });
+                            var boundsInteractive = component.InteractiveSurface.GlobalSurface.CachedValue;
+                            boundsInteractive.Inflate(1, 1);
+                            _canvas.DrawRect(bounds, new SKPaint() { IsStroke = true, StrokeWidth = 1f, Color = SKColors.Yellow });
                         }
                     }
                 }
@@ -456,6 +457,8 @@ namespace FenUISharp
                     var lastbounds = component.Shape.LastGlobalBounds;
                     lastbounds.Inflate(pad, pad);
                     clipPath.AddRect(lastbounds);
+
+                    component.WindowRedrawThisObject = false;
                 }
             }
 

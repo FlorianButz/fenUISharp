@@ -89,23 +89,26 @@ namespace FenUISharp.Objects
             if (globalBounds.Height < 1 || globalBounds.Width < 1) return null;
 
             SKImage? behind = FContext.GetCurrentWindow().RenderContext.CaptureWindowRegion(globalBounds, quality);
-            SKImage? buffer = Owner.Parent?._childSurface.CaptureSurfaceRegion(Owner.Parent.Transform.GlobalToDrawLocal(globalBounds), quality);
 
+            return behind;
 
-            Compositor.Dump(behind, "buffer_grab_behind");
-            Compositor.Dump(buffer, "buffer_grab_child");
+            // Not needed anymore since the switch to not using a child cached combined surface
+            // SKImage? buffer = Owner.Parent?._childSurface.CaptureSurfaceRegion(Owner.Parent.Transform.GlobalToDrawLocal(globalBounds), quality);
 
-            if (behind == null || !RMath.IsImageValid(behind)) return buffer;
-            else if (buffer == null || !RMath.IsImageValid(buffer)) return behind;
+            // Compositor.Dump(behind, "buffer_grab_behind");
+            // Compositor.Dump(buffer, "buffer_grab_child");
 
-            SKImage? combined = RMath.Combine(behind, buffer, new(filter: SKFilterMode.Linear, mipmap: SKMipmapMode.Linear)) ?? null;
+            // if (behind == null || !RMath.IsImageValid(behind)) return buffer;
+            // else if (buffer == null || !RMath.IsImageValid(buffer)) return behind;
 
-            Compositor.Dump(buffer, "buffer_grab_combined");
+            // SKImage? combined = RMath.Combine(behind, buffer, new(filter: SKFilterMode.Linear, mipmap: SKMipmapMode.Linear)) ?? null;
 
-            behind.Dispose();
-            buffer.Dispose();
+            // Compositor.Dump(buffer, "buffer_grab_combined");
 
-            return combined;
+            // behind.Dispose();
+            // buffer.Dispose();
+
+            // return combined;
         }
 
         public static void Dump(SKImage? image, string name)

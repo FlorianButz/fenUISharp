@@ -54,12 +54,12 @@ namespace FenUISharp.Objects
 
         public Invalidation InvalidationState { get; private set; } // TODO: Fix in the future that state will not represent a child update when it was added as parent after constructor
         public bool WindowRedrawThisObject { get; internal set; }
+        public bool LockInvalidation { get; set; }
 
         public State<float> Quality { get; init; }
         public State<int> Padding { get; init; }
 
-        internal CachedSurface _objectSurface;
-        internal CachedSurface _childSurface;
+        public CachedSurface ObjectSurface { get; protected set; }
 
         public Action? OnObjectDisposed { get; set; }
 
@@ -88,8 +88,7 @@ namespace FenUISharp.Objects
             Transform.LocalPosition.Value = position ?? (() => Vector2.Zero);
             Transform.Size.Value = size ?? (() => new(100, 100));
 
-            _objectSurface = new(RenderToSurface);
-            _childSurface = new(DrawChildren);
+            ObjectSurface = new(RenderToSurface);
 
             // Default to using window view pane as parent
             SetParent(FContext.GetRootViewPane());
@@ -126,6 +125,7 @@ namespace FenUISharp.Objects
 
         public void Invalidate(Invalidation invalidation)
         {
+            if (LockInvalidation) return;
             if (invalidation == Invalidation.LayoutDirty)
             {
                 // Shallow layout recalculation. Might have to change it to full recursive layout recalc in the future
@@ -232,6 +232,14 @@ namespace FenUISharp.Objects
                 // _wasBeginCalled = true;
             }
 
+            // Try to run update before evaluating shape and layout. maybe that fixes some issues
+            CheckIfObjectMustBeDisabled();
+            if (GlobalEnabled)
+            {
+                // Run own update behavior before children
+                Update();
+            }
+
             // Check for transform/layout/surface rebuild
             if (InvalidationState.HasFlag(Invalidation.TransformDirty) || InvalidationState.HasFlag(Invalidation.LayoutDirty) || InvalidationState.HasFlag(Invalidation.SurfaceDirty))
             {
@@ -255,15 +263,11 @@ namespace FenUISharp.Objects
                 if (InvalidationState.HasFlag(Invalidation.SurfaceDirty))
                 {
                     ClearInvalidation(Invalidation.SurfaceDirty);
-                    _objectSurface.InvalidateSurface(Shape.LocalBounds, Quality.CachedValue, Padding.CachedValue); // Make sure to use LocalBounds since those don't include padding
+                    ObjectSurface.InvalidateSurface(Shape.LocalBounds, Quality.CachedValue, Padding.CachedValue); // Make sure to use LocalBounds since those don't include padding
                 }
             }
 
-            CheckIfObjectMustBeDisabled();
             if (!GlobalEnabled) return;
-
-            // Run own update behavior before children
-            Update();
 
             // Recursively update all objects
             Composition.GetZOrderedListOfChildren(this).ForEach(x => x.OnUpdate());
@@ -272,7 +276,7 @@ namespace FenUISharp.Objects
             if (InvalidationState.HasFlag(Invalidation.ChildDirty))
             {
                 ClearInvalidation(Invalidation.ChildDirty);
-                _childSurface.InvalidateSurface(Shape.LocalBounds, Quality.CachedValue, Padding.CachedValue); // Make sure to use LocalBounds since those don't include padding
+                // _childSurface.InvalidateSurface(Shape.LocalBounds, Quality.CachedValue, Padding.CachedValue); // Make sure to use LocalBounds since those don't include padding
             }
 
             DispatchBehaviorEvent(BehaviorEventType.AfterUpdate);
@@ -366,7 +370,7 @@ namespace FenUISharp.Objects
             {
                 DispatchBehaviorEvent(BehaviorEventType.BeforeDrawChild, canvas);
                 x.DrawToSurface(canvas);
-                DispatchBehaviorEvent(BehaviorEventType.AfterDrawChild, canvas);
+                DispatchBehaviorEvent(BehaviorEventType.AfterDrawChild, (canvas, x));
             });
 
             DispatchBehaviorEvent(BehaviorEventType.AfterDrawChildren, canvas);
@@ -395,15 +399,13 @@ namespace FenUISharp.Objects
 
             using var paint = GetDrawPaint();
 
-            _objectSurface.Draw();
+            ObjectSurface.Draw();
 
-            if (_objectSurface.GetImage() != null)
-                canvas?.DrawImage(_objectSurface.GetImage(), Shape.SurfaceDrawRect, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+            if (ObjectSurface.GetImage() != null)
+                canvas?.DrawImage(ObjectSurface.GetImage(), Shape.SurfaceDrawRect, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
 
-            _childSurface.Draw();
-
-            if (_childSurface.GetImage() != null)
-                canvas?.DrawImage(_childSurface.GetImage(), Shape.SurfaceDrawRect, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+            // Children draw pass
+            DrawChildren(canvas);
 
             // Debug bounds
             if (FContext.GetCurrentWindow().DebugDisplayBounds)
@@ -446,8 +448,7 @@ namespace FenUISharp.Objects
         {
             if (!GlobalEnabled || !GlobalVisible)
             {
-                _childSurface.DisposeSurface();
-                _objectSurface.DisposeSurface();
+                ObjectSurface.DisposeSurface();
                 Invalidate(Invalidation.SurfaceDirty);
             }
         }
