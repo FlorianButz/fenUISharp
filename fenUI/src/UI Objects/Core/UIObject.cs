@@ -39,7 +39,6 @@ namespace FenUISharp.Objects
         public bool GlobalVisible { get => Visible.CachedValue && (Parent?.Visible.CachedValue ?? true) && (DisableWhenOutOfParentBounds ? _insideParent : true); }
 
         private bool _wasBeginCalled = false;
-        private bool _insideParent = true;
 
         [Flags]
         public enum Invalidation
@@ -102,12 +101,16 @@ namespace FenUISharp.Objects
             Invalidate(Invalidation.All);
         }
 
-        public void CheckIfObjectMustBeDisabled()
-        {
-            if (!DisableWhenOutOfParentBounds) return;
+        private bool _insideParent = true;
 
-            _insideParent = RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Bounds, Shape.GlobalBounds);
-            CheckIfSurfaceCanBeDisposed();
+        public void CheckIfInsideParent()
+        {
+            // Assume shapes have not been initialized anyway
+            if (!_wasBeginCalled || !DisableWhenOutOfParentBounds)
+                _insideParent = true;
+
+            bool returnValue = RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Bounds, Shape.GlobalBounds);
+            _insideParent = returnValue;
         }
 
         protected virtual void OnThemeChanged()
@@ -219,6 +222,9 @@ namespace FenUISharp.Objects
 
         public void OnUpdate()
         {
+            CheckIfInsideParent();
+            CheckIfSurfaceCanBeDisposed();
+
             if (!Enabled.CachedValue && _wasBeginCalled) return;
 
             DispatchBehaviorEvent(BehaviorEventType.BeforeUpdate);
@@ -233,7 +239,6 @@ namespace FenUISharp.Objects
             }
 
             // Try to run update before evaluating shape and layout. maybe that fixes some issues
-            CheckIfObjectMustBeDisabled();
             if (GlobalEnabled)
             {
                 // Run own update behavior before children
@@ -378,7 +383,7 @@ namespace FenUISharp.Objects
 
         public bool RenderThisFrame()
         {
-            if (!RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Bounds, Shape.GlobalBounds)) return false;
+            if (!RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Bounds, Shape.GlobalBounds) && DisableWhenOutOfParentBounds) return false;
             // if (!RMath.IsRectPartiallyInside(Shape.GlobalBounds, FContext.GetCurrentWindow().GetCurrentDirtyClipPath())) return false; // Technically smart, though it wouldn't work like that
 
             if (!GlobalEnabled) return false;
@@ -456,6 +461,7 @@ namespace FenUISharp.Objects
         public virtual void OnInternalStateChanged<T>(T value)
         {
             Invalidate(Invalidation.All); // Make sure to invalidate all when quality or padding is updated. This stuff can break easily if not updated
+            // CheckIfSurfaceCanBeDisposed();
         }
     }
 }

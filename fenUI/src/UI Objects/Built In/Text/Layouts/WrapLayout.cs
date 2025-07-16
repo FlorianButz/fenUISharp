@@ -82,17 +82,21 @@ namespace FenUISharp.Objects.Text.Layout
                                 currentLine = lines[^1];
                             }
 
-                            // Check if we exceed height bounds
-                            float totalHeightL = CalculateTotalHeight(lines);
-                            if (totalHeightL > bounds.Height && AllowEllipsis)
+                            // Only check height bounds if we would have multiple lines
+                            // and only after we actually add content to the new line
+                            bool wouldExceedHeight = false;
+                            if (lines.Count > 1)
+                            {
+                                float totalHeight = CalculateTotalHeight(lines);
+                                wouldExceedHeight = totalHeight > bounds.Height;
+                            }
+
+                            if (wouldExceedHeight && AllowEllipsis)
                             {
                                 // Remove the last line and add ellipsis to previous line
-                                if (lines.Count > 1)
-                                {
-                                    lines.RemoveAt(lines.Count - 1);
-                                    var lastLine = lines[^1];
-                                    TruncateLineWithEllipsis(lastLine, font, part, bounds.Width);
-                                }
+                                lines.RemoveAt(lines.Count - 1);
+                                var lastLine = lines[^1];
+                                TruncateLineWithEllipsis(lastLine, font, part, bounds.Width);
                                 return lines;
                             }
 
@@ -115,14 +119,17 @@ namespace FenUISharp.Objects.Text.Layout
                         AddWordToLine(currentLine, word, font, part);
                     }
 
-                    // Check height after adding content
-                    float totalHeight = CalculateTotalHeight(lines);
-                    if (totalHeight > bounds.Height && AllowEllipsis)
+                    // Only check height after adding content if we have multiple lines
+                    if (lines.Count > 1)
                     {
-                        // Truncate and stop
-                        var lastLine = lines[^1];
-                        TruncateLineWithEllipsis(lastLine, font, part, bounds.Width);
-                        break;
+                        float totalHeight = CalculateTotalHeight(lines);
+                        if (totalHeight > bounds.Height && AllowEllipsis)
+                        {
+                            // Truncate and stop
+                            var lastLine = lines[^1];
+                            TruncateLineWithEllipsis(lastLine, font, part, bounds.Width);
+                            break;
+                        }
                     }
                 }
             }
@@ -175,16 +182,17 @@ namespace FenUISharp.Objects.Text.Layout
                 // Check if character fits on current line
                 if (currentLine.Width + charWidth + part.CharacterSpacing > bounds.Width)
                 {
-                    // Check height before creating new line
-                    float totalHeight = CalculateTotalHeight(lines) + fontMetrics.LineHeight;
-                    if (totalHeight > bounds.Height && AllowEllipsis)
-                    {
-                        TruncateLineWithEllipsis(currentLine, font, part, bounds.Width);
-                        return;
-                    }
-
+                    // Only check height before creating new line if we would have multiple lines
                     if (AllowLinebreakOnOverflow)
                     {
+                        // Check if adding a new line would exceed height bounds
+                        float totalHeightWithNewLine = CalculateTotalHeight(lines) + fontMetrics.LineHeight;
+                        if (lines.Count > 0 && totalHeightWithNewLine > bounds.Height && AllowEllipsis)
+                        {
+                            TruncateLineWithEllipsis(currentLine, font, part, bounds.Width);
+                            return;
+                        }
+
                         var newLine = new LayoutLine();
                         newLine.UpdateMetrics(fontMetrics);
                         lines.Add(newLine);

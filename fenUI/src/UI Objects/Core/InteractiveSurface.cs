@@ -337,8 +337,8 @@ namespace FenUISharp.Objects
 
         public bool TestForGlobalPoint(in Vector2 point)
         {
-            return GetGlobalInteractionRect().Contains(point.x, point.y) && (Owner.Parent != null ? Owner.Parent.InteractiveSurface.TestForGlobalPoint(point) : true);
             // return GetGlobalInteractionRect().Contains(point.x, point.y);
+            return GetGlobalInteractionRect().Contains(point.x, point.y) && (Owner.Parent != null ? Owner.Parent.InteractiveSurface.TestForGlobalPoint(point) : true);
         }
 
         private bool TestIfTopMost_MouseInteraction()
