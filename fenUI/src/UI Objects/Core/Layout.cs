@@ -52,7 +52,7 @@ namespace FenUISharp.Objects
             var anchor = AlignmentAnchor.CachedValue;
             var align = Alignment.CachedValue;
 
-            var clampedSize = GetSize(size);
+            var clampedSize = ClampSize(size);
 
             // Vector2 absoluteMarginCorrection = new(-AbsoluteMarginHorizontal.CachedValue.y * (Alignment.CachedValue.x - 0.5f) * 2, -AbsoluteMarginVertical.CachedValue.y * (Alignment.CachedValue.y - 0.5f) * 2);
             Vector2 absoluteMarginCorrection = new(
@@ -73,14 +73,14 @@ namespace FenUISharp.Objects
 
         public Vector2 ApplyLayoutToSize(Vector2 localSize)
         {
-            var clampedSize = GetSize(localSize);
+            var clampedSize = ClampSize(localSize);
 
             Vector2 stretchSize = new((Owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Bounds.Width ?? 0)) - MarginHorizontal.CachedValue * 2,
                 (Owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Bounds.Height ?? 0)) - MarginVertical.CachedValue * 2);
 
             var absoluteCorrection = new Vector2(AbsoluteMarginHorizontal.CachedValue.x + AbsoluteMarginHorizontal.CachedValue.y, AbsoluteMarginVertical.CachedValue.x + AbsoluteMarginVertical.CachedValue.y);
 
-            return GetSize(new Vector2(StretchHorizontal.CachedValue ? stretchSize.x : clampedSize.x, StretchVertical.CachedValue ? stretchSize.y : clampedSize.y) - absoluteCorrection);
+            return ClampSize(new Vector2(StretchHorizontal.CachedValue ? stretchSize.x : clampedSize.x, StretchVertical.CachedValue ? stretchSize.y : clampedSize.y) - absoluteCorrection);
         }
 
         public void RecursivelyUpdateLayout()
@@ -90,7 +90,7 @@ namespace FenUISharp.Objects
 
 
 
-        public Vector2 GetSize(in Vector2 size)
+        public Vector2 ClampSize(in Vector2 size)
         {
             return Vector2.Clamp(size, new(MinWidth.CachedValue, MinHeight.CachedValue), new(MaxWidth.CachedValue, MaxHeight.CachedValue));
         }

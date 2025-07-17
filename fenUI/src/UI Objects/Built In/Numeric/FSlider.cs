@@ -60,7 +60,7 @@ namespace FenUISharp.Objects
 
         public float BarBorderSize { get; set; } = 1;
         public float BarCornerRadius { get; set; } = 5;
-        public float BarHeight { get => Layout.GetSize(Transform.Size.CachedValue).y; set => Transform.Size.SetStaticState(new(Layout.GetSize(Transform.Size.CachedValue).x, value)); }
+        public float BarHeight { get => Layout.ClampSize(Transform.Size.CachedValue).y; set => Transform.Size.SetStaticState(new(Layout.ClampSize(Transform.Size.CachedValue).x, value)); }
 
         public bool DisplayFill { get; set; } = true;
         public bool ClampKnob { get; set; } = false;
@@ -240,7 +240,7 @@ namespace FenUISharp.Objects
 
             RenderBackground(canvas, bounds);
 
-            SKRect barRect = SKRect.Create(Shape.LocalBounds.Left, Shape.LocalBounds.MidY - Layout.GetSize(Transform.Size.CachedValue).y / 2, Shape.LocalBounds.Width * knobPos, Layout.GetSize(Transform.Size.CachedValue).y);
+            SKRect barRect = SKRect.Create(Shape.LocalBounds.Left, Shape.LocalBounds.MidY - Layout.ClampSize(Transform.Size.CachedValue).y / 2, Shape.LocalBounds.Width * knobPos, Layout.ClampSize(Transform.Size.CachedValue).y);
             barRect.Offset(0.5f, 0.5f);
             RenderFilledBackground(canvas, barRect);
 

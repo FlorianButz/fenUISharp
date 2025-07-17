@@ -90,7 +90,7 @@ namespace FenUISharp.Objects
         void OnDrag(Vector2 delta)
         {
             var thumbSize = GetThumbRect(Shape.LocalBounds);
-            float availableTrackSize = HorizontalOrientation.CachedValue ? Layout.GetSize(Transform.Size.CachedValue).x - thumbSize.Width : Layout.GetSize(Transform.Size.CachedValue).y - thumbSize.Height;
+            float availableTrackSize = HorizontalOrientation.CachedValue ? Layout.ClampSize(Transform.Size.CachedValue).x - thumbSize.Width : Layout.ClampSize(Transform.Size.CachedValue).y - thumbSize.Height;
             float mouseDelta = HorizontalOrientation.CachedValue
                 ? (delta.x)
                 : (delta.y);

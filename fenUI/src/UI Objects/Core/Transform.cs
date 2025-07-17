@@ -11,6 +11,8 @@ namespace FenUISharp.Objects
         public State<Vector2> LocalPosition { get; init; }
         public Vector2 Position { get; private set; }
 
+        public Vector2 Pivot { get; private set; }
+
         internal Vector2 CalculatedLayoutOff;
         internal Vector2 CalculatedAnchorCorrection;
 
@@ -19,7 +21,7 @@ namespace FenUISharp.Objects
         /// <summary>
         /// The actual size of the object taking min and max size from Layout into account
         /// </summary>
-        public Vector2 VisibleSize { get => Owner.Layout.GetSize(Size.CachedValue); }
+        public Vector2 VisibleSize { get => Owner.Layout.ClampSize(Size.CachedValue); }
 
         public State<Vector2> Size { get; init; }
         public State<Vector2> Scale { get; init; }
@@ -57,17 +59,18 @@ namespace FenUISharp.Objects
             Position = LocalPosition.CachedValue + (CalculatedLayoutOff - CalculatedAnchorCorrection);
 
             // Pivot calculations
-            Vector2 pivot = new(Owner.Layout.GetSize(Owner.Transform.Size.CachedValue).x * Anchor.CachedValue.x, Owner.Layout.GetSize(Owner.Transform.Size.CachedValue).y * Anchor.CachedValue.y); // TODO: Check if that even works
+            var layoutSize = Owner.Layout.ApplyLayoutToSize(Owner.Transform.Size.CachedValue);
+            Pivot = new(layoutSize.x * Anchor.CachedValue.x, layoutSize.y * Anchor.CachedValue.y);
 
             if (SnapPositionToPixelGrid.CachedValue)
                 Position = new(MathF.Round(Position.x), MathF.Round(Position.y));
             if (SnapPositionToPixelGrid.CachedValue)
-                pivot = new(MathF.Round(pivot.x), MathF.Round(pivot.y));
+                Pivot = new(MathF.Round(Pivot.x), MathF.Round(Pivot.y));
 
             // Apply to matrix
                 matrix = SKMatrix.Concat(matrix, SKMatrix.CreateTranslation(Position.x, Position.y));
-            matrix = SKMatrix.Concat(matrix, SKMatrix.CreateRotationDegrees(Rotation.CachedValue, pivot.x, pivot.y));
-            matrix = SKMatrix.Concat(matrix, SKMatrix.CreateScale(Scale.CachedValue.x, Scale.CachedValue.y, pivot.x, pivot.y));
+            matrix = SKMatrix.Concat(matrix, SKMatrix.CreateRotationDegrees(Rotation.CachedValue, Pivot.x, Pivot.y));
+            matrix = SKMatrix.Concat(matrix, SKMatrix.CreateScale(Scale.CachedValue.x, Scale.CachedValue.y, Pivot.x, Pivot.y));
 
             // Cache matrices
             DrawMatrix = matrix;

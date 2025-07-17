@@ -89,7 +89,7 @@ namespace FenUISharp.Objects
             var copyBtn = new FImageButton(new FImage(() => Resources.GetImage("fenui-builtin-copy")), size: () => new(btnSize, btnSize));
             copyBtn.Layout.Alignment.SetStaticState(new(0, 0));
             copyBtn.Layout.AlignmentAnchor.SetStaticState(new(0, 0));
-            copyBtn.Transform.LocalPosition.SetStaticState(new(activePicker.Layout.GetSize(activePicker.Transform.Size.CachedValue).x, 7.5f));
+            copyBtn.Transform.LocalPosition.SetStaticState(new(activePicker.Layout.ClampSize(activePicker.Transform.Size.CachedValue).x, 7.5f));
             copyBtn.RenderMaterial.Value = FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.TransparentInteractableMaterial;
             copyBtn.SetParent(activePickerPanel);
 
@@ -97,7 +97,7 @@ namespace FenUISharp.Objects
             pasteBtn.Layout.Alignment.SetStaticState(new(0, 0));
             pasteBtn.Layout.AlignmentAnchor.SetStaticState(new(0, 0));
             pasteBtn.RenderMaterial.Value = FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.TransparentInteractableMaterial;
-            pasteBtn.Transform.LocalPosition.SetStaticState(new(activePicker.Layout.GetSize(activePicker.Transform.Size.CachedValue).x + btnSize + 5, 7.5f));
+            pasteBtn.Transform.LocalPosition.SetStaticState(new(activePicker.Layout.ClampSize(activePicker.Transform.Size.CachedValue).x + btnSize + 5, 7.5f));
             pasteBtn.SetParent(activePickerPanel);
 
             // Info text
@@ -106,7 +106,7 @@ namespace FenUISharp.Objects
             // text.Layout.StretchHorizontal.SetStaticState(true);
             text.Layout.StretchVertical.SetStaticState(true);
 
-            text.Transform.LocalPosition.SetResponsiveState(() => new(activePicker.Layout.GetSize(activePicker.Transform.Size.CachedValue).x, btnSize + 10));
+            text.Transform.LocalPosition.SetResponsiveState(() => new(activePicker.Layout.ClampSize(activePicker.Transform.Size.CachedValue).x, btnSize + 10));
             // text.Layout.MarginHorizontal.SetStaticState(75);
             text.Layout.MarginVertical.SetStaticState(7.5f);
 

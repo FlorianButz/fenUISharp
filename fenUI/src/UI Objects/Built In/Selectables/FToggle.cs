@@ -21,7 +21,7 @@ namespace FenUISharp.Objects
             // Creating checkmark
 
             FImage image = new(() => Resources.GetImage("fenui-builtin-check"));
-            image.Transform.Size.SetResponsiveState(() => new(Layout.GetSize(Transform.Size.CachedValue).x - 4, Layout.GetSize(Transform.Size.CachedValue).y - 4));
+            image.Transform.Size.SetResponsiveState(() => new(Layout.ClampSize(Transform.Size.CachedValue).x - 4, Layout.ClampSize(Transform.Size.CachedValue).y - 4));
             image.Transform.LocalPosition.SetStaticState(new(0.5f, 1f));
             image.Enabled.SetResponsiveState(() => IsSelected);
             image.SetParent(this);

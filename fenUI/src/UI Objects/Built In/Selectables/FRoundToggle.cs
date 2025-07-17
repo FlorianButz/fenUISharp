@@ -37,7 +37,7 @@ namespace FenUISharp.Objects.Buttons
             InteractiveSurface.OnMouseExit += MouseExit;
             Transform.SnapPositionToPixelGrid.SetStaticState(true); // Technically good
 
-            CornerRadius.SetResponsiveState(() => Layout.GetSize(Transform.Size.CachedValue).y / 2);
+            CornerRadius.SetResponsiveState(() => Layout.ClampSize(Transform.Size.CachedValue).y / 2);
         }
 
         float _width = HEIGHT;

@@ -395,9 +395,11 @@ namespace FenUISharp
                             var bounds = component.Shape.GlobalBounds;
                             bounds.Inflate(2, 2);
                             _canvas.DrawRect(bounds, new SKPaint() { IsStroke = true, StrokeWidth = 1f, Color = SKColors.Blue });
+                            _canvas.DrawCircle(component.Transform.LocalToGlobal(component.Transform.Anchor.CachedValue).x, component.Transform.LocalToGlobal(component.Transform.Anchor.CachedValue).y, 2, new SKPaint() { IsStroke = true, StrokeWidth = 1f, Color = SKColors.Blue });
                             var boundsInteractive = component.InteractiveSurface.GlobalSurface.CachedValue;
                             boundsInteractive.Inflate(1, 1);
                             _canvas.DrawRect(bounds, new SKPaint() { IsStroke = true, StrokeWidth = 1f, Color = SKColors.Yellow });
+                            _canvas.DrawCircle(component.Transform.LocalToGlobal(component.Layout.AlignmentAnchor.CachedValue).x, component.Transform.LocalToGlobal(component.Layout.AlignmentAnchor.CachedValue).y, 1, new SKPaint() { IsStroke = true, StrokeWidth = 1f, Color = SKColors.Yellow });
                         }
                     }
                 }

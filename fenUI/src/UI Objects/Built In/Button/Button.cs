@@ -57,8 +57,8 @@ namespace FenUISharp.Objects.Buttons
                 currentHoverMix = RMath.Lerp(SKColors.Transparent, hoveredMix, t);
 
                 float pixelsAdd = HoverPixelAddition;
-                float sx = (Layout.GetSize(Transform.Size.CachedValue).x + pixelsAdd) / Layout.GetSize(Transform.Size.CachedValue).x;
-                float sy = (Layout.GetSize(Transform.Size.CachedValue).y + pixelsAdd / 2) / Layout.GetSize(Transform.Size.CachedValue).y;
+                float sx = (Layout.ClampSize(Transform.Size.CachedValue).x + pixelsAdd) / Layout.ClampSize(Transform.Size.CachedValue).x;
+                float sy = (Layout.ClampSize(Transform.Size.CachedValue).y + pixelsAdd / 2) / Layout.ClampSize(Transform.Size.CachedValue).y;
 
                 Transform.Scale.SetStaticState(Vector2.Lerp(new Vector2(1, 1), new Vector2(sx, sy), t));
                 Invalidate(Invalidation.SurfaceDirty);

@@ -23,7 +23,7 @@ namespace FenUISharp.Objects
             TintBlendMode = new(() => SKBlendMode.Modulate, this);
             ScaleMode = new(() => ImageScaleMode.Fit, this);
 
-            CornerRadius.SetResponsiveState(() => Layout.GetSize(Transform.Size.CachedValue).y / 1.5f);
+            CornerRadius.SetResponsiveState(() => Layout.ClampSize(Transform.Size.CachedValue).y / 1.5f);
 
             TintColor = new(() => dynamicColor ? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface : SKColors.White, this);
             Padding.Value = () => 10;

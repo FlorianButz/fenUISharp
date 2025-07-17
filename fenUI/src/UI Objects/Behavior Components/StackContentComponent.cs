@@ -451,8 +451,8 @@ namespace FenUISharp.Behavior
                     if (StackType == ContentStackType.Vertical) calculatedOwnerSize = new Vector2(contentSizePerpendicular, contentSize);
                     break;
                 case ContentStackBehavior.SizeToFit:
-                    if (StackType == ContentStackType.Horizontal) calculatedOwnerSize = new Vector2(contentSize, Owner.Layout.GetSize(Owner.Transform.Size.CachedValue).y);
-                    if (StackType == ContentStackType.Vertical) calculatedOwnerSize = new Vector2(Owner.Layout.GetSize(Owner.Transform.Size.CachedValue).x, contentSize);
+                    if (StackType == ContentStackType.Horizontal) calculatedOwnerSize = new Vector2(contentSize, Owner.Layout.ClampSize(Owner.Transform.Size.CachedValue).y);
+                    if (StackType == ContentStackType.Vertical) calculatedOwnerSize = new Vector2(Owner.Layout.ClampSize(Owner.Transform.Size.CachedValue).x, contentSize);
                     break;
             }
 

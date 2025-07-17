@@ -21,19 +21,18 @@ namespace FenUISharp.Objects
 
         public ModelViewPane(View? model, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
-            this._model = model;
-            UpdateView();
-
-            ImageEffects.InheritFromParent.SetStaticState(true);
+            if(model != null)
+                SilentSetView(model);
 
             _viewTransitionComponent = new(this, Easing.EaseInCubic, Easing.EaseOutCubic);
             _viewTransitionComponent.OnValueUpdate += (x) => OnAnimationValueUpdated?.Invoke(x);
             _viewTransitionComponent.Duration = 0.25f;
-            Transform.Anchor.SetStaticState(new(0.5f, 0.5f));
 
             OnAnimationValueUpdated += (x) =>
             {
                 Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(x, 0, 1, 1, 0.95f));
+                // Transform.LocalPosition.SetStaticState(new(0, x * (_viewTransitionComponent.Inverse ? -15 : 15)));
+                ImageEffects.Opacity.SetStaticState(1 - x);
             };
         }
 

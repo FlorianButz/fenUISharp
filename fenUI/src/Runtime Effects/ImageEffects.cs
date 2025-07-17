@@ -71,7 +71,7 @@ namespace FenUISharp.Behavior.RuntimeEffects
 
             if (values.blurRadius != 0)
             {
-                using var blur = SKImageFilter.CreateBlur(BlurRadius.CachedValue, BlurRadius.CachedValue);
+                using var blur = SKImageFilter.CreateBlur(values.blurRadius, values.blurRadius);
                 paint.ImageFilter = blur;
             }
 
@@ -122,7 +122,7 @@ namespace FenUISharp.Behavior.RuntimeEffects
                 }
             }
 
-            paint.Color = SKColors.White.WithAlpha((byte)(Opacity.CachedValue * 255));
+            paint.Color = SKColors.White.WithAlpha((byte)(values.opacity * 255));
 
             surface.Canvas.DrawImage(snapshot, bounds, paint);
         }
@@ -139,11 +139,24 @@ namespace FenUISharp.Behavior.RuntimeEffects
 
         public void GetValues(out (float opacity, float blurRadius, float saturation, float brightness) values)
         {
+            if (Owner.Parent == null || !InheritFromParent.CachedValue)
+            {
+                values = (
+                    Opacity.CachedValue,
+                    BlurRadius.CachedValue,
+                    Saturation.CachedValue,
+                    Brightness.CachedValue
+                );
+                return;
+            }
+            
+            Owner.Parent.ImageEffects.GetValues(out var vals);
+
             values = (
-                Opacity.CachedValue * (InheritFromParent.CachedValue ? Owner.Parent?.ImageEffects.Opacity.CachedValue : 1f) ?? 1,
-                Math.Max(BlurRadius.CachedValue, (InheritFromParent.CachedValue ? Owner.Parent?.ImageEffects.BlurRadius.CachedValue : 0f) ?? 0),
-                Saturation.CachedValue * (InheritFromParent.CachedValue ? Owner.Parent?.ImageEffects.Saturation.CachedValue : 1f) ?? 1,
-                Brightness.CachedValue * (InheritFromParent.CachedValue ? Owner.Parent?.ImageEffects.Brightness.CachedValue : 1f) ?? 1
+                Opacity.CachedValue * (InheritFromParent.CachedValue ? vals.opacity : 1f),
+                Math.Max(BlurRadius.CachedValue, InheritFromParent.CachedValue ? vals.blurRadius : 0f),
+                Saturation.CachedValue * (InheritFromParent.CachedValue ? vals.saturation : 1f),
+                Brightness.CachedValue * (InheritFromParent.CachedValue ? vals.brightness : 1f)
             );
         }
 
@@ -156,10 +169,9 @@ namespace FenUISharp.Behavior.RuntimeEffects
         {
             Owner.Invalidate(UIObject.Invalidation.SurfaceDirty);
 
-            // Hacky solution for updating
             Owner.Children.ForEach(x =>
             {
-                if (x.ImageEffects.InheritFromParent.CachedValue) x.Invalidate(UIObject.Invalidation.SurfaceDirty);
+                x.ImageEffects.OnInternalStateChanged<T>(value);
             });
         }
     }

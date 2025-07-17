@@ -191,9 +191,9 @@ namespace FenUISharp.Objects
             else
             {
                 if (LeftToRight)
-                    rect = new SKRect(bounds.Left, bounds.Top, bounds.Left + Layout.GetSize(Transform.Size.CachedValue).x * RMath.Remap(_01value, 0f, 1f, 0.01f, 1f), bounds.Top + Layout.GetSize(Transform.Size.CachedValue).y);
+                    rect = new SKRect(bounds.Left, bounds.Top, bounds.Left + Layout.ClampSize(Transform.Size.CachedValue).x * RMath.Remap(_01value, 0f, 1f, 0.01f, 1f), bounds.Top + Layout.ClampSize(Transform.Size.CachedValue).y);
                 else
-                    rect = new SKRect(bounds.Right + Layout.GetSize(Transform.Size.CachedValue).x * -RMath.Remap(_01value, 0f, 1f, 0.01f, 1f), bounds.Top, bounds.Right, bounds.Top + Layout.GetSize(Transform.Size.CachedValue).y);
+                    rect = new SKRect(bounds.Right + Layout.ClampSize(Transform.Size.CachedValue).x * -RMath.Remap(_01value, 0f, 1f, 0.01f, 1f), bounds.Top, bounds.Right, bounds.Top + Layout.ClampSize(Transform.Size.CachedValue).y);
 
                 using (var paint = GetRenderPaint())
                 using (var path = SKSquircle.CreateSquircle(rect, 10))
