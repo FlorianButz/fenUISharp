@@ -153,7 +153,10 @@ namespace FenUISharp
                     // Copy row by row
                     for (int y = 0; y < height; y++)
                     {
-                        System.Buffer.MemoryCopy(source, destination, copyWidth, copyWidth);
+                        try
+                        {
+                            System.Buffer.MemoryCopy(source, destination, copyWidth, copyWidth);
+                        }catch(Exception e) { return; }
                         source += bitmapRowBytes;
                         destination += stagingRowPitch;
                     }

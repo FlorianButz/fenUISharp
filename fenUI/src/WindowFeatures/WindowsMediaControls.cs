@@ -186,17 +186,16 @@ namespace FenUISharp.WinFeatures
 
                     if (infoChanged && ContinousPolling)
                     {
-                        var thumbnail = info.Thumbnail;
-                        if (thumbnail != null)
+                        try
                         {
-                            using var stream = await thumbnail.OpenReadAsync();
-                            cachedInfo.thumbnail = ConvertThumbnailToSkImage(stream);
+                            // Multiple checks required for apps that take their time to update the cover art. TODO: Add a real solution like actual continous polling
+                            UpdateThumbnailAsync();
+                            Thread.Sleep(1000);
+                            UpdateThumbnailAsync();
+                            Thread.Sleep(1000);
+                            UpdateThumbnailAsync();
                         }
-                        else
-                            cachedInfo.thumbnail = null;
-
-                        onThumbnailUpdated?.Invoke();
-                        onMediaUpdated?.Invoke();
+                        catch (Exception) { return; }
                     }
                 }
                 catch (Exception e)
@@ -208,6 +207,29 @@ namespace FenUISharp.WinFeatures
             {
                 cachedInfo = new PlaybackInfo();
             }
+        }
+
+        private static SKImage? lastThumbnail;
+
+        private static async void UpdateThumbnailAsync()
+        {
+            var info = await currentSession?.TryGetMediaPropertiesAsync();
+
+            var thumbnail = info.Thumbnail;
+            if (thumbnail != null)
+            {
+                using var stream = await thumbnail.OpenReadAsync();
+                cachedInfo.thumbnail = ConvertThumbnailToSkImage(stream);
+
+                if (lastThumbnail == null || !AreThumbnailsEqual(lastThumbnail, cachedInfo.thumbnail))
+                {
+                    onThumbnailUpdated?.Invoke();
+                    onMediaUpdated?.Invoke();
+                    lastThumbnail = cachedInfo.thumbnail;
+                }
+            }
+            else
+                cachedInfo.thumbnail = null;
         }
 
         private const int THUMBNAIL_SIZE = 512;
@@ -222,6 +244,28 @@ namespace FenUISharp.WinFeatures
             originalBitmap.Dispose();
 
             return resizedBitmap != null ? SKImage.FromBitmap(resizedBitmap) : null;
+        }
+
+        private static bool AreThumbnailsEqual(SKImage? img1, SKImage? img2)
+        {
+            if (img1 == null && img2 == null) return true;
+            if (img1 == null || img2 == null) return false;
+            if (img1.Width != img2.Width || img1.Height != img2.Height) return false;
+
+            // Quick pixel comparison at a few points
+            using var bitmap1 = SKBitmap.FromImage(img1);
+            using var bitmap2 = SKBitmap.FromImage(img2);
+
+            // Sample a few pixels instead of comparing entire image
+            var samplePoints = new[] { (0, 0), (img1.Width / 2, img1.Height / 2), (img1.Width - 1, img1.Height - 1) };
+
+            foreach (var (x, y) in samplePoints)
+            {
+                if (bitmap1.GetPixel(x, y) != bitmap2.GetPixel(x, y))
+                    return false;
+            }
+
+            return true;
         }
 
         static void TrySubscribeToCurrentSession()

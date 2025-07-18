@@ -93,6 +93,8 @@ namespace FenUISharp.Objects
             MinValue = new(() => 0, this);
             MaxValue = new(() => 1, this);
 
+            ImageEffects.Opacity.SetResponsiveState(() => InteractiveSurface.IgnoreInteractions.CachedValue ? 0.35f : 1f, 10);
+
             BarFill = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary, this);
             Bar = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary, this);
             BarBorder = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSecondary.WithAlpha(35), this);

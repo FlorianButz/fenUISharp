@@ -4,7 +4,7 @@ using FenUISharp.Objects;
 using FenUISharp.States;
 using SkiaSharp;
 
-namespace FenUISharp
+namespace FenUISharp.Behavior
 {
     public class Rotation3DTransformComponent : BehaviorComponent
     {

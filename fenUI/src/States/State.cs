@@ -20,6 +20,11 @@ namespace FenUISharp.States
         private List<IStateListener> _listener = new();
         private List<Action<T>> _action = new();
 
+        /// <summary>
+        /// Will ignore the default value if the set is not empty. Useful to avoid interference with custom resolvers
+        /// </summary>
+        public bool IgnoreFirstValueIfSetNotEmpty { get; set; } = true;
+
         public State(Func<T> defaultValue, Action<T>? action = null, bool manualResolve = false)
         {
             if (action != null) Subscribe(action);
@@ -116,7 +121,10 @@ namespace FenUISharp.States
         {
             if (values.Count == 0) return;
 
-            var winningEntry = _resolver(values);
+            var valuesMod = new List<StateEntry<T>>(values);
+            if (IgnoreFirstValueIfSetNotEmpty && values.Count > 1) valuesMod.RemoveAt(0);
+
+            var winningEntry = _resolver(valuesMod);
 
             var last = _lastValue;
             var value = winningEntry.Value();
