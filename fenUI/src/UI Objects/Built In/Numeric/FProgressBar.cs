@@ -35,14 +35,14 @@ namespace FenUISharp.Objects
         /// <param name="height"></param>
         public FProgressBar(Func<float> value, Func<Vector2>? position = null, float width = 100, float height = 5) : base(position, () => new(width, height))
         {
-            BackgroundColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Background, this);
-            FillColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary, this);
-            BorderColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Surface, this);
+            BackgroundColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Background, this, this);
+            FillColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary, this, this);
+            BorderColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Surface, this, this);
 
-            Value = new(value, this);
+            Value = new(value, this, this);
 
-            MinValue = new(() => 0, this);
-            MaxValue = new(() => 1, this);
+            MinValue = new(() => 0, this, this);
+            MaxValue = new(() => 1, this, this);
 
             Padding.SetStaticState(5);
         }
@@ -55,29 +55,17 @@ namespace FenUISharp.Objects
         /// <param name="height"></param>
         public FProgressBar(Func<Vector2>? position = null, float width = 100, float height = 5) : base(position, () => new(width, height))
         {
-            BackgroundColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Background, this);
-            FillColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary, this);
-            BorderColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Surface, this);
+            BackgroundColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Background, this, this);
+            FillColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary, this, this);
+            BorderColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Surface, this, this);
 
-            Value = new(() => 0, this);
+            Value = new(() => 0, this, this);
             Indeterminate = true;
 
-            MinValue = new(() => 0, this);
-            MaxValue = new(() => 1, this);
+            MinValue = new(() => 0, this, this);
+            MaxValue = new(() => 1, this, this);
 
             Padding.SetStaticState(5);
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-
-            BackgroundColor.Dispose();
-            FillColor.Dispose();
-            BorderColor.Dispose();
-
-            MinValue.Dispose();
-            MaxValue.Dispose();
         }
 
         protected override void Update()

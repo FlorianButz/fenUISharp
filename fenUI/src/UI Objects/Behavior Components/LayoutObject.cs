@@ -9,12 +9,7 @@ namespace FenUISharp.Behavior
 
         public LayoutObject(UIObject owner) : base(owner)
         {
-            IgnoreParentLayout = new(() => false, this);
-        }
-
-        public override void ComponentDestroy()
-        {
-            IgnoreParentLayout.Dispose();
+            IgnoreParentLayout = new(() => false, Owner, this);
         }
 
         public void OnInternalStateChanged<T>(T value)

@@ -1,3 +1,5 @@
+using FenUISharp.Objects;
+
 namespace FenUISharp.States
 {
     /// <summary>
@@ -6,6 +8,7 @@ namespace FenUISharp.States
     /// <typeparam name="T"></typeparam>
     public class State<T> : IDisposable
     {
+        public WeakReference<UIObject> Owner { get; init; }
         public bool ManualResolve { get; set; } = false;
 
         public Func<T> Value { private get => GetValue(); set => SetResponsiveState(value); }
@@ -25,8 +28,9 @@ namespace FenUISharp.States
         /// </summary>
         public bool IgnoreFirstValueIfSetNotEmpty { get; set; } = true;
 
-        public State(Func<T> defaultValue, Action<T>? action = null, bool manualResolve = false)
+        public State(Func<T> defaultValue, UIObject owner, Action<T>? action = null, bool manualResolve = false)
         {
+            Owner = new(owner);
             if (action != null) Subscribe(action);
 
             // Add initial value
@@ -41,10 +45,13 @@ namespace FenUISharp.States
                 throw new Exception("States can only be declared in a valid FenUISharp window context");
             else
                 FContext.GetCurrentWindow().OnPreUpdate += Update;
+
+            owner.OnObjectDisposed += Dispose;
         }
 
-        public State(Func<T> defaultValue, IStateListener? listener = null, bool manualResolve = false)
+        public State(Func<T> defaultValue, UIObject owner, IStateListener? listener = null, bool manualResolve = false)
         {
+            Owner = new(owner);
             if (listener != null) Subscribe(listener);
 
             // Add initial value
@@ -60,6 +67,8 @@ namespace FenUISharp.States
                 throw new Exception("States can only be declared in a valid FenUISharp window context");
             else
                 FContext.GetCurrentWindow().OnPreUpdate += Update;
+
+            owner.OnObjectDisposed += Dispose;
         }
 
         private Func<T> GetValue()
@@ -168,6 +177,14 @@ namespace FenUISharp.States
         {
             if (FContext.GetCurrentWindow() != null)
                 FContext.GetCurrentWindow().OnPreUpdate -= Update;
+
+            if (Owner.TryGetTarget(out var target))
+                target.OnObjectDisposed -= Dispose;
+
+            values = new();
+            _resolver = entries => entries.OrderBy(x => x.Priority).Last();
+            _listener = new();
+            _action = new();
         }
     }
 

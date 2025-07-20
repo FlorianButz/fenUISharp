@@ -30,8 +30,8 @@ namespace FenUISharp.Objects
 
             // Layout.MarginVertical.SetStaticState(-10);
 
-            ReferenceValue = new(value, this);
-            StepValue = new(step, this);
+            ReferenceValue = new(value, this, this);
+            StepValue = new(step, this, this);
 
             const float btnSize = 20f;
 
@@ -59,14 +59,6 @@ namespace FenUISharp.Objects
             rightArrow.RenderMaterial.Value = () => new InteractableDefaultMaterial() { BaseColor = () => SKColors.Transparent, BorderColor = () => SKColors.Transparent, ShadowColor = () => SKColors.Transparent, HightlightColor = () => SKColors.Transparent };
 
             InteractiveSurface.EnableMouseActions.SetStaticState(true);
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-
-            ReferenceValue.Dispose();
-            StepValue.Dispose();
         }
 
         protected override void Update()

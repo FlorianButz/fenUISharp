@@ -106,11 +106,11 @@ namespace FenUISharp.Objects
             HoverMix.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix.WithAlpha(75);
             RenderMaterial.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.PanelMaterial();
 
-            CaretBlinkSpeed = new(() => 2.5f, this);
-            CaretWidth = new(() => 1, this);
-            CaretHeight = new(() => 18, this);
-            CaretColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary.AddMix(new(50, 50, 50)), this);
-            TextSelectionColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary.MultiplyMix(new(180, 180, 180)), this);
+            CaretBlinkSpeed = new(() => 2.5f, this, this);
+            CaretWidth = new(() => 1, this, this);
+            CaretHeight = new(() => 18, this, this);
+            CaretColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary.AddMix(new(50, 50, 50)), this, this);
+            TextSelectionColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary.MultiplyMix(new(180, 180, 180)), this, this);
 
             label.Padding.SetStaticState(0);
             label.Layout.StretchVertical.SetStaticState(true);
@@ -167,12 +167,6 @@ namespace FenUISharp.Objects
         public override void Dispose()
         {
             base.Dispose();
-
-            CaretBlinkSpeed.Dispose();
-            CaretColor.Dispose();
-            CaretWidth.Dispose();
-            CaretHeight.Dispose();
-            TextSelectionColor.Dispose();
 
             FContext.GetKeyboardInputManager().OnTextTyped -= OnKeyTyped;
             FContext.GetKeyboardInputManager().OnKeyTyped -= OnKeyPressed;

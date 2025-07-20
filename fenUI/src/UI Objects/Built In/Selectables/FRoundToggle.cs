@@ -18,7 +18,7 @@ namespace FenUISharp.Objects.Buttons
 
         public FRoundToggle(Func<Vector2>? position = null) : base(null, null, position, () => new(WIDTH, HEIGHT))
         {
-            KnobColor = new(() => SKColors.White, this);
+            KnobColor = new(() => SKColors.White, this, this);
 
             toggleAnimator = new(this, Easing.EaseOutBack);
             toggleAnimator.Duration = 0.5f;

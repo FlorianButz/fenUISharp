@@ -7,7 +7,7 @@ namespace FenUISharp.Objects
 {
     public class Compositor : IDisposable, IStateListener
     {
-        public UIObject Owner { get; init; }
+        public WeakReference<UIObject> Owner { get; init; }
 
         public State<int> LocalZIndex { get; init; }
         public int CreationIndex { get; init; }
@@ -24,12 +24,12 @@ namespace FenUISharp.Objects
 
         public Compositor(UIObject owner)
         {
-            this.Owner = owner;
+            this.Owner = new(owner);
 
             CreationIndex = GlobalCreationIndex;
             GlobalCreationIndex++;
 
-            LocalZIndex = new(() => 0, this);
+            LocalZIndex = new(() => 0, owner, this);
 
             if (activeInstances == 0)
                 FContext.GetCurrentWindow().OnPreUpdate += CacheZOrderedListOfEverything;
@@ -60,7 +60,8 @@ namespace FenUISharp.Objects
             return _cachedOrderedList;
         }
 
-        static void TraverseAndCollect(UIObject current, List<UIObject> list, bool enabledAndVisibleOnly = false) {
+        static void TraverseAndCollect(UIObject current, List<UIObject> list, bool enabledAndVisibleOnly = false)
+        {
             if (enabledAndVisibleOnly ? (!current.GlobalVisible || !current.GlobalEnabled) : false) return;
             list.Add(current);
 
@@ -70,7 +71,8 @@ namespace FenUISharp.Objects
                 .ThenBy(child => child.Composition.CreationIndex)
                 .ToList();
 
-            foreach (var child in sortedChildren) {
+            foreach (var child in sortedChildren)
+            {
                 TraverseAndCollect(child, list, enabledAndVisibleOnly);
             }
         }
@@ -80,8 +82,11 @@ namespace FenUISharp.Objects
             // Check if the last element matches the current one
             var last = GetZOrderedListOfEverything().LastOrDefault(x => x != null);
 
+
             // If it's a match, this object is the topmost
-            return last != null && last == Owner;
+            if (Owner.TryGetTarget(out var owner))
+                return last != null && last == owner;
+            return false;
         }
 
         public SKImage? GrabBehindPlusBuffer(SKRect globalBounds, float quality)
@@ -119,7 +124,7 @@ namespace FenUISharp.Objects
             if (image == null) return;
 
             string dir = Path.Combine(AppContext.BaseDirectory, "Dumps");
-            if(!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
             using (var data = image.Encode(SKEncodedImageFormat.Png, 80))
             using (var stream = File.OpenWrite(Path.Combine(dir, $"{name}_dump{DateTime.Now.Ticks}.png")))
@@ -131,8 +136,6 @@ namespace FenUISharp.Objects
 
         public void Dispose()
         {
-            LocalZIndex.Dispose();
-
             activeInstances--;
             if (activeInstances <= 0)
                 FContext.GetCurrentWindow().OnPreUpdate -= CacheZOrderedListOfEverything;
@@ -140,7 +143,8 @@ namespace FenUISharp.Objects
 
         public void OnInternalStateChanged<T>(T value)
         {
-            Owner.Invalidate(UIObject.Invalidation.TransformDirty);
+            if (Owner.TryGetTarget(out var owner))
+                owner.Invalidate(UIObject.Invalidation.TransformDirty);
         }
     }
 }

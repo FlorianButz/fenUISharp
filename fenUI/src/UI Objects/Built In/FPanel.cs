@@ -17,8 +17,8 @@ namespace FenUISharp.Objects
 
         public FPanel(Func<Vector2>? position = null, Func<Vector2>? size = null, float? cornerRadius = null, Func<SKColor>? color = null) : base(position, size)
         {
-            CornerRadius = new(() => cornerRadius ?? 35, this);
-            UseSquircle = new(() => true, this);
+            CornerRadius = new(() => cornerRadius ?? 35, this, this);
+            UseSquircle = new(() => true, this, this);
 
             Transform.SnapPositionToPixelGrid.SetStaticState(true);
 
@@ -53,14 +53,6 @@ namespace FenUISharp.Objects
                 path.AddRoundRect(rect ?? Shape.LocalBounds, CornerRadius.CachedValue, CornerRadius.CachedValue);
 
             return path;
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-
-            CornerRadius.Dispose();
-            UseSquircle.Dispose();
         }
     }
 }

@@ -15,20 +15,10 @@ namespace FenUISharp.Behavior
 
         public Rotation3DTransformComponent(UIObject owner) : base(owner)
         {
-            RotationX = new(() => 0, Owner);
-            RotationY = new(() => 0, Owner);
-            RotationZ = new(() => 0, Owner);
-            DepthScale = new(() => 1, Owner);
-        }
-
-        public override void ComponentDestroy()
-        {
-            base.ComponentDestroy();
-
-            RotationX.Dispose();
-            RotationY.Dispose();
-            RotationZ.Dispose();
-            DepthScale.Dispose();
+            RotationX = new(() => 0, Owner, Owner);
+            RotationY = new(() => 0, Owner, Owner);
+            RotationZ = new(() => 0, Owner, Owner);
+            DepthScale = new(() => 1, Owner, Owner);
         }
 
         public override void HandleEvent(BehaviorEventType type, object? data = null)

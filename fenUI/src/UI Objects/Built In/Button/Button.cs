@@ -34,11 +34,11 @@ namespace FenUISharp.Objects.Buttons
             selectableComponent.OnSelectionGained += () => FContext.GetKeyboardInputManager().RegisterKeybind(spaceInteract);
             selectableComponent.OnSelectionLost += () => FContext.GetKeyboardInputManager().UnregisterKeybind(spaceInteract);
 
-            HoverMix = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix, this);
+            HoverMix = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.HoveredMix, this, this);
             RenderMaterial.Value = FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.InteractableMaterial;
             currentHoverMix = SKColors.Transparent;
 
-            CornerRadius = new(() => 10f, this);
+            CornerRadius = new(() => 10f, this, this);
 
             InteractiveSurface.EnableMouseActions.SetStaticState(true);
             InteractiveSurface.OnMouseAction += MouseAction;
@@ -68,13 +68,6 @@ namespace FenUISharp.Objects.Buttons
 
             Transform.SnapPositionToPixelGrid.SetStaticState(true);
             UpdateColors();
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-            CornerRadius.Dispose();
-            HoverMix.Dispose();
         }
 
         public override void OnInternalStateChanged<T>(T value)

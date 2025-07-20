@@ -18,7 +18,8 @@ namespace FenUISharp.Behavior
         public override void ComponentDestroy()
         {
             base.ComponentDestroy();
-            
+
+            if (Owner == null) return;
             Owner.InteractiveSurface.OnMouseEnter -= MouseEnter;
             Owner.InteractiveSurface.OnMouseExit -= MouseExit;
         }

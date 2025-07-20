@@ -90,20 +90,20 @@ namespace FenUISharp.Objects
             selectableComponent.OnSelectionGained += () => FContext.GetKeyboardInputManager().RegisterKeybind(decrement);
             selectableComponent.OnSelectionLost += () => FContext.GetKeyboardInputManager().UnregisterKeybind(decrement);
 
-            MinValue = new(() => 0, this);
-            MaxValue = new(() => 1, this);
+            MinValue = new(() => 0, this, this);
+            MaxValue = new(() => 1, this, this);
 
             ImageEffects.Opacity.SetResponsiveState(() => InteractiveSurface.IgnoreInteractions.CachedValue ? 0.35f : 1f, 10);
 
-            BarFill = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary, this);
-            Bar = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary, this);
-            BarBorder = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSecondary.WithAlpha(35), this);
+            BarFill = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary, this, this);
+            Bar = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary, this, this);
+            BarBorder = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSecondary.WithAlpha(35), this, this);
 
-            KnobFill = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary, this);
-            KnobBorder = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSecondary.WithAlpha(45), this);
+            KnobFill = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary, this, this);
+            KnobBorder = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSecondary.WithAlpha(45), this, this);
 
-            KnobShadow = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Shadow, this);
-            SnappingHandle = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SecondaryVariant, this);
+            KnobShadow = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Shadow, this, this);
+            SnappingHandle = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SecondaryVariant, this, this);
 
             Padding.SetStaticState(15);
             InteractiveSurface.ExtendInteractionRadius.SetStaticState(10);
@@ -364,24 +364,6 @@ namespace FenUISharp.Objects
             hotSpots.Sort();
 
             return hotSpots;
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-
-            MinValue.Dispose();
-            MaxValue.Dispose();
-
-            BarFill.Dispose();
-            Bar.Dispose();
-            BarBorder.Dispose();
-
-            KnobFill.Dispose();
-            KnobBorder.Dispose();
-
-            KnobShadow.Dispose();
-            SnappingHandle.Dispose();
         }
     }
 }

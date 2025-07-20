@@ -194,9 +194,14 @@ namespace FenUISharp.Mathematics
             return newMin + normalized * (newMax - newMin);
         }
 
-        public static bool Approximately(float value, float newNormalized)
+        public static bool Approximately(float value, float other)
         {
-            return Math.Round(value * 100) == Math.Round(newNormalized * 100);
+            return Approximately(value, other, 2);
+        }
+
+        public static bool Approximately(float value, float other, float exponent)
+        {
+            return Math.Round(value * MathF.Pow(10, exponent)) == Math.Round(other * MathF.Pow(10, exponent));
         }
 
         public static float InverseLerp(float a, float b, float value)

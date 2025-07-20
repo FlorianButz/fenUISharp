@@ -7,8 +7,18 @@ namespace FenUISharp.Objects
 {
     public class InteractiveSurface : IDisposable
     {
-        public UIObject Owner { get; init; }
-        public State<SKRect> GlobalSurface { get; init; }
+        public WeakReference<UIObject> Owner { get; private set; }
+        private UIObject? owner
+        {
+            get
+            {
+                if (Owner.TryGetTarget(out var target)) return target;
+                else return null;
+            }
+        }
+
+        public State<SKRect> GlobalSurface
+        { get; init; }
         private Dispatcher Dispatcher { get; init; }
 
         private string uniqueID = Guid.NewGuid().ToString();
@@ -58,7 +68,7 @@ namespace FenUISharp.Objects
         /// When a specific action is held down for a long time
         /// </summary>
         public Action<MouseInputButton>? OnLongMouseAction { get; set; }
- 
+
         // Scrolling
 
         public Action<float>? OnMouseScroll { get; set; }
@@ -79,7 +89,7 @@ namespace FenUISharp.Objects
         private DateTime _lastInputMouseStateTime;
         private int _lastInputID = 0; // Used for long press detection
 
-        private bool ParentIgnoreChild { get => (Owner.Parent?.InteractiveSurface.IgnoreChildInteractions.CachedValue ?? false) || (Owner.Parent?.InteractiveSurface.ParentIgnoreChild ?? false); }
+        private bool ParentIgnoreChild { get => (owner?.Parent?.InteractiveSurface.IgnoreChildInteractions.CachedValue ?? false) || (owner?.Parent?.InteractiveSurface.ParentIgnoreChild ?? false); }
 
         [ThreadStatic]
         private static List<InteractiveSurface> _surfaces;
@@ -96,16 +106,16 @@ namespace FenUISharp.Objects
 
         public InteractiveSurface(UIObject owner, Dispatcher dispatcher, Func<SKRect> globalSurface)
         {
-            this.Owner = owner;
-            GlobalSurface = new(globalSurface, (x) => { });
+            this.Owner = new(owner);
+            GlobalSurface = new(globalSurface, owner, (x) => { });
             this.Dispatcher = dispatcher;
 
-            ExtendInteractionRadius = new(() => 2, (x) => { });
-            IgnoreInteractions = new(() => false, (x) => { });
-            IgnoreChildInteractions = new(() => false, (x) => { });
+            ExtendInteractionRadius = new(() => 2, owner, (x) => { });
+            IgnoreInteractions = new(() => false, owner, (x) => { });
+            IgnoreChildInteractions = new(() => false, owner, (x) => { });
 
-            EnableMouseActions = new(() => false, (x) => { });
-            EnableMouseScrolling = new(() => false, (x) => { });
+            EnableMouseActions = new(() => false, owner, (x) => { });
+            EnableMouseScrolling = new(() => false, owner, (x) => { });
 
             FContext.GetCurrentWindow().MouseAction += FuncOnMouseAction;
             WindowFeatures.GlobalHooks.OnMouseScroll += Global_FuncOnMouseScroll;
@@ -126,15 +136,18 @@ namespace FenUISharp.Objects
 
         private void CacheTopmostMouseAction()
         {
-            List<UIObject> ordered = Owner.Composition.GetZOrderedListOfEverything();
+            var capturedOwner = owner;
+            if (capturedOwner == null) return;
+
+            List<UIObject> ordered = capturedOwner.Composition.GetZOrderedListOfEverything();
 
             // Goes in reverse Z-order (front to back)
             for (int i = ordered.Count - 1; i >= 0; i--)
             {
                 var obj = ordered[i];
                 var surfaces = _surfaces.Where(s =>
-                    s.Owner == obj &&
-                    s.Owner.GlobalEnabled &&
+                    s.owner == obj &&
+                    s.owner.GlobalEnabled &&
                     !s.IgnoreInteractions.CachedValue &&
                     !s.ParentIgnoreChild &&
                     s.EnableMouseActions.CachedValue &&
@@ -152,15 +165,18 @@ namespace FenUISharp.Objects
 
         private void CacheTopmostMouseScroll()
         {
-            List<UIObject> ordered = Owner.Composition.GetZOrderedListOfEverything();
+            var capturedOwner = owner;
+            if (capturedOwner == null) return;
+
+            List<UIObject> ordered = capturedOwner.Composition.GetZOrderedListOfEverything();
 
             // Goes in reverse Z-order (front to back)
             for (int i = ordered.Count - 1; i >= 0; i--)
             {
                 var obj = ordered[i];
                 var surfaces = _surfaces.Where(s =>
-                    s.Owner == obj &&
-                    s.Owner.GlobalEnabled &&
+                    s.owner == obj &&
+                    s.owner.GlobalEnabled &&
                     !s.IgnoreInteractions.CachedValue &&
                     !s.ParentIgnoreChild &&
                     s.EnableMouseScrolling.CachedValue &&
@@ -178,14 +194,20 @@ namespace FenUISharp.Objects
 
         private void FuncOnMouseActionGlobal(MouseInputCode code)
         {
-            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+            var capturedOwner = owner;
+
+            if (capturedOwner == null) return;
+            if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
 
             Dispatcher.InvokeWithID(() => FuncOnMouseMoveGlobal(code), $"{uniqueID}-globalmousemove");
         }
 
         private void Global_FuncOnMouseScroll(float obj)
         {
-            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+            var capturedOwner = owner;
+
+            if (capturedOwner == null) return;
+            if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
 
             _lastDelta += obj;
             Dispatcher.InvokeWithID(() => FuncOnMouseScroll(), $"{uniqueID}-mousescroll");
@@ -193,14 +215,20 @@ namespace FenUISharp.Objects
 
         private void Global_FuncOnMouseMove(Vector2 vector)
         {
-            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+            var capturedOwner = owner;
+
+            if (capturedOwner == null) return;
+            if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
 
             Dispatcher.InvokeWithID(() => FuncOnMouseMove(), $"{uniqueID}-mousemove");
         }
 
         private void FuncOnMouseScroll()
         {
-            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+            var capturedOwner = owner;
+
+            if (capturedOwner == null) return;
+            if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
             if (!FContext.GetCurrentWindow().IsWindowFocused || !TestIfTopMost_MouseScrolling() || !TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition)) return;
 
             OnMouseScroll?.Invoke(_lastDelta);
@@ -209,7 +237,11 @@ namespace FenUISharp.Objects
 
         private void FuncOnMouseMove()
         {
-            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+            var capturedOwner = owner;
+
+            if (capturedOwner == null) return;
+            if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
+
             OnMouseMove?.Invoke(FContext.GetCurrentWindow().ClientMousePosition);
 
             FuncProcessDrag();
@@ -237,7 +269,10 @@ namespace FenUISharp.Objects
 
         private void FuncProcessDrag()
         {
-            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+            var capturedOwner = owner;
+
+            if (capturedOwner == null) return;
+            if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
 
             if (IsMouseDown && !IsDragging && IsMouseHovering /* Technically not needed, but helps with readability */)
             {
@@ -267,7 +302,10 @@ namespace FenUISharp.Objects
 
         private void FuncOnMouseMoveGlobal(MouseInputCode code)
         {
-            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+            var capturedOwner = owner;
+
+            if (capturedOwner == null) return;
+            if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
 
             if (code.button == MouseInputButton.Left && code.state == MouseInputState.Up && IsMouseDown)
             {
@@ -282,7 +320,10 @@ namespace FenUISharp.Objects
 
         private void FuncOnMouseAction(MouseInputCode code)
         {
-            if (!Owner.GlobalEnabled || !Owner.GlobalVisible) return;
+            var capturedOwner = owner;
+
+            if (capturedOwner == null) return;
+            if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
 
             // Dragging
 
@@ -324,7 +365,7 @@ namespace FenUISharp.Objects
             {
                 _lastInputID++;
                 var id = _lastInputID;
-                
+
                 Dispatcher.InvokeLater(() =>
                 {
                     if (_lastInputID == id)
@@ -337,13 +378,18 @@ namespace FenUISharp.Objects
 
         public bool TestForGlobalPoint(in Vector2 point)
         {
+            if (owner == null) return false;
+            
             // return GetGlobalInteractionRect().Contains(point.x, point.y);
-            return GetGlobalInteractionRect().Contains(point.x, point.y) && (Owner.Parent != null ? Owner.Parent.InteractiveSurface.TestForGlobalPoint(point) : true);
+            return GetGlobalInteractionRect().Contains(point.x, point.y) && (owner.Parent != null ? owner.Parent.InteractiveSurface.TestForGlobalPoint(point) : true);
         }
 
         private bool TestIfTopMost_MouseInteraction()
         {
-            if (MouseInteractionCallbackOnChildMouseInteraction && Owner.Children.Any(x => x.InteractiveSurface.TestIfTopMost_MouseInteraction()))
+            var capturedOwner = owner;
+
+            if (capturedOwner == null) return false;
+            if (MouseInteractionCallbackOnChildMouseInteraction && capturedOwner.Children.Any(x => x.InteractiveSurface.TestIfTopMost_MouseInteraction()))
                 return true;
 
             return _topmostSurfaceMouseAction == this;
@@ -372,16 +418,12 @@ namespace FenUISharp.Objects
         public void Dispose()
         {
             _surfaces.Remove(this);
+            Owner = null;
 
             FContext.GetCurrentWindow().MouseAction -= FuncOnMouseAction;
             WindowFeatures.GlobalHooks.OnMouseScroll -= Global_FuncOnMouseScroll;
             WindowFeatures.GlobalHooks.OnMouseMove -= Global_FuncOnMouseMove;
             WindowFeatures.GlobalHooks.OnMouseAction -= FuncOnMouseActionGlobal;
-
-            IgnoreInteractions.Dispose();
-            IgnoreChildInteractions.Dispose();
-            EnableMouseActions.Dispose();
-            EnableMouseScrolling.Dispose();
 
             activeInstances--;
             if (activeInstances <= 0)

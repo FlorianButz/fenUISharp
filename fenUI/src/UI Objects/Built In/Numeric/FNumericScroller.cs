@@ -53,13 +53,13 @@ namespace FenUISharp.Objects
             label.Layout.StretchHorizontal.SetStaticState(true);
             label.Layout.StretchVertical.SetStaticState(true);
 
-            MinValue = new(() => 0f, this);
-            MaxValue = new(() => 1f, this);
-            Step = new(() => 0.1f, this);
+            MinValue = new(() => 0f, this, this);
+            MaxValue = new(() => 1f, this, this);
+            Step = new(() => 0.1f, this, this);
 
-            Suffix = new(() => "", this);
-            FormatProvider = new(formatProvider ?? (() => ""), this);
-            Culture = new(() => System.Globalization.CultureInfo.CurrentCulture, this);
+            Suffix = new(() => "", this, this);
+            FormatProvider = new(formatProvider ?? (() => ""), this, this);
+            Culture = new(() => System.Globalization.CultureInfo.CurrentCulture, this, this);
 
             UpdateText();
         }
@@ -69,18 +69,6 @@ namespace FenUISharp.Objects
             base.OnInternalStateChanged(value);
 
             UpdateText();
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-
-            MinValue.Dispose();
-            MaxValue.Dispose();
-            Step.Dispose();
-            Suffix.Dispose();
-            FormatProvider.Dispose();
-            Culture.Dispose();
         }
 
         private float GetValue()

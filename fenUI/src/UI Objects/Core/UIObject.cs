@@ -11,14 +11,14 @@ namespace FenUISharp.Objects
 {
     public abstract class UIObject : IDisposable, IStateListener
     {
-        public Transform Transform { get; init; }
-        public Layout Layout { get; init; }
-        public Shape Shape { get; init; }
-        public Compositor Composition { get; init; }
-        public InteractiveSurface InteractiveSurface { get; init; }
-        public ImageEffects ImageEffects { get; init; }
+        public Transform Transform { get; private set; }
+        public Layout Layout { get; private set; }
+        public Shape Shape { get; private set; }
+        public Compositor Composition { get; private set; }
+        public InteractiveSurface InteractiveSurface { get; private set; }
+        public ImageEffects ImageEffects { get; private set; }
 
-        public State<Material> RenderMaterial { get; init; }
+        public State<Material> RenderMaterial { get; private set; }
 
         internal List<BehaviorComponent> BehaviorComponents { get; private set; }
 
@@ -27,6 +27,7 @@ namespace FenUISharp.Objects
 
         public State<bool> Enabled { get; init; }
         public State<bool> Visible { get; init; }
+        public State<bool> LocalVisible { get; init; }
 
         public bool IsParentRoot { get => Parent == FContext.GetRootViewPane(); }
 
@@ -36,9 +37,11 @@ namespace FenUISharp.Objects
         public bool DisableWhenOutOfParentBounds { get; set; } = true;
 
         public bool GlobalEnabled { get => Enabled.CachedValue && (Parent?.Enabled.CachedValue ?? true) && (DisableWhenOutOfParentBounds ? _insideParent : true); }
-        public bool GlobalVisible { get => Visible.CachedValue && (Parent?.Visible.CachedValue ?? true) && (DisableWhenOutOfParentBounds ? _insideParent : true); }
+        public bool GlobalVisible { get => LocalVisible.CachedValue && Visible.CachedValue && (Parent?.Visible.CachedValue ?? true) && (DisableWhenOutOfParentBounds ? _insideParent : true); }
 
         private bool _wasBeginCalled = false;
+
+        public bool IsDisposed { get; private set; }
 
         [Flags]
         public enum Invalidation
@@ -67,10 +70,11 @@ namespace FenUISharp.Objects
             if (!FContext.IsValidContext()) throw new Exception("Invalid FenUISharp window context.");
             FContext.GetCurrentWindow().WindowThemeManager.ThemeChanged += OnThemeChanged;
 
-            RenderMaterial = new(FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.DefaultMaterial, this);
+            RenderMaterial = new(FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.DefaultMaterial, this, this);
 
-            Enabled = new(() => true, this);
-            Visible = new(() => true, this);
+            Enabled = new(() => true, this, this);
+            Visible = new(() => true, this, this);
+            LocalVisible = new(() => true, this, this);
 
             Transform = new(this);
             Layout = new(this);
@@ -78,10 +82,10 @@ namespace FenUISharp.Objects
             Composition = new(this);
             InteractiveSurface = new(this, FContext.GetCurrentDispatcher(), () => Transform.DrawLocalToGlobal(Shape.LocalBounds));
 
-            Quality = new(() => 1f, (x) => Invalidate(Invalidation.SurfaceDirty));
+            Quality = new(() => 1f, this, (x) => Invalidate(Invalidation.SurfaceDirty));
             Quality.SetResolver(StateResolverTemplates.SmallestFloatResolver);
 
-            Padding = new(() => 2, (x) => Invalidate(Invalidation.SurfaceDirty)); // Default to use 2 padding. Helps to reduce sharp edges on lower quality settings
+            Padding = new(() => 2, this, (x) => Invalidate(Invalidation.SurfaceDirty)); // Default to use 2 padding. Helps to reduce sharp edges on lower quality settings
             Padding.SetResolver(StateResolverTemplates.BiggestIntResolver);
 
             Transform.LocalPosition.Value = position ?? (() => Vector2.Zero);
@@ -105,6 +109,8 @@ namespace FenUISharp.Objects
 
         public void CheckIfInsideParent()
         {
+            if (IsDisposed) return;
+            
             // Assume shapes have not been initialized anyway
             if (!_wasBeginCalled || !DisableWhenOutOfParentBounds)
                 _insideParent = true;
@@ -115,6 +121,8 @@ namespace FenUISharp.Objects
 
         protected virtual void OnThemeChanged()
         {
+            if (IsDisposed) return;
+            
             // On theme changed
             // RenderMaterial.ReevaluateValue(true);
             Invalidate(Invalidation.SurfaceDirty);
@@ -122,12 +130,16 @@ namespace FenUISharp.Objects
 
         public void RecursiveInvalidate(Invalidation invalidation)
         {
+            if (IsDisposed) return;
+            
             Invalidate(invalidation);
             Children.ToList().ForEach(x => x.RecursiveInvalidate(invalidation));
         }
 
         public void Invalidate(Invalidation invalidation)
         {
+            if (IsDisposed) return;
+            
             if (LockInvalidation) return;
             if (invalidation == Invalidation.LayoutDirty)
             {
@@ -176,10 +188,16 @@ namespace FenUISharp.Objects
 
         public void SetParent(UIObject? parent)
         {
+            if (IsDisposed) return;
+            
             if (Parent != null) Parent.Children.Remove(this);
 
             // Make sure to automatically parent to the root view pane if parent is cleared. A UIObject should NEVER not have a parent (except the root)
-            if (parent == null) Parent = FContext.GetRootViewPane();
+            if (parent == null)
+            {
+                FContext.GetRootViewPane()?.Children.Add(this);
+                Parent = FContext.GetRootViewPane();
+            }
             else
             {
                 Parent = parent;
@@ -190,6 +208,7 @@ namespace FenUISharp.Objects
         void RemoveFromParent()
         {
             if (Parent != null) Parent.Children.Remove(this);
+            Parent = null;
         }
 
         protected SKPaint GetRenderPaint()
@@ -222,6 +241,8 @@ namespace FenUISharp.Objects
 
         public void OnUpdate()
         {
+            if (IsDisposed) return;
+            
             CheckIfInsideParent();
             CheckIfSurfaceCanBeDisposed();
 
@@ -294,6 +315,8 @@ namespace FenUISharp.Objects
 
         public void OnLateUpdate()
         {
+            if (IsDisposed) return;
+            
             DispatchBehaviorEvent(BehaviorEventType.BeforeLateUpdate);
 
             if (!_wasBeginCalled)
@@ -321,6 +344,8 @@ namespace FenUISharp.Objects
 
         public void OnEarlyUpdate()
         {
+            if (IsDisposed) return;
+            
             DispatchBehaviorEvent(BehaviorEventType.BeforeEarlyUpdate);
             
             // Run own early update behavior before children
@@ -339,6 +364,7 @@ namespace FenUISharp.Objects
 
         public void RenderToSurface(SKCanvas? canvas)
         {
+            if (IsDisposed) return;
             if (canvas == null) return;
 
             DispatchBehaviorEvent(BehaviorEventType.BeforeRender, canvas);
@@ -368,6 +394,8 @@ namespace FenUISharp.Objects
 
         public virtual void DrawChildren(SKCanvas? canvas)
         {
+            if (IsDisposed) return;
+            
             DispatchBehaviorEvent(BehaviorEventType.BeforeDrawChildren, canvas);
 
             // Iterate through children for rendering.
@@ -383,6 +411,8 @@ namespace FenUISharp.Objects
 
         public bool RenderThisFrame()
         {
+            if (IsDisposed) return false;
+            
             if (!RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Bounds, Shape.GlobalBounds) && DisableWhenOutOfParentBounds) return false;
             // if (!RMath.IsRectPartiallyInside(Shape.GlobalBounds, FContext.GetCurrentWindow().GetCurrentDirtyClipPath())) return false; // Technically smart, though it wouldn't work like that
 
@@ -394,7 +424,9 @@ namespace FenUISharp.Objects
 
         public virtual void DrawToSurface(SKCanvas? canvas)
         {
-            if (!RenderThisFrame()) return;
+            if (IsDisposed) return;
+            
+            if (!RenderThisFrame() && LocalVisible.CachedValue) return;
             if (canvas == null) return;
 
             int? save = canvas?.Save();
@@ -402,12 +434,14 @@ namespace FenUISharp.Objects
 
             canvas?.Concat(Transform.DrawMatrix);
 
-            using var paint = GetDrawPaint();
+            if (LocalVisible.CachedValue)
+            {
+                using var paint = GetDrawPaint();
+                ObjectSurface.Draw();
 
-            ObjectSurface.Draw();
-
-            if (ObjectSurface.GetImage() != null)
-                canvas?.DrawImage(ObjectSurface.GetImage(), Shape.SurfaceDrawRect, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+                if (ObjectSurface.GetImage() != null)
+                    canvas?.DrawImage(ObjectSurface.GetImage(), Shape.SurfaceDrawRect, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+            }
 
             // Children draw pass
             DrawChildren(canvas);
@@ -425,6 +459,8 @@ namespace FenUISharp.Objects
 
         public void DispatchBehaviorEvent(BehaviorEventType type, object? data = null)
         {
+            if (IsDisposed) return;
+            
             foreach (var behavior in BehaviorComponents.ToList())
             {
                 if (behavior.Enabled)
@@ -436,21 +472,39 @@ namespace FenUISharp.Objects
 
         public virtual void Dispose()
         {
-            Transform.Dispose();
-            Layout.Dispose();
+            if (IsDisposed)
+            {
+                Console.WriteLine($"{GetType().FullName} has already been disposed.");
+                return;
+            }
+            
+            Children.ToList().ForEach(x => x.Dispose());
+            BehaviorComponents.ToList().ForEach(x => x.Dispose());
 
-            Enabled.Dispose();
-            Visible.Dispose();
-            Quality.Dispose();
-            Padding.Dispose();
-            RenderMaterial.Dispose();
+            Transform.Dispose();
+            Transform = null;
+            Layout.Dispose();
+            Layout = null;
+            InteractiveSurface.Dispose();
+            InteractiveSurface = null;
+            Composition.Dispose();
+            Composition = null;
+            ImageEffects.Dispose();
+            ImageEffects = null;
 
             RemoveFromParent();
             OnObjectDisposed?.Invoke();
+            OnObjectDisposed = null;
+
+            ObjectSurface.Dispose();
+
+            IsDisposed = true;
         }
 
         void CheckIfSurfaceCanBeDisposed()
         {
+            if (IsDisposed) return;
+
             if (!GlobalEnabled || !GlobalVisible)
             {
                 ObjectSurface.DisposeSurface();
@@ -460,6 +514,8 @@ namespace FenUISharp.Objects
 
         public virtual void OnInternalStateChanged<T>(T value)
         {
+            if (IsDisposed) return;
+
             Invalidate(Invalidation.All); // Make sure to invalidate all when quality or padding is updated. This stuff can break easily if not updated
             // CheckIfSurfaceCanBeDisposed();
         }

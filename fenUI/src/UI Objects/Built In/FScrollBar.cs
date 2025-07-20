@@ -36,10 +36,10 @@ namespace FenUISharp.Objects
 
         public FScrollBar(Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
-            ScrollAreaColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SurfaceVariant, this);
-            ScrollPositionColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface, this);
+            ScrollAreaColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.SurfaceVariant, this, this);
+            ScrollPositionColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface, this, this);
 
-            HorizontalOrientation = new(() => false, this);
+            HorizontalOrientation = new(() => false, this, this);
             InteractiveSurface.EnableMouseActions.Value = () => true;
             InteractiveSurface.ExtendInteractionRadius.Value = () => 5;
 
@@ -62,14 +62,10 @@ namespace FenUISharp.Objects
 
         public override void Dispose()
         {
-            base.Dispose();
-
-            ScrollAreaColor.Dispose();
-            ScrollPositionColor.Dispose();
-            HorizontalOrientation.Dispose();
-
             InteractiveSurface.OnMouseEnter -= MouseEnter;
             InteractiveSurface.OnMouseExit -= MouseExit;
+            
+            base.Dispose();
         }
 
         protected override void Update()

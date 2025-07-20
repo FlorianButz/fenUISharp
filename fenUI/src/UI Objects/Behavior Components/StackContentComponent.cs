@@ -23,8 +23,6 @@ namespace FenUISharp.Behavior
         public bool ContentClip { get; set; } = true;
         public float FadeLength { get; set; } = 60;
 
-        public bool EnableEdgeBlur { get; set; } = false;
-
         public ContentStackType StackType { get; set; }
         public ContentStackBehavior StackBehavior { get; set; }
 
@@ -65,8 +63,8 @@ namespace FenUISharp.Behavior
             owner.InteractiveSurface.EnableMouseScrolling.Value = () => StackBehavior == ContentStackBehavior.Scroll;
             owner.InteractiveSurface.OnMouseScroll += OnScroll;
 
-            Gap = new(() => 10, this);
-            Pad = new(() => 15, this);
+            Gap = new(() => 10, Owner, this);
+            Pad = new(() => 15, Owner, this);
 
             ScrollSpring = new Spring(new Vector2(0, 0), 2f, 1f / 0.85f, 0.1f);
 
@@ -95,14 +93,12 @@ namespace FenUISharp.Behavior
         public override void ComponentDestroy()
         {
             base.ComponentDestroy();
+            GetAffectedChildren().ForEach(x => x.Layout.ProcessLayoutPositioning = null);
+
+            if (Owner == null) return;
 
             Owner.InteractiveSurface.OnDrag -= OnDrag;
             Owner.InteractiveSurface.OnMouseScroll -= OnScroll;
-
-            GetAffectedChildren().ForEach(x => x.Layout.ProcessLayoutPositioning = null);
-
-            Gap.Dispose();
-            Pad.Dispose();
         }
 
         public Vector2 ProcessChildLayout(Vector2 i)
@@ -140,7 +136,7 @@ namespace FenUISharp.Behavior
         {
             List<UIObject> affected = new();
 
-            Owner.Composition.GetZOrderedListOfChildren(Owner).ForEach(x =>
+            Owner?.Composition.GetZOrderedListOfChildren(Owner).ForEach(x =>
             {
                 if (!x.BehaviorComponents.Any(x => x is LayoutObject && ((LayoutObject)x).IgnoreParentLayout.CachedValue))
                     affected.Add(x);
@@ -223,20 +219,6 @@ namespace FenUISharp.Behavior
             if (_fadeLayerSaveCount != null)
                 canvas?.RestoreToCount(_fadeLayerSaveCount.Value);
             _fadeLayerSaveCount = null;
-
-            if (EnableEdgeBlur)
-            {
-                // TODO: Reimplement
-                // if (Owner._childSurface.TryGetSurface(out var surf))
-                // {
-                //     float l = FadeLength / 2f;
-                //     var topBounds = new SKRect(bounds.Left, bounds.Top, bounds.Right, bounds.Top + l);
-                //     var bottomBounds = new SKRect(bounds.Left, bounds.Bottom - l, bounds.Right, bounds.Bottom);
-
-                //     VariableBlur.ApplyBlur(surf, topBounds, Owner.Padding.CachedValue, new(0, 1), maxBlur: 3);
-                //     VariableBlur.ApplyBlur(surf, bottomBounds, Owner.Padding.CachedValue, new(0, -1), maxBlur: 3);
-                // }
-            }
         }
 
         // public void OnBeforeRenderChildren(SKCanvas? canvas){}

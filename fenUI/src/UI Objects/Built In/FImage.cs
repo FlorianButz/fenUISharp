@@ -19,13 +19,13 @@ namespace FenUISharp.Objects
         {
             _drawBasePanel = drawBackground;
 
-            Image = new(image, this);
-            TintBlendMode = new(() => SKBlendMode.Modulate, this);
-            ScaleMode = new(() => ImageScaleMode.Fit, this);
+            Image = new(image, this, this);
+            TintBlendMode = new(() => SKBlendMode.Modulate, this, this);
+            ScaleMode = new(() => ImageScaleMode.Fit, this, this);
 
             CornerRadius.SetResponsiveState(() => Layout.ClampSize(Transform.Size.CachedValue).y / 1.5f);
 
-            TintColor = new(() => dynamicColor ? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface : SKColors.White, this);
+            TintColor = new(() => dynamicColor ? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface : SKColors.White, this, this);
             Padding.Value = () => 10;
         }
 
@@ -82,17 +82,6 @@ namespace FenUISharp.Objects
                 paint.ColorFilter = cFilter;
 
             canvas.DrawImage(Image.CachedValue, bounds ?? Shape.LocalBounds, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-
-            Image.Dispose();
-            TintBlendMode.Dispose();
-            ScaleMode.Dispose();
-
-            TintColor.Dispose();
         }
     }
 }

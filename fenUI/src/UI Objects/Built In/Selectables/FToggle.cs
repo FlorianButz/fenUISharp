@@ -12,7 +12,7 @@ namespace FenUISharp.Objects
 
         public FToggle(Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position: position, size: size ?? (() => new(20, 20)))
         {
-            CheckColor = new(() => SKColors.White, this);
+            CheckColor = new(() => SKColors.White, this, this);
 
             Padding.SetStaticState(2);
 
@@ -25,13 +25,6 @@ namespace FenUISharp.Objects
             image.Transform.LocalPosition.SetStaticState(new(0.5f, 1f));
             image.Enabled.SetResponsiveState(() => IsSelected);
             image.SetParent(this);
-        }
-        
-        public override void Dispose()
-        {
-            base.Dispose();
-
-            CheckColor.Dispose();
         }
     }
 }

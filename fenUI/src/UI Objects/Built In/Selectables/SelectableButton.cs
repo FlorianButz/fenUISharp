@@ -23,13 +23,7 @@ namespace FenUISharp.Objects.Buttons
             OnSelectionChanged = onSelectionChanged;
             InteractiveSurface.EnableMouseActions.SetStaticState(true);
 
-            EnabledFillColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary, this);
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-            EnabledFillColor.Dispose();
+            EnabledFillColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary, this, this);
         }
 
         public void SetSelected(bool isSelected)

@@ -55,10 +55,10 @@ namespace FenUISharp.Objects
             buttonGroup.Select(initiallySelected); // Then activate initial selection
             lastGlobalRect = () => buttonGroup.Buttons[buttonGroup.LatestSelection].Shape.GlobalBounds;
 
-            Selection = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary, this);
-            Background = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Surface, this);
-            Text = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface, this);
-            TextSelected = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface, this);
+            Selection = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Secondary, this, this);
+            Background = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Surface, this, this);
+            Text = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface, this, this);
+            TextSelected = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface, this, this);
 
             RenderMaterial.Value = () => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.InteractableMaterial().WithOverride(new()
             {

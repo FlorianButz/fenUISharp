@@ -27,7 +27,7 @@ namespace FenUISharp.Objects
 
         public FPopupPanel(Func<Vector2> size, bool addLayout = true) : base(() => new(0, 0), size)
         {
-            GlobalTargetPoint = new(() => new(0, 0), this);
+            GlobalTargetPoint = new(() => new(0, 0), this, this);
 
             closeKeybind = new() { VKCode = 0x1B, OnKeybindExecuted = () => { if (AllowEscapeClosing) Close(); } };
             FContext.GetKeyboardInputManager().RegisterKeybind(closeKeybind);
@@ -39,7 +39,6 @@ namespace FenUISharp.Objects
                 layout.Gap.SetStaticState(15);
 
                 layout.ContentFade = true;
-                layout.EnableEdgeBlur = true;
                 layout.FadeLength = 20;
             }
 
@@ -369,7 +368,6 @@ namespace FenUISharp.Objects
         {
             base.Dispose();
 
-            GlobalTargetPoint.Dispose();
             WindowFeatures.GlobalHooks.OnMouseAction -= OnGlobalMouseAction;
             FContext.GetKeyboardInputManager().UnregisterKeybind(closeKeybind);
         }

@@ -4,13 +4,23 @@ namespace FenUISharp.Behavior
 {
     public class BehaviorComponent : IDisposable
     {
-        public UIObject Owner { get; init; }
+        private WeakReference<UIObject>? WeakOwner;
+        public UIObject? Owner
+        {
+            get
+            {
+                // TODO: This line seems to bite me regardless of what I do
+                if (WeakOwner?.TryGetTarget(out var target) ?? false) return target;
+                return null; // Usually shouldn't happen but some edge cases may lead to it
+            }
+        }
+
         public bool Enabled { get; set; } = true;
 
         public BehaviorComponent(UIObject owner)
         {
-            this.Owner = owner;
-            Owner.BehaviorComponents.Add(this);
+            this.WeakOwner = new(owner);
+            Owner?.BehaviorComponents.Add(this);
         }
 
         public virtual void HandleEvent(BehaviorEventType type, object? data = null) { }
@@ -19,7 +29,8 @@ namespace FenUISharp.Behavior
         public void Dispose()
         {
             ComponentDestroy();
-            Owner.BehaviorComponents.Remove(this);
+            
+            Owner?.BehaviorComponents.Remove(this);
         }
     }
 

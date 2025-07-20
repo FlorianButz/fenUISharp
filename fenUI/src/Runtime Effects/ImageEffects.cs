@@ -17,33 +17,22 @@ namespace FenUISharp.Behavior.RuntimeEffects
 
         public ImageEffects(UIObject owner) : base(owner)
         {
-            Opacity = new(() => 1f, this);
+            Opacity = new(() => 1f, Owner, this);
             Opacity.SetResolver(StateResolverTemplates.SmallestFloatResolver);
             Opacity.SetProcessor((x) => RMath.Clamp(x, 0, 1));
 
-            Saturation = new(() => 1f, this);
+            Saturation = new(() => 1f, Owner, this);
             Saturation.SetProcessor((x) => RMath.Clamp(x, 0, 4));
 
-            Brightness = new(() => 1f, this);
+            Brightness = new(() => 1f, Owner, this);
             Brightness.SetProcessor((x) => RMath.Clamp(x, 0, 2));
 
-            BlurRadius = new(() => 0f, this);
+            BlurRadius = new(() => 0f, Owner, this);
             BlurRadius.SetResolver(StateResolverTemplates.BiggestFloatResolver);
             BlurRadius.SetProcessor((x) => Math.Abs(x));
 
-            InheritFromParent = new(() => true, this);
+            InheritFromParent = new(() => true, Owner, this);
             Owner.Padding.SetResponsiveState(GetPadding, 10);
-        }
-
-        public override void ComponentDestroy()
-        {
-            base.ComponentDestroy();
-
-            Opacity.Dispose();
-            BlurRadius.Dispose();
-            Saturation.Dispose();
-            Brightness.Dispose();
-            InheritFromParent.Dispose();
         }
 
         public override void HandleEvent(BehaviorEventType type, object? data = null)
@@ -139,7 +128,7 @@ namespace FenUISharp.Behavior.RuntimeEffects
 
         public void GetValues(out (float opacity, float blurRadius, float saturation, float brightness) values)
         {
-            if (Owner.Parent == null || !InheritFromParent.CachedValue)
+            if (Owner?.Parent == null || !InheritFromParent.CachedValue)
             {
                 values = (
                     Opacity.CachedValue,
@@ -167,9 +156,9 @@ namespace FenUISharp.Behavior.RuntimeEffects
 
         public void OnInternalStateChanged<T>(T value)
         {
-            Owner.Invalidate(UIObject.Invalidation.SurfaceDirty);
+            Owner?.Invalidate(UIObject.Invalidation.SurfaceDirty);
 
-            Owner.Children.ForEach(x =>
+            Owner?.Children.ForEach(x =>
             {
                 x.ImageEffects.OnInternalStateChanged<T>(value);
             });

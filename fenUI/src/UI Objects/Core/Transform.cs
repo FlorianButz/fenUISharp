@@ -6,7 +6,7 @@ namespace FenUISharp.Objects
 {
     public class Transform : IDisposable, IStateListener
     {
-        public UIObject Owner { get; init; }
+        public UIObject Owner { get; private set; }
 
         public State<Vector2> LocalPosition { get; init; }
         public Vector2 Position { get; private set; }
@@ -37,13 +37,14 @@ namespace FenUISharp.Objects
         {
             this.Owner = owner;
 
-            SnapPositionToPixelGrid = new(() => false, this);
-            LocalPosition = new(() => new(0, 0), this);
-            Size = new(() => new(0, 0), this);
-            Scale = new(() => new(1, 1), this);
-            Rotation = new(() => 0, this);
-            Anchor = new(() => new(0.5f, 0.5f), this);
+            SnapPositionToPixelGrid = new(() => false, Owner, this);
+            LocalPosition = new(() => new(0, 0), Owner, this);
+            Size = new(() => new(0, 0), Owner, this);
+            Scale = new(() => new(1, 1), Owner, this);
+            Rotation = new(() => 0, Owner, this);
+            Anchor = new(() => new(0.5f, 0.5f), Owner, this);
         }
+        
 
         public void UpdateTransform()
         {
@@ -68,7 +69,7 @@ namespace FenUISharp.Objects
                 Pivot = new(MathF.Round(Pivot.x), MathF.Round(Pivot.y));
 
             // Apply to matrix
-                matrix = SKMatrix.Concat(matrix, SKMatrix.CreateTranslation(Position.x, Position.y));
+            matrix = SKMatrix.Concat(matrix, SKMatrix.CreateTranslation(Position.x, Position.y));
             matrix = SKMatrix.Concat(matrix, SKMatrix.CreateRotationDegrees(Rotation.CachedValue, Pivot.x, Pivot.y));
             matrix = SKMatrix.Concat(matrix, SKMatrix.CreateScale(Scale.CachedValue.x, Scale.CachedValue.y, Pivot.x, Pivot.y));
 
@@ -153,19 +154,15 @@ namespace FenUISharp.Objects
             return GlobalToLocalMatrix().MapRect(global);
         }
 
-        public void Dispose()
-        {
-            SnapPositionToPixelGrid.Dispose();
-            LocalPosition.Dispose();
-            Size.Dispose();
-            Scale.Dispose();
-            Rotation.Dispose();
-            Anchor.Dispose();
-        }
-
         public virtual void OnInternalStateChanged<T>(T value)
         {
             Owner.Invalidate(UIObject.Invalidation.TransformDirty);
+        }
+
+        public void Dispose()
+        {
+            MatrixProcessor = null;
+            Owner = null;
         }
     }
 

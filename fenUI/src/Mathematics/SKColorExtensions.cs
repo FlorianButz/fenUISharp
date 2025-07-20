@@ -22,7 +22,11 @@ namespace FenUISharp.Mathematics {
                 (byte)((((float)color1.Alpha) * multiplier.Item4))
                 );
         }
-        
+
+        public static SKColor Multiply(this SKColor color1, float multiplier)
+        {
+            return Multiply(color1, (multiplier, multiplier, multiplier, 1f));
+        }
         
         public static SKColor AddMix(this SKColor color1, SKColor color2)
         {
