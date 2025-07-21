@@ -254,6 +254,8 @@ namespace FenUISharp
             _renderThread.Name = "Logic Thread";
             _renderThread.Start();
 
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
             MSG msg;
             while (_isRunning)
             {
@@ -268,6 +270,12 @@ namespace FenUISharp
                     Thread.Sleep(1); // Prevent too high cpu usage
                 }
             }
+        }
+
+        private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            DisposeAndDestroyWindow();
+            WindowFeatures.Uninitialize();
         }
 
         private void SetupLogic()
