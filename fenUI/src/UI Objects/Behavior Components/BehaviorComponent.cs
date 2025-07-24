@@ -9,7 +9,6 @@ namespace FenUISharp.Behavior
         {
             get
             {
-                // TODO: This line seems to bite me regardless of what I do
                 if (WeakOwner?.TryGetTarget(out var target) ?? false) return target;
                 return null; // Usually shouldn't happen but some edge cases may lead to it
             }

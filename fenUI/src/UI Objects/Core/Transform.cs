@@ -6,7 +6,16 @@ namespace FenUISharp.Objects
 {
     public class Transform : IDisposable, IStateListener
     {
-        public UIObject Owner { get; private set; }
+        private WeakReference<UIObject>? WeakOwner;
+        public UIObject? Owner
+        {
+            get
+            {
+                if (WeakOwner?.TryGetTarget(out var target) ?? false) return target;
+                return null; // Usually shouldn't happen but some edge cases may lead to it
+            }
+        }
+
 
         public State<Vector2> LocalPosition { get; init; }
         public Vector2 Position { get; private set; }
@@ -35,14 +44,14 @@ namespace FenUISharp.Objects
 
         public Transform(UIObject owner)
         {
-            this.Owner = owner;
+            this.WeakOwner = new(owner);
 
-            SnapPositionToPixelGrid = new(() => false, Owner, this);
-            LocalPosition = new(() => new(0, 0), Owner, this);
-            Size = new(() => new(0, 0), Owner, this);
-            Scale = new(() => new(1, 1), Owner, this);
-            Rotation = new(() => 0, Owner, this);
-            Anchor = new(() => new(0.5f, 0.5f), Owner, this);
+            SnapPositionToPixelGrid = new(() => false, owner, this);
+            LocalPosition = new(() => new(0, 0), owner, this);
+            Size = new(() => new(0, 0), owner, this);
+            Scale = new(() => new(1, 1), owner, this);
+            Rotation = new(() => 0, owner, this);
+            Anchor = new(() => new(0.5f, 0.5f), owner, this);
         }
         
 
@@ -54,14 +63,14 @@ namespace FenUISharp.Objects
                 matrix = SKMatrix.Concat(matrix, MatrixProcessor.ProcessMatrix(matrix));
 
             // Layout calculations
-            var size = Owner.Layout.ApplyLayoutToSize(Size.CachedValue);
-            Owner.Layout.ApplyLayoutToPositioning(size, out CalculatedLayoutOff, out CalculatedAnchorCorrection);
+            var size = Owner?.Layout.ApplyLayoutToSize(Size.CachedValue);
+            Owner?.Layout.ApplyLayoutToPositioning(size ?? new(0, 0), out CalculatedLayoutOff, out CalculatedAnchorCorrection);
 
             Position = LocalPosition.CachedValue + (CalculatedLayoutOff - CalculatedAnchorCorrection);
 
             // Pivot calculations
-            var layoutSize = Owner.Layout.ApplyLayoutToSize(Owner.Transform.Size.CachedValue);
-            Pivot = new(layoutSize.x * Anchor.CachedValue.x, layoutSize.y * Anchor.CachedValue.y);
+            var layoutSize = Owner?.Layout.ApplyLayoutToSize(Owner.Transform.Size.CachedValue);
+            Pivot = new((layoutSize ?? new()).x * Anchor.CachedValue.x, (layoutSize ?? new()).y * Anchor.CachedValue.y);
 
             if (SnapPositionToPixelGrid.CachedValue)
                 Position = new(MathF.Round(Position.x), MathF.Round(Position.y));
@@ -81,7 +90,7 @@ namespace FenUISharp.Objects
         public SKMatrix GetRecursiveDrawMatrix()
         {
             var matrix = DrawMatrix;
-            var current = this.Owner.Parent;
+            var current = this.Owner?.Parent;
 
             while (current != null)
             {
@@ -116,7 +125,7 @@ namespace FenUISharp.Objects
 
         public SKMatrix LocalToGlobalMatrix()
         {
-            var matrix = Owner.Parent?.Transform.RecursiveDrawMatrix ?? SKMatrix.CreateIdentity();
+            var matrix = Owner?.Parent?.Transform.RecursiveDrawMatrix ?? SKMatrix.CreateIdentity();
 
             matrix = SKMatrix.Concat(matrix, SKMatrix.CreateTranslation(CalculatedLayoutOff.x, CalculatedLayoutOff.y));
 
@@ -156,13 +165,13 @@ namespace FenUISharp.Objects
 
         public virtual void OnInternalStateChanged<T>(T value)
         {
-            Owner.Invalidate(UIObject.Invalidation.TransformDirty);
+            Owner?.Invalidate(UIObject.Invalidation.TransformDirty);
         }
 
         public void Dispose()
         {
             MatrixProcessor = null;
-            Owner = null;
+            WeakOwner = null;
         }
     }
 

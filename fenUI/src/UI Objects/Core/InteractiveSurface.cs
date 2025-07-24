@@ -12,7 +12,7 @@ namespace FenUISharp.Objects
         {
             get
             {
-                if (Owner.TryGetTarget(out var target)) return target;
+                if (Owner?.TryGetTarget(out var target) ?? false) return target;
                 else return null;
             }
         }

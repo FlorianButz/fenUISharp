@@ -12,7 +12,7 @@ namespace FenUISharp.States
         public bool ManualResolve { get; set; } = false;
 
         public Func<T> Value { private get => GetValue(); set => SetResponsiveState(value); }
-        public T CachedValue { get => _processor(_lastValue); }
+        public T CachedValue { get => _lastValue; }
 
         private List<StateEntry<T>> values = new();
         private Func<List<StateEntry<T>>, StateEntry<T>> _resolver;
@@ -138,10 +138,10 @@ namespace FenUISharp.States
             var last = _lastValue;
             var value = winningEntry.Value();
 
-            _lastValue = value;
+            _lastValue = _processor(value);
 
-            if (!EqualityComparer<T>.Default.Equals(last, value))
-                FContext.GetCurrentDispatcher().Invoke(() => Notify(value));
+            if (!EqualityComparer<T>.Default.Equals(last, _lastValue))
+                FContext.GetCurrentDispatcher().Invoke(() => Notify(_lastValue));
         }
 
 
@@ -154,7 +154,7 @@ namespace FenUISharp.States
         public void ReevaluateValue(bool forceReevaluation = false)
         {
             if (Value == null) return;
-            var value = Value();
+            var value = _processor(Value());
 
             if (!EqualityComparer<T>.Default.Equals(_lastValue, value) || forceReevaluation) Notify(value);
 

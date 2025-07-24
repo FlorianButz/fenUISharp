@@ -30,7 +30,6 @@ namespace FenUISharp.Objects
 
         }
 
-
         public override void Render(SKCanvas canvas)
         {
             var bounds = Shape.LocalBounds;

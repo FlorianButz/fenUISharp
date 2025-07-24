@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using FenUISharp;
 using SkiaSharp;
@@ -213,23 +214,27 @@ namespace FenUISharp.WinFeatures
 
         private static async void UpdateThumbnailAsync()
         {
-            var info = await currentSession?.TryGetMediaPropertiesAsync();
-
-            var thumbnail = info.Thumbnail;
-            if (thumbnail != null)
+            try
             {
-                using var stream = await thumbnail.OpenReadAsync();
-                cachedInfo.thumbnail = ConvertThumbnailToSkImage(stream);
+                var info = await currentSession?.TryGetMediaPropertiesAsync();
 
-                if (lastThumbnail == null || !AreThumbnailsEqual(lastThumbnail, cachedInfo.thumbnail))
+                var thumbnail = info.Thumbnail;
+                if (thumbnail != null)
                 {
-                    onThumbnailUpdated?.Invoke();
-                    onMediaUpdated?.Invoke();
-                    lastThumbnail = cachedInfo.thumbnail;
+                    using var stream = await thumbnail.OpenReadAsync();
+                    cachedInfo.thumbnail = ConvertThumbnailToSkImage(stream);
+
+                    if (lastThumbnail == null || !AreThumbnailsEqual(lastThumbnail, cachedInfo.thumbnail))
+                    {
+                        onThumbnailUpdated?.Invoke();
+                        onMediaUpdated?.Invoke();
+                        lastThumbnail = cachedInfo.thumbnail;
+                    }
                 }
+                else
+                    cachedInfo.thumbnail = null;
             }
-            else
-                cachedInfo.thumbnail = null;
+            catch (COMException _) { return; }
         }
 
         private const int THUMBNAIL_SIZE = 512;

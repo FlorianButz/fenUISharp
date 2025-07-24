@@ -56,7 +56,6 @@ namespace FenUISharp
 
         private void KeyReleased(int vkCode)
         {
-            if (!_window.IsWindowFocused) return;
             vkCode = NormalizeVKCode(vkCode);
 
             char c = (char)vkCode;
@@ -80,7 +79,6 @@ namespace FenUISharp
 
         private void KeyPressed(int vkCode)
         {
-            if (!_window.IsWindowFocused) return;
             vkCode = NormalizeVKCode(vkCode);
 
             char c = (char)vkCode;
@@ -111,10 +109,13 @@ namespace FenUISharp
                     if (!keybind.Flags.HasFlag(KeyBindFlags.Alt) && IsAltPressed) continue;
                     if (!keybind.Flags.HasFlag(KeyBindFlags.Shift) && IsShiftPressed) continue;
 
+                    if (!keybind.IgnoreFocus && !_window.IsWindowFocused) continue;
+
                     _window.Dispatcher.Invoke(() => keybind.OnKeybindExecuted?.Invoke());
                 }
             }
 
+            if (!_window.IsWindowFocused) return;
             _window.Dispatcher.Invoke(() => OnKeyPressed?.Invoke(c));
         }
 
@@ -148,6 +149,8 @@ namespace FenUISharp
         public KeyBindFlags Flags { get; init; }
         public int VKCode { get; init; }
         public int[] AliasVKCodes { get; init; }
+
+        public bool IgnoreFocus { get; init; }
         
         public Action? OnKeybindExecuted { get; set; }
     }

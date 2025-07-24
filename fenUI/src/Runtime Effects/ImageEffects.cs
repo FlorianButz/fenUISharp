@@ -39,11 +39,14 @@ namespace FenUISharp.Behavior.RuntimeEffects
         {
             base.HandleEvent(type, data);
 
+            var capturedOwner = Owner;
+            if (capturedOwner == null) return;
+
             switch (type)
             {
                 case BehaviorEventType.AfterRender:
-                    if (Owner.ObjectSurface.TryGetSurface(out SKSurface surfaceO))
-                        ApplyImageEffects(surfaceO, Owner.Shape.SurfaceDrawRect);
+                    if (capturedOwner.ObjectSurface.TryGetSurface(out SKSurface surfaceO))
+                        ApplyImageEffects(surfaceO, capturedOwner.Shape.SurfaceDrawRect);
                     break;
             }
         }
@@ -128,7 +131,9 @@ namespace FenUISharp.Behavior.RuntimeEffects
 
         public void GetValues(out (float opacity, float blurRadius, float saturation, float brightness) values)
         {
-            if (Owner?.Parent == null || !InheritFromParent.CachedValue)
+            var capturedOwner = Owner;
+            
+            if (capturedOwner?.Parent == null || !InheritFromParent.CachedValue)
             {
                 values = (
                     Opacity.CachedValue,
@@ -139,7 +144,7 @@ namespace FenUISharp.Behavior.RuntimeEffects
                 return;
             }
             
-            Owner.Parent.ImageEffects.GetValues(out var vals);
+            capturedOwner.Parent.ImageEffects.GetValues(out var vals);
 
             values = (
                 Opacity.CachedValue * (InheritFromParent.CachedValue ? vals.opacity : 1f),
