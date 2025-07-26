@@ -18,7 +18,7 @@ namespace FenUISharp.Objects.Buttons
         public Action<bool, SelectableButton>? OnSelectionChangedSilent { get; set; }
         public Action<bool, SelectableButton>? OnUserSelectionChanged { get; set; }
 
-        public SelectableButton(Action? onClick = null, Action<bool, SelectableButton>? onSelectionChanged = null, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(onClick, size, position)
+        public SelectableButton(Action? onClick = null, Action<bool, SelectableButton>? onSelectionChanged = null, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(onClick, position, size)
         {
             OnSelectionChanged = onSelectionChanged;
             InteractiveSurface.EnableMouseActions.SetStaticState(true);

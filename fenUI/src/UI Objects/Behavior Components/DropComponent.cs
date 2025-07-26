@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using FenUISharp.Mathematics;
 using FenUISharp.Objects;
 
 namespace FenUISharp.Behavior
@@ -16,17 +17,45 @@ namespace FenUISharp.Behavior
         public Action? OnDragStay { get; set; }
         public Action? OnDragLeave { get; set; }
 
+        private Dispatcher dispatcher;
+
         public DropComponent(UIObject owner, DropType dType = DropType.AnyText, DROPEFFECT dEffect = DROPEFFECT.Copy) : base(owner)
         {
             this.DropType = dType;
             this.DropEffect = dEffect;
         }
 
+        private void MouseStay(Vector2 vector)
+        {
+            if (Owner == null || !Owner.GlobalEnabled) return;
+            if (!_windowHasCompatibleActiveDragAction) return;
+
+            OnDragStay?.Invoke();
+        }
+
+        private void MouseExit()
+        {
+            if (Owner == null || !Owner.GlobalEnabled) return;
+            if (!_windowHasCompatibleActiveDragAction) return;
+
+            _isCurrentlyInDragAction = false;
+            OnDragDropActionLeave();
+        }
+
+        private void MouseEnter()
+        {
+            if (Owner == null || !Owner.GlobalEnabled) return;
+            if (!_windowHasCompatibleActiveDragAction) return;
+
+            _isCurrentlyInDragAction = true;
+            OnDragDropActionEnter(FContext.GetCurrentWindow().DropTarget.lastDropData);
+        }
+
         private void DragDrop(FDropData? data)
         {
-            if(Owner.Composition.TestIfTopMost() && _isCurrentlyInDragAction){
-                OnDragDropActionComplete(data);
-            }
+            if (Owner == null || !Owner.GlobalEnabled) return;
+            if (Owner.InteractiveSurface.IsMouseHovering && _isCurrentlyInDragAction)
+                dispatcher.Invoke(() => OnDragDropActionComplete(data));
 
             _windowHasCompatibleActiveDragAction = false;
             _isCurrentlyInDragAction = false;
@@ -55,9 +84,6 @@ namespace FenUISharp.Behavior
                 case BehaviorEventType.BeforeBegin:
                     ComponentSetup();
                     break;
-                case BehaviorEventType.BeforeUpdate:
-                    ComponentUpdate();
-                    break;
             }
         }
 
@@ -67,58 +93,47 @@ namespace FenUISharp.Behavior
             FContext.GetCurrentWindow().DropTarget.dragEnter += DragEnter;
             FContext.GetCurrentWindow().DropTarget.dragLeave += DragLeave;
 
+            if (Owner == null) return;
+            Owner.InteractiveSurface.EnableMouseActions.SetStaticState(true, 25);
+            Owner.InteractiveSurface.OnMouseEnter += MouseEnter;
+            Owner.InteractiveSurface.OnMouseExit += MouseExit;
+            Owner.InteractiveSurface.OnMouseMove += MouseStay;
+
+            dispatcher = FContext.GetCurrentDispatcher();
+
             if (FContext.GetCurrentWindow().DropTarget.IsDragDropActionInProgress) DragEnter(FContext.GetCurrentWindow().DropTarget.lastDropData);
 
             // Don't use drag over, it runs on different thread. Should use cutom drag over
-        }
-
-        public void ComponentUpdate()
-        {
-            if (!Owner.Enabled.CachedValue) return;
-            if (!_windowHasCompatibleActiveDragAction) return;
-
-            if (Owner.Composition.TestIfTopMost() && !_isCurrentlyInDragAction)
-            {
-                _isCurrentlyInDragAction = true;
-                OnDragDropActionEnter(FContext.GetCurrentWindow().DropTarget.lastDropData);
-            }
-            else if (Owner.Composition.TestIfTopMost() && _isCurrentlyInDragAction)
-            {
-                _isCurrentlyInDragAction = false;
-                OnDragDropActionLeave();
-            }
-            else if(Owner.Composition.TestIfTopMost() && _isCurrentlyInDragAction){
-                OnDragStay?.Invoke();
-            }
         }
 
         protected void OnDragDropActionEnter(FDropData? data)
         {
             FContext.GetCurrentWindow().DropTarget.dropEffect.SetValue(this, DropEffect, 5);
 
-            if(data != null)
+            if (data != null)
                 OnDragEnter?.Invoke(data);
         }
 
         protected void OnDragDropActionLeave()
         {
             FContext.GetCurrentWindow().DropTarget.dropEffect.DissolveValue(this);
-        
+
             OnDragLeave?.Invoke();
         }
 
         protected void OnDragDropActionComplete(FDropData? data)
         {
             FContext.GetCurrentWindow().DropTarget.dropEffect.DissolveValue(this);
-        
-            if(data != null)
+    
+            if (data != null)
                 OnDrop?.Invoke(data);
         }
 
-        bool IsSameType(DropType otherType){
-            if(otherType == DropType) return true;
-            else if((otherType == DropType.AnsiText || otherType == DropType.UnicodeText) && DropType == DropType.AnyText) return true;
-            
+        bool IsSameType(DropType otherType)
+        {
+            if (otherType == DropType) return true;
+            else if ((otherType == DropType.AnsiText || otherType == DropType.UnicodeText) && DropType == DropType.AnyText) return true;
+
             return false;
         }
 
@@ -129,6 +144,12 @@ namespace FenUISharp.Behavior
             FContext.GetCurrentWindow().DropTarget.dragDrop -= DragDrop;
             FContext.GetCurrentWindow().DropTarget.dragEnter -= DragEnter;
             FContext.GetCurrentWindow().DropTarget.dragLeave -= DragLeave;
+
+            if (Owner == null) return;
+            Owner.InteractiveSurface.EnableMouseActions.DissolvePriority(25);
+            Owner.InteractiveSurface.OnMouseEnter -= MouseEnter;
+            Owner.InteractiveSurface.OnMouseExit -= MouseExit;
+            Owner.InteractiveSurface.OnMouseMove -= MouseStay;
         }
     }
 }

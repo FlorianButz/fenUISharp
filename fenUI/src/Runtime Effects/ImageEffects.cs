@@ -7,6 +7,7 @@ namespace FenUISharp.Behavior.RuntimeEffects
 {
     public class ImageEffects : BehaviorComponent, IStateListener
     {
+        public State<float> SelfOpacity { get; init; }
         public State<float> Opacity { get; init; }
         public State<float> BlurRadius { get; init; }
 
@@ -17,6 +18,9 @@ namespace FenUISharp.Behavior.RuntimeEffects
 
         public ImageEffects(UIObject owner) : base(owner)
         {
+            SelfOpacity = new(() => 1f, Owner, this);
+            SelfOpacity.SetResolver(StateResolverTemplates.SmallestFloatResolver);
+            SelfOpacity.SetProcessor((x) => RMath.Clamp(x, 0, 1));
             Opacity = new(() => 1f, Owner, this);
             Opacity.SetResolver(StateResolverTemplates.SmallestFloatResolver);
             Opacity.SetProcessor((x) => RMath.Clamp(x, 0, 1));
@@ -54,7 +58,7 @@ namespace FenUISharp.Behavior.RuntimeEffects
         public void ApplyImageEffects(SKSurface surface, SKRect bounds)
         {
             if (!AreEffectsApplied()) return;
-            GetValues(out var values);
+            GetValues(out var values, false);
 
             using var snapshot = surface.Snapshot();
             using var paint = new SKPaint();
@@ -121,7 +125,7 @@ namespace FenUISharp.Behavior.RuntimeEffects
 
         public bool AreEffectsApplied()
         {
-            GetValues(out var values);
+            GetValues(out var values, false);
             return
                 values.opacity != 1f ||
                 values.blurRadius != 0f ||
@@ -129,14 +133,14 @@ namespace FenUISharp.Behavior.RuntimeEffects
                 values.brightness != 1f;
         }
 
-        public void GetValues(out (float opacity, float blurRadius, float saturation, float brightness) values)
+        public void GetValues(out (float opacity, float blurRadius, float saturation, float brightness) values, bool isChild)
         {
             var capturedOwner = Owner;
             
             if (capturedOwner?.Parent == null || !InheritFromParent.CachedValue)
             {
                 values = (
-                    Opacity.CachedValue,
+                    Opacity.CachedValue * (!isChild ? SelfOpacity.CachedValue : 1f),
                     BlurRadius.CachedValue,
                     Saturation.CachedValue,
                     Brightness.CachedValue
@@ -144,10 +148,10 @@ namespace FenUISharp.Behavior.RuntimeEffects
                 return;
             }
             
-            capturedOwner.Parent.ImageEffects.GetValues(out var vals);
+            capturedOwner.Parent.ImageEffects.GetValues(out var vals, true);
 
             values = (
-                Opacity.CachedValue * (InheritFromParent.CachedValue ? vals.opacity : 1f),
+                Opacity.CachedValue * (InheritFromParent.CachedValue ? vals.opacity : 1f) * (!isChild ? SelfOpacity.CachedValue : 1f),
                 Math.Max(BlurRadius.CachedValue, InheritFromParent.CachedValue ? vals.blurRadius : 0f),
                 Saturation.CachedValue * (InheritFromParent.CachedValue ? vals.saturation : 1f),
                 Brightness.CachedValue * (InheritFromParent.CachedValue ? vals.brightness : 1f)

@@ -17,6 +17,9 @@ namespace FenUISharp
 
             var asm = typeof(Resources).Assembly;
 
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.default.png")), "default");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.fenui-logo.png")), "fenui-logo");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.fenui-logo-error.png")), "fenui-logo-error");
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.test_img.png")), "test-img");
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.check.png")), "fenui-builtin-check");
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.copy.png")), "fenui-builtin-copy");
@@ -152,7 +155,7 @@ namespace FenUISharp
 
         public static SKImage GetImage(string id)
         {
-            return images.ContainsKey(id) ? images[id] : SKImage.Create(SKImageInfo.Empty);
+            return images.ContainsKey(id) ? images[id] : images["default"];
         }
 
         public static Uri ConvertMsAppxToUri(string msAppX)

@@ -62,6 +62,9 @@ namespace FenUISharp
                     RefreshRate = (int)vDevMode.dmDisplayFrequency;
                 }
             }
+
+            // Trigger buffer invalidation
+            FullRedraw();
         }
 
         protected override IntPtr CreateWin32Window(WNDCLASSEX wndClass, Vector2? size, Vector2? position)

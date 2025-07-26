@@ -254,8 +254,6 @@ namespace FenUISharp
             _renderThread.Name = "Logic Thread";
             _renderThread.Start();
 
-            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
-
             MSG msg;
             while (_isRunning)
             {
@@ -270,12 +268,6 @@ namespace FenUISharp
                     Thread.Sleep(1); // Prevent too high cpu usage
                 }
             }
-        }
-
-        private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
-        {
-            DisposeAndDestroyWindow();
-            WindowFeatures.Uninitialize();
         }
 
         private void SetupLogic()
@@ -512,8 +504,11 @@ namespace FenUISharp
         {
             _isDirty = true;
             _fullRedraw = true;
-            RenderContext.RecreateSurface();
-            RootViewPane.RecursiveInvalidate(Objects.UIObject.Invalidation.All);
+
+            if(RenderContext != null && RenderContext.Surface != null)
+                RenderContext.RecreateSurface();
+            if(RootViewPane != null)
+                RootViewPane.RecursiveInvalidate(Objects.UIObject.Invalidation.All);
         }
 
         public bool IsNextFrameRendering()
@@ -641,7 +636,6 @@ namespace FenUISharp
             DestroyWindow(hWnd);
             _stopRunningFlag = false;
             DisposeHiddenWindow();
-
             WindowKeyboardInput.Dispose();
 
             FenUI.activeInstances.Remove(this);

@@ -20,7 +20,7 @@ namespace FenUISharp.Materials
 
         public Func<SKColor> DarkBorderColor
         {
-            get => GetProp<Func<SKColor>>("DarkBorderColor", () => BorderColor().MultiplyMix(new SKColor(200, 200, 200, 150)));
+            get => GetProp<Func<SKColor>>("DarkBorderColor", () => BorderColor().Multiply(0.1f));
             set => SetProp("DarkBorderColor", value);
         }
 

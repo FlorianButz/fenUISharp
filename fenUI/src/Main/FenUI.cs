@@ -38,11 +38,36 @@ namespace FenUISharp
             if (HasBeenInitialized) return;
             HasBeenInitialized = true;
 
+            // Route console to capture
+            ConsoleCapture.StartCapture();
+
+            AppDomain.CurrentDomain.UnhandledException += UnhandledException;
+            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "fenUICrashlogs");
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+
             Resources.LoadDefault();
             WindowFeatures.TryInitialize(); // Initialize all window features
 
             // Make sure that Windows isn't handling things it shouldn't handle
             SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT.PER_MONITOR_AWARE_V2);
+        }
+
+        private static void UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "fenUICrashlogs");
+
+            var ex = (Exception)e.ExceptionObject;
+
+            Console.WriteLine();
+            Console.WriteLine("======== UNHANDLED EXCEPTION ========");
+            Console.WriteLine(ex.ToString());
+            
+            Console.WriteLine($"-> Inner: {ex.InnerException} -> Msg: {ex.Message} -> Src: {ex.Source}");
+
+            ConsoleCapture.SaveErrorLogToFile(Path.Combine(path, $"{appModelId}-{DateTime.Now.ToLongTimeString().Replace(':', '-')}-crash-log.txt"));
+
+            activeInstances.ForEach(x => x.DisposeAndDestroyWindow());
+            WindowFeatures.Uninitialize();
         }
 
         public static void Shutdown()
@@ -52,9 +77,12 @@ namespace FenUISharp
             WindowFeatures.Uninitialize();
         }
 
+        private static string appModelId = "";
+
         public static void SetupAppModel(string appModelId)
         {
             if (!HasBeenInitialized) throw new Exception("FenUI has to be initialized first.");
+            FenUI.appModelId = appModelId;
             SetCurrentProcessExplicitAppUserModelID(appModelId);
         }
 
@@ -71,10 +99,13 @@ namespace FenUISharp
 
             WindowFeatures.GlobalHooks.OnKeyPressed += (x) =>
             {
-                if (x == 0x77) { // F8
+                if (x == 0x77)
+                { // F8
                     activeInstances.ForEach(x => x.DebugDisplayAreaCache = !x.DebugDisplayAreaCache);
                     activeInstances.ForEach(x => x.FullRedraw());
-                } else if (x == 0x76) { // F7
+                }
+                else if (x == 0x76)
+                { // F7
                     activeInstances.ForEach(x => x.DebugDisplayBounds = !x.DebugDisplayBounds);
                     activeInstances.ForEach(x => x.FullRedraw());
                 }
@@ -94,7 +125,7 @@ namespace FenUISharp
             // window.DebugDisplayAreaCache = true;
             // window.DebugDisplayBounds = true;
 
-            string iconPath = Resources.ExtractResourceToTempFile<FenUI>($"{FenUI.ResourceLibName}.icons.TrayIcon.ico");
+            string iconPath = Resources.ExtractResourceToTempFile<FenUI>($"{FenUI.ResourceLibName}.icons.fenui.ico");
             window.SetWindowIcon(iconPath);
 
             window.WithView(new DemoViewPane());

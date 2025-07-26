@@ -12,7 +12,7 @@ namespace FenUISharp.Mathematics {
                 (byte)((((float)color1.Alpha / 255) * ((float)color2.Alpha / 255)) * 255)
                 );
         }
-        
+
         public static SKColor Multiply(this SKColor color1, (float, float, float, float) multiplier)
         {
             return new SKColor(
@@ -27,7 +27,7 @@ namespace FenUISharp.Mathematics {
         {
             return Multiply(color1, (multiplier, multiplier, multiplier, 1f));
         }
-        
+
         public static SKColor AddMix(this SKColor color1, SKColor color2)
         {
             return new SKColor(
@@ -36,6 +36,12 @@ namespace FenUISharp.Mathematics {
                 (byte)RMath.Clamp(((((float)color1.Blue / 255) + ((float)color2.Blue / 255)) * 255), 0, 255),
                 (byte)RMath.Clamp(((((float)color1.Alpha / 255) + ((float)color2.Alpha / 255)) * 255), 0, 255)
                 );
+        }
+
+        public static SKColor Saturate(this SKColor color1, float saturation)
+        {
+            color1.ToHsl(out var h, out var s, out var l);
+            return SKColor.FromHsl(h, RMath.Clamp(s * RMath.Clamp(saturation, 0, 999), 0, 100), l);
         }
     }
 }
