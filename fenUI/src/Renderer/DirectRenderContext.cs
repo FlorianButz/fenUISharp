@@ -5,6 +5,7 @@ using SharpDX.DXGI;
 using SkiaSharp;
 using SharpDX.DirectComposition;
 using FenUISharp.Mathematics;
+using FenUISharp.Logging;
 
 namespace FenUISharp
 {
@@ -132,7 +133,7 @@ namespace FenUISharp
                 var dataBox = _context.MapSubresource(_stagingTexture, 0, MapMode.WriteDiscard, SharpDX.Direct3D11.MapFlags.None);
                 if (dataBox.DataPointer == IntPtr.Zero)
                 {
-                    Console.WriteLine("Error: DataPointer is null!");
+                    FLogger.Error("DataPointer is null!");
                     return;
                 }
 
@@ -170,7 +171,7 @@ namespace FenUISharp
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in EndDraw: {ex.Message}");
+                FLogger.Error($"Error in EndDraw: {ex.Message}");
             }
 
             // Present the frame
@@ -180,7 +181,7 @@ namespace FenUISharp
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error presenting swap chain: {ex.Message}");
+                FLogger.Error($"Error presenting swap chain: {ex.Message}");
             }
         }
 

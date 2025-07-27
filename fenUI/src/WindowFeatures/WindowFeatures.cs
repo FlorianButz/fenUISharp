@@ -14,16 +14,22 @@ namespace FenUISharp.WinFeatures {
         public static GlobalHooks GlobalHooks { get { TryInitialize(); return _globalHooks; } }
         public static ToastMessageSender ToastMessageSender { get { TryInitialize(); return _toastMessageSender; } }
 
-        public static bool TryInitialize(){
+        public static bool TryInitialize(bool disableWinFeatures = false){
             if(_hasBeenInitialized) return false;
             _hasBeenInitialized = true;
 
             _globalHooks = new GlobalHooks();
             _globalHooks.RegisterHooks();
 
-            _desktopCapture = new DesktopCapture();
-            _mediaControls = new WindowsMediaControls();
-            _toastMessageSender = new ToastMessageSender();
+            if (disableWinFeatures) return true;
+
+            try
+            {
+                _desktopCapture = new DesktopCapture();
+                _mediaControls = new WindowsMediaControls();
+                _toastMessageSender = new ToastMessageSender();
+            }
+            catch (Exception e) { return false; }
 
             return true;
         }

@@ -1,6 +1,7 @@
 using FenUISharp.Behavior;
 using FenUISharp.Behavior.Layout;
 using FenUISharp.Behavior.RuntimeEffects;
+using FenUISharp.Logging;
 using FenUISharp.Materials;
 using FenUISharp.Mathematics;
 using FenUISharp.States;
@@ -239,10 +240,47 @@ namespace FenUISharp.Objects
             // Same as begin, however runs after first update
         }
 
+        public void OnReverseUpdate()
+        {
+            if (IsDisposed) return;
+
+            if (InvalidationState.HasFlag(Invalidation.TransformDirty) || InvalidationState.HasFlag(Invalidation.LayoutDirty) || InvalidationState.HasFlag(Invalidation.SurfaceDirty))
+            {
+                Shape.UpdateShape();
+            }
+
+            ReverseUpdate();
+        }
+
+        protected virtual void ReverseUpdate()
+        {
+            // Reverse update behavior
+        }
+
+        public void OnLateReverseUpdate()
+        {
+            if (IsDisposed) return;
+
+            if (lateLayoutUpdate || lateTransformUpdate)
+            {
+                Shape.UpdateShape();
+            }
+
+            ReverseUpdate();
+        }
+
+        protected virtual void LateReverseUpdate()
+        {
+            // Late reverse update behavior
+        }
+
+        private bool lateLayoutUpdate = false;
+        private bool lateTransformUpdate = false;
+
         public void OnUpdate()
         {
             if (IsDisposed) return;
-            
+
             CheckIfInsideParent();
             CheckIfSurfaceCanBeDisposed();
 
@@ -270,9 +308,11 @@ namespace FenUISharp.Objects
             if (InvalidationState.HasFlag(Invalidation.TransformDirty) || InvalidationState.HasFlag(Invalidation.LayoutDirty) || InvalidationState.HasFlag(Invalidation.SurfaceDirty))
             {
                 ClearInvalidation(Invalidation.LayoutDirty);
+                lateLayoutUpdate = true;
 
                 if (InvalidationState.HasFlag(Invalidation.TransformDirty))
                 {
+                    lateTransformUpdate = true;
                     ClearInvalidation(Invalidation.TransformDirty);
                     DispatchBehaviorEvent(BehaviorEventType.BeforeLayout);
 
@@ -281,10 +321,10 @@ namespace FenUISharp.Objects
                     Children.ForEach(x => x.Invalidate(Invalidation.TransformDirty));
                     DispatchBehaviorEvent(BehaviorEventType.AfterTransform);
 
-                    Shape.UpdateShape(); // Includes updating layout
-
                     DispatchBehaviorEvent(BehaviorEventType.AfterLayout);
                 }
+
+                Shape.UpdateShape();
 
                 if (InvalidationState.HasFlag(Invalidation.SurfaceDirty))
                 {
@@ -326,6 +366,27 @@ namespace FenUISharp.Objects
                 DispatchBehaviorEvent(BehaviorEventType.AfterLateBegin);
 
                 _wasBeginCalled = true;
+            }
+
+            // Check for transform/layout/surface rebuild
+            if (lateTransformUpdate || lateLayoutUpdate)
+            {
+                lateLayoutUpdate = false;
+
+                if (lateTransformUpdate)
+                {
+                    lateTransformUpdate = false;
+
+                    ClearInvalidation(Invalidation.TransformDirty);
+                    DispatchBehaviorEvent(BehaviorEventType.BeforeLayout);
+
+                    DispatchBehaviorEvent(BehaviorEventType.BeforeTransform);
+                    Transform.UpdateTransform();
+                    Children.ForEach(x => x.Invalidate(Invalidation.TransformDirty));
+                    DispatchBehaviorEvent(BehaviorEventType.AfterTransform);
+
+                    DispatchBehaviorEvent(BehaviorEventType.AfterLayout);
+                }
             }
 
             // Run own late update behavior before children
@@ -474,7 +535,7 @@ namespace FenUISharp.Objects
         {
             if (IsDisposed)
             {
-                Console.WriteLine($"{GetType().FullName} has already been disposed.");
+                FLogger.Warn($"{GetType().FullName} has already been disposed.");
                 return;
             }
             

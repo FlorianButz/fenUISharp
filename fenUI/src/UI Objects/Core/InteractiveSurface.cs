@@ -139,7 +139,7 @@ namespace FenUISharp.Objects
             var capturedOwner = owner;
             if (capturedOwner == null) return;
 
-            List<UIObject> ordered = capturedOwner.Composition.GetZOrderedListOfEverything();
+            List<UIObject> ordered = capturedOwner.Composition.GetZOrderedListOfEnabled();
 
             // Goes in reverse Z-order (front to back)
             for (int i = ordered.Count - 1; i >= 0; i--)
@@ -168,7 +168,7 @@ namespace FenUISharp.Objects
             var capturedOwner = owner;
             if (capturedOwner == null) return;
 
-            List<UIObject> ordered = capturedOwner.Composition.GetZOrderedListOfEverything();
+            List<UIObject> ordered = capturedOwner.Composition.GetZOrderedListOfEnabled();
 
             // Goes in reverse Z-order (front to back)
             for (int i = ordered.Count - 1; i >= 0; i--)

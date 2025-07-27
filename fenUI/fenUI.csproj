@@ -35,5 +35,6 @@
     <EmbeddedResource Include="images\**\*.*" />
     <EmbeddedResource Include="icons\**\*.*" />
     <EmbeddedResource Include="fonts\**\*.*" />
+    <EmbeddedResource Include="lib\**\*.*" />
   </ItemGroup>
 </Project>

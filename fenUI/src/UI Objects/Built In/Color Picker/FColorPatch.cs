@@ -7,6 +7,7 @@ using FenUISharp.Objects.Text.Model;
 using FenUISharp.Objects.Text.Layout;
 using FenUISharp.States;
 using SkiaSharp;
+using FenUISharp.Logging;
 
 namespace FenUISharp.Objects
 {
@@ -158,7 +159,7 @@ namespace FenUISharp.Objects
             ";
 
             SKRuntimeEffect effect = SKRuntimeEffect.CreateShader(sksl, out var err);
-            if (effect == null) Console.WriteLine($"Shader compilation failed: {err}");
+            if (effect == null) FLogger.Error($"Shader compilation failed: {err}");
 
             var uniforms = new SKRuntimeEffectUniforms(effect);
             uniforms["iResolution"] = new float[] { rect.Width, rect.Height };

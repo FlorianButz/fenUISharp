@@ -33,7 +33,7 @@ namespace FenUISharp.Objects
         {
             base.Render(canvas);
 
-            if (Image == null) return;
+            if (Image.CachedValue == null) return;
 
             using var paint = GetRenderPaint();
 

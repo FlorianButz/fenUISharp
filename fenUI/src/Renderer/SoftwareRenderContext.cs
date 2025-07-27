@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using FenUISharp.Logging;
 using FenUISharp.Mathematics;
 using OpenTK.Graphics.ES30;
 using SharpDX.Direct3D11;
@@ -22,11 +23,11 @@ namespace FenUISharp
             // Get a screen DC to create a compatible memory DC and DIB.
             IntPtr hdcScreen = GetDC(IntPtr.Zero);
             if (hdcScreen == IntPtr.Zero)
-                Console.WriteLine("GetDC failed: " + Marshal.GetLastWin32Error());
+                FLogger.Error("GetDC failed: " + Marshal.GetLastWin32Error());
 
             _hdcMemory = CreateCompatibleDC(hdcScreen);
             if (_hdcMemory == IntPtr.Zero)
-                Console.WriteLine("CreateCompatibleDC failed: " + Marshal.GetLastWin32Error());
+                FLogger.Error("CreateCompatibleDC failed: " + Marshal.GetLastWin32Error());
 
             int Width = RMath.Clamp((int)WindowRoot.WindowSize.x, 1, int.MaxValue);
             int Height = RMath.Clamp((int)WindowRoot.WindowSize.y, 1, int.MaxValue);

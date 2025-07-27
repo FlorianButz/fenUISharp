@@ -1,4 +1,5 @@
 using FenUISharp;
+using FenUISharp.Logging;
 using FenUISharp.Mathematics;
 using SkiaSharp;
 
@@ -272,7 +273,7 @@ namespace FenUISharp.Objects
 
             if (effect == null)
             {
-                Console.WriteLine($"Shader compilation failed: {errorText}");
+                FLogger.Error($"Shader compilation failed: {errorText}");
                 return SKShader.CreateEmpty();    
             }
 

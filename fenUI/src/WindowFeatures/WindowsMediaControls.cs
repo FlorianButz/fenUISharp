@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using FenUISharp;
+using FenUISharp.Logging;
 using SkiaSharp;
 using Windows.Foundation;
 using Windows.Media;
@@ -201,7 +202,7 @@ namespace FenUISharp.WinFeatures
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("Exception in WindowsMediaControls: " + e.Message);
+                    FLogger.Error("Exception in WindowsMediaControls: " + e.Message);
                 }
             }
             else

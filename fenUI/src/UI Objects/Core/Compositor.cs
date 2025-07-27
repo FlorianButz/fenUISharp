@@ -42,7 +42,7 @@ namespace FenUISharp.Objects
             if (FContext.GetRootViewPane() != null)
             {
                 var result = new List<UIObject>();
-                TraverseAndCollect(FContext.GetRootViewPane(), result, true);
+                TraverseAndCollect(FContext.GetRootViewPane(), result, false);
                 _cachedOrderedList = result;
             }
         }
@@ -55,10 +55,16 @@ namespace FenUISharp.Objects
                 .ToList();
         }
 
+        public List<UIObject> GetZOrderedListOfEnabled()
+        {
+            return _cachedOrderedList.Where(x => x.GlobalEnabled && x.GlobalVisible).ToList();
+        }
+
         public List<UIObject> GetZOrderedListOfEverything()
         {
             return _cachedOrderedList;
         }
+
 
         static void TraverseAndCollect(UIObject current, List<UIObject> list, bool enabledAndVisibleOnly = false)
         {
@@ -80,7 +86,7 @@ namespace FenUISharp.Objects
         public bool TestIfTopMost()
         {
             // Check if the last element matches the current one
-            var last = GetZOrderedListOfEverything().LastOrDefault(x => x != null);
+            var last = GetZOrderedListOfEnabled().LastOrDefault(x => x != null);
 
 
             // If it's a match, this object is the topmost

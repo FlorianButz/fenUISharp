@@ -345,12 +345,21 @@ namespace FenUISharp
             if (!isPaused)
                 OnPreUpdate?.Invoke();
 
+            // Reverse update
+            var tree = RootViewPane.Composition.GetZOrderedListOfEverything().ToList();
+            tree.Reverse();
+            tree.ForEach(x => { x.OnReverseUpdate(); });
+
+            // Normal update
             RootViewPane.OnEarlyUpdate();
             RootViewPane.OnUpdate();        // First update iteration
 
             if (!isPaused)
                 OnPostUpdate?.Invoke();
             
+            // Second reverse update
+            tree.ForEach(x => { x.OnLateReverseUpdate(); });
+
             RootViewPane.OnLateUpdate();    // Second update iteration
 
             if (_lastIsWindowFocused != IsWindowFocused)

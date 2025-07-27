@@ -1,3 +1,4 @@
+using FenUISharp.Logging;
 using FenUISharp.Mathematics;
 using SkiaSharp;
 
@@ -194,7 +195,7 @@ namespace FenUISharp.Objects
             ";
 
             SKRuntimeEffect effect = SKRuntimeEffect.CreateShader(sksl, out var err);
-            if (effect == null) Console.WriteLine($"Shader compilation failed: {err}");
+            if (effect == null) FLogger.Error($"Shader compilation failed: {err}");
 
             var uniforms = new SKRuntimeEffectUniforms(effect);
             uniforms["iResolution"] = new float[] { pickerInnerBounds.Width, pickerInnerBounds.Height };

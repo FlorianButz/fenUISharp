@@ -1,3 +1,4 @@
+using FenUISharp.Logging;
 using FenUISharp.Objects;
 using FenUISharp.WinFeatures;
 using SkiaSharp;
@@ -143,7 +144,7 @@ namespace FenUISharp.Behavior
             int currentIndex = ((currentlySelected == null) ? (lastSelected == null ? 0 : (selectableComponents.IndexOf(lastSelected) - 1)) : (selectableComponents.IndexOf(currentlySelected) - 1)) % selectableComponents.Count;
             if (currentIndex < 0) currentIndex = selectableComponents.Count-1;
 
-            Console.WriteLine(currentIndex);
+            FLogger.Log("Current Index: " + currentIndex);
             SetSelected(selectableComponents[currentIndex]);
         }
 
