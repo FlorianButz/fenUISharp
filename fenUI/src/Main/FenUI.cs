@@ -51,16 +51,16 @@ namespace FenUISharp
             {
                 // Extract crash handler
 
-                ContentExtractor.ExtractToFile(
-                    "glfw3.dll",
-                    destinationPath: Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "glfw3.dll"),
-                    overwrite: false
-                );
-                ContentExtractor.ExtractToFile(
-                    "libSkiaSharp.dll",
-                    destinationPath: Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "libSkiaSharp.dll"),
-                    overwrite: false
-                );
+                // ContentExtractor.ExtractToFile(
+                //     "glfw3.dll",
+                //     destinationPath: Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "glfw3.dll"),
+                //     overwrite: false
+                // );
+                // ContentExtractor.ExtractToFile(
+                //     "libSkiaSharp.dll",
+                //     destinationPath: Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "libSkiaSharp.dll"),
+                //     overwrite: false
+                // );
                 CrashHandlerPath = ContentExtractor.ExtractToFile(
                     "fenUICrashHandler.exe",
                     destinationPath: Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "fenUICrashHandler.exe"),

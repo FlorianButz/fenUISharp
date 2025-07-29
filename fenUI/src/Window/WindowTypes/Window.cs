@@ -698,6 +698,9 @@ namespace FenUISharp
             SetWindowLong(hWnd, (int)WindowLongs.GWL_STYLE, styl);
         }
 
+        public void RequestFocus()
+            => Win32APIs.SetForegroundWindow(hWnd);
+
         // UI Thread methods
         protected virtual void WindowMoved()
         {

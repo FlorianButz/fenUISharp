@@ -184,6 +184,25 @@ namespace FenUISharp.Mathematics
             return false;
         }
 
+        public static SKPoint RotatePoint(SKPoint point, SKPoint pivot, float degrees)
+        {
+            // Convert degrees to radians for Math functions
+            float radians = degrees * (float)(Math.PI / 180.0);
+
+            // Translate point back to origin relative to pivot
+            float translatedX = point.X - pivot.X;
+            float translatedY = point.Y - pivot.Y;
+
+            // Rotate the point
+            float cos = (float)Math.Cos(radians);
+            float sin = (float)Math.Sin(radians);
+
+            float rotatedX = translatedX * cos - translatedY * sin;
+            float rotatedY = translatedX * sin + translatedY * cos;
+
+            // Translate point back to original position
+            return new SKPoint(rotatedX + pivot.X, rotatedY + pivot.Y);
+        }
 
         public static float Remap(float t, float oldMin, float oldMax, float newMin, float newMax)
         {

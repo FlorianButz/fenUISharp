@@ -4,6 +4,7 @@ using FenUISharp.Behavior.RuntimeEffects;
 using FenUISharp.Logging;
 using FenUISharp.Materials;
 using FenUISharp.Mathematics;
+using FenUISharp.RuntimeEffects;
 using FenUISharp.States;
 using FenUISharp.Themes;
 using SkiaSharp;
@@ -18,6 +19,7 @@ namespace FenUISharp.Objects
         public Compositor Composition { get; private set; }
         public InteractiveSurface InteractiveSurface { get; private set; }
         public ImageEffects ImageEffects { get; private set; }
+        public PostProcessChain PostProcessChain { get; private set; }
 
         public State<Material> RenderMaterial { get; private set; }
 
@@ -82,6 +84,7 @@ namespace FenUISharp.Objects
             Shape = new(this);
             Composition = new(this);
             InteractiveSurface = new(this, FContext.GetCurrentDispatcher(), () => Transform.DrawLocalToGlobal(Shape.LocalBounds));
+            PostProcessChain = new(this);
 
             Quality = new(() => 1f, this, (x) => Invalidate(Invalidation.SurfaceDirty));
             Quality.SetResolver(StateResolverTemplates.SmallestFloatResolver);
@@ -495,13 +498,10 @@ namespace FenUISharp.Objects
 
             canvas?.Concat(Transform.DrawMatrix);
 
-            if (LocalVisible.CachedValue)
+            if (LocalVisible.CachedValue && canvas != null)
             {
                 using var paint = GetDrawPaint();
-                ObjectSurface.Draw();
-
-                if (ObjectSurface.GetImage() != null)
-                    canvas?.DrawImage(ObjectSurface.GetImage(), Shape.SurfaceDrawRect, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+                ObjectSurface.DrawFullChainToTarget(canvas, Shape.SurfaceDrawRect, paint, PostProcessChain);
             }
 
             // Children draw pass
@@ -552,6 +552,8 @@ namespace FenUISharp.Objects
             Composition = null;
             ImageEffects.Dispose();
             ImageEffects = null;
+            PostProcessChain.Dispose();
+            PostProcessChain = null;
 
             RemoveFromParent();
             OnObjectDisposed?.Invoke();

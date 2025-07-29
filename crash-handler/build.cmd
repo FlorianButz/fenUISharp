@@ -1,20 +1,18 @@
-echo Building the .NET project
+@echo off
+
+echo:
+echo =============================================
+echo Building the .NET project of the crash handler
+echo:
+
 dotnet publish -c Release -r win-x64
 
-set "SOURCE=%~dp0..\crash-handler\fenUICrashHandler\bin\Release\net9.0-windows10.0.19041.0\win-x64\publish"
-set "DEST=%~dp0..\fenUI\lib"
+echo Copying crash handler to fenUI lib folder
+echo:
 
-for %%I in ("%SOURCE%") do set "SOURCE=%%~fI"
-for %%I in ("%DEST%") do set "DEST=%%~fI"
+copy "..\crash-handler\fenUICrashHandler\bin\Release\net9.0-windows10.0.19041.0\win-x64\fenUICrashHandler.exe" "..\fenUI\lib"
 
-echo SOURCE = %SOURCE%
-echo DEST   = %DEST%
-
-if not exist "%DEST%" (
-    mkdir "%DEST%"
-)
-
-echo Copying from "%SOURCE%" to "%DEST%"
-xcopy /e /v /y "%SOURCE%\" "%DEST%\"
-
-echo Build and move completed!
+echo:
+echo:
+echo ================ SUCCESS =================
+echo Build and move of crash handler completed!

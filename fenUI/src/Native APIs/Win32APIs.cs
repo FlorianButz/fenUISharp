@@ -2,9 +2,10 @@ using System.Runtime.InteropServices;
 
 namespace FenUISharp.Native
 {
-    public class Win32APIs
+    internal class Win32APIs
     {
-
+        [DllImport("user32.dll")]
+        internal static extern bool SetForegroundWindow(IntPtr hWnd);
     }
 
     [StructLayout(LayoutKind.Sequential)]

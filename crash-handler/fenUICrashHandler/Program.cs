@@ -40,6 +40,8 @@ namespace FenUISharpCrashHandler
 
             nativeWindow.WithView(new CrashHandlerTempView());
 
+            nativeWindow.RequestFocus();
+
             nativeWindow.SetWindowVisibility(true);
             nativeWindow.BeginWindowLoop();
         }

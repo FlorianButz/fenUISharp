@@ -1,5 +1,6 @@
 using FenUISharp.Mathematics;
 using FenUISharp.Objects;
+using FenUISharp.RuntimeEffects;
 using SkiaSharp;
 
 namespace FenUISharp.Objects
@@ -36,14 +37,27 @@ namespace FenUISharp.Objects
             return _cachedSurface;
         }
 
-        public SKSurface? Draw()
+        public SKSurface? Draw(PostProcessChain? effectChain = null)
         {
             if (_cachedSurface != null)
                 return _cachedSurface;
             else
             {
                 var surface = CreateSurface();
+
+                var ppInfo = new PPInfo()
+                {
+                    source = surface,
+                    target = surface,
+                    sourceInfo = _cachedImageInfo ?? new()
+                };
+
+                if (effectChain != null && surface != null) effectChain.OnBeforeRender(ppInfo);
+
                 DrawAction?.Invoke(surface?.Canvas);
+
+                if (effectChain != null && surface != null) effectChain.OnAfterRender(ppInfo);
+                if (effectChain != null && surface != null) effectChain.OnLateAfterRender(ppInfo);
 
                 _cachedSnapshot?.Dispose();
                 _cachedSnapshot = null;
@@ -52,6 +66,54 @@ namespace FenUISharp.Objects
 
                 return surface;
             }
+        }
+
+        public void DrawFullChainToTarget(SKCanvas target, SKRect targetRect, SKPaint paint, PostProcessChain? effectChain = null)
+        {
+            // Rendering offscreen
+            Draw(effectChain);
+
+            // Draw to screen
+            if (_cachedSnapshot != null) target.DrawImage(_cachedSnapshot, targetRect, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+
+            // Direct drawing, introduces heavy aliasing. Might be good as an optional choice
+            // var sourceRect = SKRect.Create(0, 0, _cachedImageInfo?.Width ?? 1, _cachedImageInfo?.Height ?? 1);
+            // var transformations = GetTransformationsForTargetRect(sourceRect, targetRect, false);
+
+            // int save = target.Save();
+            // target.Scale(transformations.scale);
+
+            // if (surface != null)
+            //     target.DrawSurface(surface, transformations.offset, paint);
+
+            // target.RestoreToCount(save);
+        }
+
+        public static (SKPoint scale, SKPoint offset) GetTransformationsForTargetRect(
+            SKRect sourceRect,
+            SKRect targetRect,
+            bool preserveAspect = true,
+            bool center = true)
+        {
+            float scaleX = targetRect.Width / sourceRect.Width;
+            float scaleY = targetRect.Height / sourceRect.Height;
+
+            if (preserveAspect)
+            {
+                float uniformScale = Math.Min(scaleX, scaleY);
+                scaleX = scaleY = uniformScale;
+            }
+
+            float offsetX = targetRect.Left;
+            float offsetY = targetRect.Top;
+
+            if (center)
+            {
+                offsetX += (targetRect.Width - sourceRect.Width * scaleX) / 2f;
+                offsetY += (targetRect.Height - sourceRect.Height * scaleY) / 2f;
+            }
+
+            return (new SKPoint(scaleX, scaleY), new SKPoint(offsetX, offsetY));
         }
 
         public SKImage? CaptureSurfaceRegion(SKRect region, float quality = 0.5f)
@@ -74,7 +136,7 @@ namespace FenUISharp.Objects
         {
             if (LockInvalidation) return;
 
-            if(_cachedSurface != null)
+            if (_cachedSurface != null)
             {
                 _cachedSurface?.Canvas.Dispose();
                 _cachedSurface?.Dispose();
