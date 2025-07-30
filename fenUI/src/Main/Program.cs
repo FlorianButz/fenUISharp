@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using FenUISharp;
+using FenUISharp.AnimatedVectors;
 using FenUISharp.Mathematics;
 using FenUISharp.Objects;
 using FenUISharp.Themes;

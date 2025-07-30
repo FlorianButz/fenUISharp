@@ -1,3 +1,4 @@
+using FenUISharp.AnimatedVectors;
 using FenUISharp.Objects.Text.Layout;
 using FenUISharp.Themes;
 using SkiaSharp;
@@ -9,6 +10,7 @@ namespace FenUISharp
         private static Dictionary<string, FTypeface> typefaces = new Dictionary<string, FTypeface>();
         private static Dictionary<string, Theme> themes = new Dictionary<string, Theme>();
         private static Dictionary<string, SKImage> images = new Dictionary<string, SKImage>();
+        private static Dictionary<string, AnimatedVector> favs = new Dictionary<string, AnimatedVector>();
 
         public static void LoadDefault()
         {
@@ -17,10 +19,10 @@ namespace FenUISharp
 
             var asm = typeof(Resources).Assembly;
 
-            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.default.jpg")), "default");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.default.png")), "default");
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.fenui-logo.png")), "fenui-logo");
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.fenui-logo-error.png")), "fenui-logo-error");
-            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.test_img.png")), "test-img");
+            RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.test_img.jpg")), "test-img");
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.check.png")), "fenui-builtin-check");
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.copy.png")), "fenui-builtin-copy");
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.clipboard.png")), "fenui-builtin-paste");
@@ -173,6 +175,20 @@ namespace FenUISharp
         {
             string basePath = AppDomain.CurrentDomain.BaseDirectory; // Your EXE directory
             return new Uri(Path.Combine(basePath, path));
+        }
+
+        public static AnimatedVector RegisterFav(AnimatedVector fav, string withId)
+        {
+            if (favs.Keys.Contains(withId)) favs[withId] = fav;
+            else favs.Add(withId, fav);
+            
+            return fav;
+        }
+
+        public static AnimatedVector LoadFav(string path)
+        {
+            string content = File.ReadAllText(path);
+            return AnimatedVectorParser.ParseFAV(content);
         }
     }
 }
