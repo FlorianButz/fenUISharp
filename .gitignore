@@ -398,5 +398,11 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Output folder
 /out
-/crash-handler/fenUICrashHandler/lib
+
+# Lib folder
+# Ignore everything inside the lib folder
+/crash-handler/fenUICrashHandler/lib/*
+!/crash-handler/fenUICrashHandler/lib/.gitkeep
