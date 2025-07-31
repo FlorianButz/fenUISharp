@@ -15,7 +15,7 @@ namespace FenUISharp.AnimatedVectors
 
         public FAVDisplay(Func<AnimatedVector> animatedVector, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
-            AnimatedVector = new(animatedVector, this, (x) => Console.WriteLine("T)AUWODUWDIAOUIWADOUI"));
+            AnimatedVector = new(animatedVector, this, this);
             currentAnimVector = AnimatedVector.CachedValue;
             Padding.SetResponsiveState(() => AnimatedVector.CachedValue.ExtendBounds);
 
