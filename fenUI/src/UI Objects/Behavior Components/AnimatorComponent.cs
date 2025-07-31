@@ -28,6 +28,14 @@ namespace FenUISharp.Behavior
             }
         }
 
+        public float TimePassed
+        {
+            get
+            {
+                return _timePassed;
+            }
+        }
+
         private float _timePassed = 0;
         public Action<float>? OnValueUpdate { get; set; }
         public Action? OnComplete { get; set; }

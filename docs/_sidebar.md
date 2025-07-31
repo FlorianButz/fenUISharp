@@ -3,6 +3,9 @@
 
 * [FenUI](docs/fen-ui.md)
 
+* Vector Graphics
+    * [FAVs](docs/favs/favs.md)
+
 * Themes
     * [Introduction](docs/themes/themes-introduction.md)
     * [Theme](docs/themes/theme.md)

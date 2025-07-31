@@ -158,8 +158,6 @@ namespace FenUISharp
         {
             NativeWindow window = new NativeWindow("Demo", "demoClass", Window.RenderContextType.DirectX, windowSize: new Vector2(900, 800));
 
-            Resources.LoadFav("");
-
             window.SystemDarkMode = true;
             // window.WindowThemeManager.SetTheme(Resources.GetTheme("default-light"));
 

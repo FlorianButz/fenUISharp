@@ -9,6 +9,8 @@ using FenUISharp.Objects.Text.Model;
 using FenUISharp.States;
 using FenUISharp.WinFeatures;
 using SkiaSharp;
+using FenUISharp.AnimatedVectors;
+using FenUISharp.Logging;
 
 namespace FenUISharp.Objects
 {

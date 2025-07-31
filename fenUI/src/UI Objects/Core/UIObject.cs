@@ -539,6 +539,9 @@ namespace FenUISharp.Objects
                 return;
             }
             
+            OnObjectDisposed?.Invoke();
+            OnObjectDisposed = null;
+
             Children.ToList().ForEach(x => x.Dispose());
             BehaviorComponents.ToList().ForEach(x => x.Dispose());
 
@@ -556,8 +559,6 @@ namespace FenUISharp.Objects
             PostProcessChain = null;
 
             RemoveFromParent();
-            OnObjectDisposed?.Invoke();
-            OnObjectDisposed = null;
 
             ObjectSurface.Dispose();
 

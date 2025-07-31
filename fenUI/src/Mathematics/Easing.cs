@@ -2,6 +2,12 @@
 {
     public class Easing
     {
+        /// <summary>
+        /// Combines two easing functions
+        /// </summary>
+        /// <param name="easeIn">The start easing function</param>
+        /// <param name="easeOut">The ending easing function</param>
+        /// <returns></returns>
         public static Func<float, float> CombineInOut(Func<float, float> easeIn, Func<float, float> easeOut)
         {
             return (x) =>
@@ -169,7 +175,7 @@
             ? 0
             : x == 1
             ? 1
-            : Math.Pow(2, -10 * (x)) * Math.Sin(((x-0.1) * 10 - 0.75) * c4) + 1);
+            : Math.Pow(2, -10 * (x)) * Math.Sin(((x - 0.1) * 10 - 0.75) * c4) + 1);
         }
 
         public static float EaseOutExpo(float x)
@@ -181,5 +187,100 @@
         {
             return x == 0 ? 0 : (float)Math.Pow(2, 10 * x - 10);
         }
+    }
+
+
+    public static class BezierEasing
+    {
+        /// <summary>
+        /// Creates a cubic Bezier easing function from four control point values.
+        /// Equivalent to CSS cubic-bezier(x1, y1, x2, y2).
+        /// </summary>
+        /// <param name="x1">X coordinate of first control point (typically 0-1)</param>
+        /// <param name="y1">Y coordinate of first control point</param>
+        /// <param name="x2">X coordinate of second control point (typically 0-1)</param>
+        /// <param name="y2">Y coordinate of second control point</param>
+        /// <returns>A function that takes time (0-1) and returns eased value</returns>
+        public static Func<float, float> CreateEasing(float x1, float y1, float x2, float y2)
+        {
+            return t => CubicBezier(t, x1, y1, x2, y2);
+        }
+
+        /// <summary>
+        /// Evaluates a cubic Bezier curve at parameter t for easing.
+        /// The curve starts at (0,0) and ends at (1,1) with control points (x1,y1) and (x2,y2).
+        /// </summary>
+        /// <param name="t">Time parameter (0-1)</param>
+        /// <param name="x1">X coordinate of first control point</param>
+        /// <param name="y1">Y coordinate of first control point</param>
+        /// <param name="x2">X coordinate of second control point</param>
+        /// <param name="y2">Y coordinate of second control point</param>
+        /// <returns>Eased value</returns>
+        public static float CubicBezier(float t, float x1, float y1, float x2, float y2)
+        {
+            t = Math.Max(0f, Math.Min(1f, t));
+
+            // Use binary search to find the t value that gives us the desired x coordinate
+            float tForX = SolveForT(t, x1, x2);
+            return CalculateBezierY(tForX, y1, y2);
+        }
+
+        /// <summary>
+        /// Solves for the t parameter that produces the given x coordinate
+        /// </summary>
+        private static float SolveForT(float x, float x1, float x2)
+        {
+            // Binary search to find t where Bezier X equals our target x
+            float tMin = 0f;
+            float tMax = 1f;
+            float t = x; // Initial guess
+
+            const float epsilon = 1e-6f;
+            const int maxIterations = 10;
+
+            for (int i = 0; i < maxIterations; i++)
+            {
+                float currentX = CalculateBezierX(t, x1, x2);
+                float diff = currentX - x;
+
+                if (Math.Abs(diff) < epsilon)
+                    break;
+
+                if (diff > 0)
+                    tMax = t;
+                else
+                    tMin = t;
+
+                t = (tMin + tMax) * 0.5f;
+            }
+
+            return t;
+        }
+
+        /// <summary>
+        /// Calculates the X coordinate of the Bezier curve at parameter t
+        /// </summary>
+        private static float CalculateBezierX(float t, float x1, float x2)
+        {
+            // Cubic Bezier: B(t) = (1-t)³P₀ + 3(1-t)²tP₁ + 3(1-t)t²P₂ + t³P₃
+            // For easing: P₀ = (0,0), P₁ = (x1,y1), P₂ = (x2,y2), P₃ = (1,1)
+            float invT = 1f - t;
+            return 3f * invT * invT * t * x1 + 3f * invT * t * t * x2 + t * t * t;
+        }
+
+        /// <summary>
+        /// Calculates the Y coordinate of the Bezier curve at parameter t
+        /// </summary>
+        private static float CalculateBezierY(float t, float y1, float y2)
+        {
+            float invT = 1f - t;
+            return 3f * invT * invT * t * y1 + 3f * invT * t * t * y2 + t * t * t;
+        }
+
+        // Common CSS easing presets
+        public static readonly Func<float, float> Ease = CreateEasing(0.25f, 0.1f, 0.25f, 1f);
+        public static readonly Func<float, float> EaseIn = CreateEasing(0.42f, 0f, 1f, 1f);
+        public static readonly Func<float, float> EaseOut = CreateEasing(0f, 0f, 0.58f, 1f);
+        public static readonly Func<float, float> EaseInOut = CreateEasing(0.42f, 0f, 0.58f, 1f);
     }
 }

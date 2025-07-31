@@ -156,9 +156,9 @@ namespace FenUISharp.States
             if (Value == null) return;
             var value = _processor(Value());
 
-            if (!EqualityComparer<T>.Default.Equals(_lastValue, value) || forceReevaluation) Notify(value);
-
+            var lastVal = _lastValue;
             _lastValue = value;
+            if (!EqualityComparer<T>.Default.Equals(lastVal, value) || forceReevaluation) Notify(value);
         }
 
         private void Notify(T value)

@@ -151,7 +151,7 @@ namespace FenUISharp
         {
             if (images.Keys.Contains(withId)) images[withId] = image;
             else images.Add(withId, image);
-            
+
             return image;
         }
 
@@ -181,7 +181,7 @@ namespace FenUISharp
         {
             if (favs.Keys.Contains(withId)) favs[withId] = fav;
             else favs.Add(withId, fav);
-            
+
             return fav;
         }
 
@@ -189,6 +189,11 @@ namespace FenUISharp
         {
             string content = File.ReadAllText(path);
             return AnimatedVectorParser.ParseFAV(content);
+        }
+        
+        public static AnimatedVector GetFAV(string id)
+        {
+            return favs.ContainsKey(id) ? favs[id] : throw new Exception($"FAV with id {id} not registered.");
         }
     }
 }
