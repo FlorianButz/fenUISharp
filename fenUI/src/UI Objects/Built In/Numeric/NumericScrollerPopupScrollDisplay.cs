@@ -16,8 +16,8 @@ namespace FenUISharp.Objects
         public int Lines { get; set; } = 7; // MUST be uneven
         public float LineThickness { get; set; } = 2f;
 
-        private FImageButton leftArrow;
-        private FImageButton rightArrow;
+        private FDisplayButton leftArrow;
+        private FDisplayButton rightArrow;
 
         private float? startValue = null;
 
@@ -35,20 +35,20 @@ namespace FenUISharp.Objects
 
             const float btnSize = 20f;
 
-            leftArrow = new FImageButton(new FImage(() => Resources.GetImage("fenui-builtin-arrow-left")), leftArrowClick, size: () => new(btnSize / 1.5f, btnSize));
+            leftArrow = new FDisplayButton(new FImage(() => Resources.GetImage("fenui-builtin-arrow-left")), leftArrowClick, size: () => new(btnSize / 1.5f, btnSize));
             leftArrow.Transform.LocalPosition.SetStaticState(new(3.5f, 0f));
             leftArrow.Layout.Alignment.SetStaticState(new(0, 0.5f));
             leftArrow.Layout.AlignmentAnchor.SetStaticState(new(0, 0.5f));
             leftArrow.SetParent(this);
 
-            rightArrow = new FImageButton(new FImage(() => Resources.GetImage("fenui-builtin-arrow-right")), rightArrowClick, size: () => new(btnSize / 1.5f, btnSize));
+            rightArrow = new FDisplayButton(new FImage(() => Resources.GetImage("fenui-builtin-arrow-right")), rightArrowClick, size: () => new(btnSize / 1.5f, btnSize));
             rightArrow.Transform.LocalPosition.SetStaticState(new(-3.5f, 0));
             rightArrow.Layout.Alignment.SetStaticState(new(1, 0.5f));
             rightArrow.Layout.AlignmentAnchor.SetStaticState(new(1, 0.5f));
             rightArrow.SetParent(this);
 
-            rightArrow.Image.TintColor.SetResponsiveState(() => rightArrow.InteractiveSurface.IsMouseHovering ? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface : SKColors.Transparent);
-            leftArrow.Image.TintColor.SetResponsiveState(() => leftArrow.InteractiveSurface.IsMouseHovering ? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface : SKColors.Transparent);
+            rightArrow.Display.TintColor.SetResponsiveState(() => rightArrow.InteractiveSurface.IsMouseHovering ? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface : SKColors.Transparent);
+            leftArrow.Display.TintColor.SetResponsiveState(() => leftArrow.InteractiveSurface.IsMouseHovering ? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface : SKColors.Transparent);
 
             leftArrow.InteractiveSurface.OnMouseEnter += () => Invalidate(Invalidation.SurfaceDirty);
             leftArrow.InteractiveSurface.OnMouseExit += () => Invalidate(Invalidation.SurfaceDirty);

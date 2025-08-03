@@ -6,7 +6,8 @@ namespace FenUISharp.Objects.Text.Model
 {
     public class TextModelFactory
     {
-        public static TextModel CreateBasic(string text, float textSize = 14, bool bold = false, bool italic = false, bool underlined = false, Func<SKColor>? textColor = null, TextAlign? align = null)
+        public static TextModel CreateBasic(string text, float textSize = 14, bool bold = false, bool italic = false, bool underlined = false,
+            Func<SKColor>? textColor = null, Func<SKColor>? backgroundColor = null, TextAlign? align = null)
         {
             TextStyle style = new()
             {
@@ -14,14 +15,16 @@ namespace FenUISharp.Objects.Text.Model
                 Color = textColor ?? (() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnBackground),
                 Weight = bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal,
                 Slant = italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright,
-                Underlined = underlined
+                Underlined = underlined,
+                BackgroundColor = backgroundColor ?? (() => SKColors.Transparent)
             };
             TextAlign algn = align ?? new() { HorizontalAlign = TextAlign.AlignType.Middle, VerticalAlign = TextAlign.AlignType.Middle };
 
             return new(new List<TextSpan>() { new TextSpan(text, style) }, algn, FTypeface.Default);
         }
 
-        public static TextModel CopyBasic(TextModel old, float? textSize = null, bool? bold = null, bool? italic = null, bool? underlined = null, Func<SKColor>? textColor = null, TextAlign? align = null)
+        public static TextModel CopyBasic(TextModel old, float? textSize = null, bool? bold = null, bool? italic = null, bool? underlined = null,
+            Func<SKColor>? textColor = null, Func<SKColor>? backgroundColor = null, TextAlign? align = null)
         {
             List<TextSpan> spans = new();
 
@@ -32,6 +35,7 @@ namespace FenUISharp.Objects.Text.Model
                 span.Style.Slant = (italic != null) ? (italic.Value ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright) : span.Style.Slant;
                 span.Style.FontSize = textSize ?? span.Style.FontSize;
                 span.Style.Underlined = underlined ?? span.Style.Underlined;
+                span.Style.BackgroundColor = backgroundColor ?? span.Style.BackgroundColor;
                 spans.Add(span);
             }
 
@@ -47,7 +51,8 @@ namespace FenUISharp.Objects.Text.Model
                 Color = old.TextParts[0].Style.Color,
                 Weight = old.TextParts[0].Style.Weight,
                 Slant = old.TextParts[0].Style.Slant,
-                FontSize = old.TextParts[0].Style.FontSize
+                FontSize = old.TextParts[0].Style.FontSize,
+                BackgroundColor = old.TextParts[0].Style.BackgroundColor
             });
             spans.Add(span);
 

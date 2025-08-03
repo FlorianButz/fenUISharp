@@ -46,24 +46,20 @@ namespace FenUISharp.RuntimeEffects
 
         public void OnAfterRender(PPInfo info)
         {
-            using var snapshop = info.source.Snapshot();
+            using var snapshot = info.source.Snapshot();
+            var bounds = info.owner.Shape.SurfaceDrawRect;
 
-            // Horizontal offset
             float xOffset = RMath.Remap(MapGradientPosition ? WrapToRange(GradientPosition.CachedValue) : GradientPosition.CachedValue, -1f, 1f,
                                        -info.owner.Shape.LocalBounds.Width,
                                        info.owner.Shape.LocalBounds.Width);
 
-            var bounds = info.owner.Shape.SurfaceDrawRect;
             float centerX = bounds.MidX;
             float halfWidth = info.owner.Shape.LocalBounds.Width * GradientWidth / 2f;
             float xLeft = centerX - halfWidth + xOffset;
             float xRight = centerX + halfWidth + xOffset;
 
-            var left = new SKPoint(xLeft, 0);
-            var right = new SKPoint(xRight, 0);
-
-            left = RMath.RotatePoint(left, new SKPoint(bounds.MidX, bounds.MidY), GradientRotation);
-            right = RMath.RotatePoint(right, new SKPoint(bounds.MidX, bounds.MidY), GradientRotation);
+            var left = RMath.RotatePoint(new SKPoint(xLeft, 0), new SKPoint(bounds.MidX, bounds.MidY), GradientRotation);
+            var right = RMath.RotatePoint(new SKPoint(xRight, 0), new SKPoint(bounds.MidX, bounds.MidY), GradientRotation);
 
             using var gradient = SKShader.CreateLinearGradient(
                 left,
@@ -73,24 +69,26 @@ namespace FenUISharp.RuntimeEffects
                 RepeatGradient ? SKShaderTileMode.Repeat : SKShaderTileMode.Clamp
             );
 
-            var layerPaint = new SKPaint
-            {
-                BlendMode = SKBlendMode.Plus // Will mask based on source alpha
-            };
+            // Layer to isolate the drawing
+            info.target.Canvas.SaveLayer(SKRect.Create(0, 0, info.sourceInfo.Width, info.sourceInfo.Height), null);
 
-            info.target.Canvas.SaveLayer(SKRect.Create(0, 0, info.sourceInfo.Width, info.sourceInfo.Height), layerPaint);
-
-            using var drawPaint = new SKPaint { Shader = gradient, BlendMode = SKBlendMode.SrcATop };
-
+            // Draw snapshot (base layer)
             info.target.Canvas.Save();
             info.target.Canvas.ResetMatrix();
-            info.target.Canvas.DrawImage(snapshop, 0, 0);
+            info.target.Canvas.DrawImage(snapshot, 0, 0);
             info.target.Canvas.Restore();
+
+            // Apply rotated gradient over top using SrcIn
+            using var drawPaint = new SKPaint
+            {
+                Shader = gradient,
+                BlendMode = SKBlendMode.SrcIn // Only affects opaque areas of snapshot
+            };
 
             info.target.Canvas.RotateDegrees(RotationDegrees, bounds.MidX, bounds.MidY);
             info.target.Canvas.DrawRect(SKRect.Create(0, 0, info.sourceInfo.Width, info.sourceInfo.Height), drawPaint);
 
-            info.target.Canvas.Restore();
+            info.target.Canvas.Restore(); // Restore from layer
         }
 
         public float WrapToRange(float value)

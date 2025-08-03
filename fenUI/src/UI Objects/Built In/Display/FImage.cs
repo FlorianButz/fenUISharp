@@ -5,12 +5,9 @@ using SkiaSharp;
 
 namespace FenUISharp.Objects
 {
-    public class FImage : FPanel, IStateListener
+    public class FImage : FDisplayableType, IStateListener
     {
         public State<SKImage> Image { get; private init; }
-        public State<SKBlendMode> TintBlendMode { get; private init; }
-
-        public State<SKColor> TintColor { get; private init; }
 
         public enum ImageScaleMode { Stretch, Fit, Contain }
         public State<ImageScaleMode> ScaleMode { get; private init; }
@@ -18,14 +15,9 @@ namespace FenUISharp.Objects
         public FImage(Func<SKImage> image, bool drawBackground = false, bool dynamicColor = false, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
             _drawBasePanel = drawBackground;
-
             Image = new(image, this, this);
-            TintBlendMode = new(() => SKBlendMode.Modulate, this, this);
             ScaleMode = new(() => ImageScaleMode.Fit, this, this);
-
             CornerRadius.SetResponsiveState(() => Layout.ClampSize(Transform.Size.CachedValue).y / 1.5f);
-
-            TintColor = new(() => dynamicColor ? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.OnSurface : SKColors.White, this, this);
             Padding.Value = () => 10;
         }
 

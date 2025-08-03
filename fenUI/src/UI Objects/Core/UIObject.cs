@@ -61,6 +61,12 @@ namespace FenUISharp.Objects
         public bool WindowRedrawThisObject { get; internal set; }
         public bool LockInvalidation { get; set; }
 
+        /// <summary>
+        /// Will lock the invalidation of this object and all children
+        /// </summary>
+        public bool LockInvalidationAll { get; set; } = false;
+        public bool GlobalLockInvalidation { get => LockInvalidationAll || (Parent?.GlobalLockInvalidation ?? false); }
+
         public State<float> Quality { get; init; }
         public State<int> Padding { get; init; }
 
@@ -143,8 +149,8 @@ namespace FenUISharp.Objects
         public void Invalidate(Invalidation invalidation)
         {
             if (IsDisposed) return;
+            if (LockInvalidation || LockInvalidationAll || GlobalLockInvalidation) return;
             
-            if (LockInvalidation) return;
             if (invalidation == Invalidation.LayoutDirty)
             {
                 // Shallow layout recalculation. Might have to change it to full recursive layout recalc in the future
@@ -411,7 +417,7 @@ namespace FenUISharp.Objects
             if (IsDisposed) return;
             
             DispatchBehaviorEvent(BehaviorEventType.BeforeEarlyUpdate);
-            
+
             // Run own early update behavior before children
             EarlyUpdate();
 

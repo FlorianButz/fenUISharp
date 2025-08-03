@@ -23,6 +23,20 @@ namespace FenUISharp.Behavior
         {
             this.DropType = dType;
             this.DropEffect = dEffect;
+
+            FContext.GetCurrentWindow().DropTarget.dragDrop += DragDrop;
+            FContext.GetCurrentWindow().DropTarget.dragEnter += DragEnter;
+            FContext.GetCurrentWindow().DropTarget.dragLeave += DragLeave;
+
+            if (Owner == null) return;
+            Owner.InteractiveSurface.EnableMouseActions.SetStaticState(true, 25);
+            Owner.InteractiveSurface.OnMouseEnter += MouseEnter;
+            Owner.InteractiveSurface.OnMouseExit += MouseExit;
+            Owner.InteractiveSurface.OnMouseMove += MouseStay;
+
+            dispatcher = FContext.GetCurrentDispatcher();
+
+            if (FContext.GetCurrentWindow().DropTarget.IsDragDropActionInProgress) DragEnter(FContext.GetCurrentWindow().DropTarget.lastDropData);
         }
 
         private void MouseStay(Vector2 vector)
@@ -75,37 +89,6 @@ namespace FenUISharp.Behavior
             _windowHasCompatibleActiveDragAction = true;
         }
 
-        public override void HandleEvent(BehaviorEventType type, object? data = null)
-        {
-            base.HandleEvent(type, data);
-
-            switch (type)
-            {
-                case BehaviorEventType.BeforeBegin:
-                    ComponentSetup();
-                    break;
-            }
-        }
-
-        public void ComponentSetup()
-        {
-            FContext.GetCurrentWindow().DropTarget.dragDrop += DragDrop;
-            FContext.GetCurrentWindow().DropTarget.dragEnter += DragEnter;
-            FContext.GetCurrentWindow().DropTarget.dragLeave += DragLeave;
-
-            if (Owner == null) return;
-            Owner.InteractiveSurface.EnableMouseActions.SetStaticState(true, 25);
-            Owner.InteractiveSurface.OnMouseEnter += MouseEnter;
-            Owner.InteractiveSurface.OnMouseExit += MouseExit;
-            Owner.InteractiveSurface.OnMouseMove += MouseStay;
-
-            dispatcher = FContext.GetCurrentDispatcher();
-
-            if (FContext.GetCurrentWindow().DropTarget.IsDragDropActionInProgress) DragEnter(FContext.GetCurrentWindow().DropTarget.lastDropData);
-
-            // Don't use drag over, it runs on different thread. Should use cutom drag over
-        }
-
         protected void OnDragDropActionEnter(FDropData? data)
         {
             FContext.GetCurrentWindow().DropTarget.dropEffect.SetValue(this, DropEffect, 5);
@@ -124,7 +107,7 @@ namespace FenUISharp.Behavior
         protected void OnDragDropActionComplete(FDropData? data)
         {
             FContext.GetCurrentWindow().DropTarget.dropEffect.DissolveValue(this);
-    
+
             if (data != null)
                 OnDrop?.Invoke(data);
         }

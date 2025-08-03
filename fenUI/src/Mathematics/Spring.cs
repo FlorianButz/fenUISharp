@@ -2,6 +2,8 @@
 {
     public class Spring
     {
+        public Guid Guid { get; init; } = Guid.NewGuid();
+
         private Vector2 xp;
         private Vector2 y, yd;
         private float k1, k2, k3;

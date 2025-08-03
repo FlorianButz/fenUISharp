@@ -1,3 +1,4 @@
+using FenUISharp.Mathematics;
 using FenUISharp.Objects;
 using SkiaSharp;
 
@@ -13,7 +14,7 @@ namespace FenUISharp.Materials
 
         protected override void Draw(SKCanvas targetCanvas, SKPath path, UIObject caller, SKPaint paint)
         {
-            paint.Color = BaseColor();
+            paint.Color = paint.Color.MultiplyMix(BaseColor());
             targetCanvas.DrawPath(path, paint);
         }
     }

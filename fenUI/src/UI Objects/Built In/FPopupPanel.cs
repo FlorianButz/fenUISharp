@@ -58,7 +58,7 @@ namespace FenUISharp.Objects
             layoutObject.IgnoreParentLayout.SetStaticState(true);
             CornerRadius.SetStaticState(10f);
 
-            Composition.LocalZIndex.SetResponsiveState(() => IsShowing ? 99 : 0);
+            Composition.LocalZIndex.SetStaticState(99);
             dispatcher = FContext.GetCurrentDispatcher();
 
             WindowFeatures.GlobalHooks.OnMouseAction += OnGlobalMouseAction;
@@ -141,7 +141,7 @@ namespace FenUISharp.Objects
                 }, 1L);
                 onComplete?.Invoke();
                 OnCompleteAnim();
-                if (DisposeOnClose) Dispose();
+                if (DisposeOnClose) FContext.GetCurrentDispatcher().Invoke(() => Dispose());
             };
             _inAnimation.Restart();
         }

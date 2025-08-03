@@ -13,6 +13,7 @@ namespace FenUISharp.Objects
             get
             {
                 if (Owner?.TryGetTarget(out var target) ?? false) return target;
+
                 else return null;
             }
         }
@@ -38,7 +39,7 @@ namespace FenUISharp.Objects
         /// <summary>
         /// Specifies the time frame in which a mouse action has to be completed twice to be counted as a double mouse action
         /// </summary>
-        public float DoubleMouseActionTimeFrame { get; set; } = 0.6f;
+        public float DoubleMouseActionTimeFrame { get; set; } = 0.4f;
 
         /// <summary>
         /// Specifies the time in which a mouse action has to be held to be counted as a long mouse action

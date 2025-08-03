@@ -22,6 +22,8 @@ namespace FenUISharp.Objects
         [ThreadStatic]
         private static List<UIObject> _cachedOrderedList = new();
 
+        public static bool EnableDump { get; set; } = false;
+
         public Compositor(UIObject owner)
         {
             this.Owner = new(owner);
@@ -124,9 +126,7 @@ namespace FenUISharp.Objects
 
         public static void Dump(SKImage? image, string name)
         {
-            // COMMENT THIS OUT FOR DEBUG DUMPS. WARNING: THIS WILL DUMP EVERY TIME THIS METHOD GETS CALLED EVERY FRAME, DON'T RE-RENDER TOO OFTEN
-            return;
-
+            if (!EnableDump) return;
             if (image == null) return;
 
             string dir = Path.Combine(AppContext.BaseDirectory, "Dumps");

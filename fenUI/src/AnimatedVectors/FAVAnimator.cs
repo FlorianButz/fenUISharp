@@ -35,6 +35,9 @@ namespace FenUISharp.AnimatedVectors
                 if (animationTuple.id != id) continue;
                 AVAnimation animation = animationTuple.animation;
 
+                // Make sure easing is isolated to single animation (affects e.g. springs)
+                Func<float, float> AnimationEasing = animation.CreateEasing();
+
                 AnimatorComponent animComponent = new(display, (x) => x); // Easing is applied manually later
                 animComponent.Duration = animation.Duration + animation.ExtendDuration;
 
@@ -48,14 +51,17 @@ namespace FenUISharp.AnimatedVectors
                         return t;
                     };
 
-                    x = animation.PerKeyframeEase ? animationTime() : animation.Easing(animationTime());
+                    // Calculate neighbors and get t for inbetween
+                    x = animation.PerKeyframeEase ? animationTime() : AnimationEasing(animationTime());
                     var interpolationNeighbors = FindInterpolationNeighbors(animation.Keyframes, x);
                     float interpolationTime = RMath.Remap(x, interpolationNeighbors.from?.time ?? 0, interpolationNeighbors.to?.time ?? 0, 0, 1);
 
+                    // Calculate time value for interpolation
                     var fromAttrs = interpolationNeighbors.from?.attributes;
                     var toAttrs = interpolationNeighbors.to?.attributes;
-                    float t = animation.PerKeyframeEase ? animation.Easing(interpolationTime) : interpolationTime;
+                    float t = animation.PerKeyframeEase ? AnimationEasing(interpolationTime) : interpolationTime;
 
+                    // Interpolate all values
                     float anchorX = InterpolateAttribute(fromAttrs, toAttrs, "anchor-x", t);
                     float anchorY = InterpolateAttribute(fromAttrs, toAttrs, "anchor-y", t);
                     float scaleX = InterpolateAttribute(fromAttrs, toAttrs, "scale-x", t);
@@ -67,29 +73,36 @@ namespace FenUISharp.AnimatedVectors
                     float blurRadius = MathF.Abs(InterpolateAttribute(fromAttrs, toAttrs, "blur-radius", t));
                     float strokeTrace = RMath.Clamp(InterpolateAttribute(fromAttrs, toAttrs, "stroke-trace", t), 0, 1);
 
+                    // Apply to all affected paths
                     for (int i = 0; i < animatedVector.Paths.Count; i++)
                     {
                         if (!animation.AffectedPathIDs.Contains(i)) continue;
                         var path = animatedVector.Paths[i];
 
-                        if (anchorX != DefaultAttributeValues["anchor-x"]) path.Anchor.x = anchorX;
-                        if (anchorY != DefaultAttributeValues["anchor-y"]) path.Anchor.y = anchorY;
-                        if (scaleX != DefaultAttributeValues["scale-x"]) path.Scale.x = scaleX;
-                        if (scaleY != DefaultAttributeValues["scale-y"]) path.Scale.y = scaleY;
-                        if (translateX != DefaultAttributeValues["translate-x"]) path.Translation.x = translateX;
-                        if (translateY != DefaultAttributeValues["translate-y"]) path.Translation.y = translateY;
-                        if (rotation != DefaultAttributeValues["rotate"]) path.Rotation = rotation;
-                        if (opacity != DefaultAttributeValues["opacity"]) path.Opacity = opacity;
-                        if (blurRadius != DefaultAttributeValues["blur-radius"]) path.BlurRadius = blurRadius;
-                        if (strokeTrace != DefaultAttributeValues["stroke-trace"]) path.StrokeTrace = strokeTrace;
+                        // Get override reference
+                        display.GetOrCreatePathOverride(i, out AVPathAnimationOverride pathOverride);
 
-                        if (animation.UseObjectAnchor) path.UseObjectAnchor = animation.UseObjectAnchor;
-                        if (animation.UseObjectSizeTranslation) path.UseObjectSizeTranslation = animation.UseObjectSizeTranslation;
+                        // Apply overrides
+                        if (anchorX != DefaultAttributeValues["anchor-x"]) pathOverride.Anchor.x = anchorX;
+                        if (anchorY != DefaultAttributeValues["anchor-y"]) pathOverride.Anchor.y = anchorY;
+                        if (scaleX != DefaultAttributeValues["scale-x"]) pathOverride.Scale.x = scaleX;
+                        if (scaleY != DefaultAttributeValues["scale-y"]) pathOverride.Scale.y = scaleY;
+                        if (translateX != DefaultAttributeValues["translate-x"]) pathOverride.Translation.x = translateX;
+                        if (translateY != DefaultAttributeValues["translate-y"]) pathOverride.Translation.y = translateY;
+                        if (rotation != DefaultAttributeValues["rotate"]) pathOverride.Rotation = rotation;
+                        if (opacity != DefaultAttributeValues["opacity"]) pathOverride.Opacity = opacity;
+                        if (blurRadius != DefaultAttributeValues["blur-radius"]) pathOverride.BlurRadius = blurRadius;
+                        if (strokeTrace != DefaultAttributeValues["stroke-trace"]) pathOverride.StrokeTrace = strokeTrace;
+
+                        if (animation.UseObjectAnchor) pathOverride.UseObjectAnchor = animation.UseObjectAnchor;
+                        if (animation.UseObjectSizeTranslation) pathOverride.UseObjectSizeTranslation = animation.UseObjectSizeTranslation;
                     }
 
+                    // Invalidate
                     display.Invalidate(Objects.UIObject.Invalidation.SurfaceDirty);
                 };
 
+                // Create reset values function
                 var resetValues = (bool isEarlyEnding) =>
                 {
                     if (!animation.DontResetValues)
@@ -99,19 +112,23 @@ namespace FenUISharp.AnimatedVectors
                             if (!animation.AffectedPathIDs.Contains(i)) continue;
                             var path = animatedVector.Paths[i];
 
-                            path.Anchor = new(DefaultAttributeValues["anchor-x"], DefaultAttributeValues["anchor-y"]);
-                            path.Translation = new(DefaultAttributeValues["translate-x"], DefaultAttributeValues["translate-y"]);
-                            path.Scale = new(DefaultAttributeValues["scale-x"], DefaultAttributeValues["scale-y"]);
-                            path.Rotation = DefaultAttributeValues["rotate"];
+                            // Get override reference
+                            display.GetOrCreatePathOverride(i, out AVPathAnimationOverride pathOverride);
 
-                            path.Opacity = DefaultAttributeValues["opacity"];
-                            path.BlurRadius = DefaultAttributeValues["blur-radius"];
-                            path.StrokeTrace = DefaultAttributeValues["stroke-trace"];
+                            // Reset overrides
+                            pathOverride.Anchor = new(DefaultAttributeValues["anchor-x"], DefaultAttributeValues["anchor-y"]);
+                            pathOverride.Translation = new(DefaultAttributeValues["translate-x"], DefaultAttributeValues["translate-y"]);
+                            pathOverride.Scale = new(DefaultAttributeValues["scale-x"], DefaultAttributeValues["scale-y"]);
+                            pathOverride.Rotation = DefaultAttributeValues["rotate"];
+
+                            pathOverride.Opacity = DefaultAttributeValues["opacity"];
+                            pathOverride.BlurRadius = DefaultAttributeValues["blur-radius"];
+                            pathOverride.StrokeTrace = DefaultAttributeValues["stroke-trace"];
                         }
                     }
 
-                    if(!isEarlyEnding || animation.Easing(1f) > 0.95f) // Check if spring is 1, reset if needed
-                        animation.RecreateEasing?.Invoke();
+                    if (!isEarlyEnding || AnimationEasing(1f) > 0.95f) // Check if spring is 1, reset if needed
+                        AnimationEasing = animation.CreateEasing();
                 };
 
                 animComponent.OnComplete += () =>
@@ -127,6 +144,7 @@ namespace FenUISharp.AnimatedVectors
                     animComponent.Dispose();
                 };
 
+                // Begin animation
                 animComponent.Start();
                 animators.Add((activeAnimators, animComponent, resetValues));
                 activeAnimators++;

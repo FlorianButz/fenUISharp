@@ -1,3 +1,4 @@
+using FenUISharp.Logging;
 using FenUISharp.Mathematics;
 using FenUISharp.Objects;
 using FenUISharp.RuntimeEffects;
@@ -26,7 +27,11 @@ namespace FenUISharp.Objects
 
         private SKSurface? CreateSurface()
         {
-            if (_cachedImageInfo == null) throw new Exception("InvalidateSurface has to be called before surface is created");
+            if (_cachedImageInfo == null)
+            {
+                FLogger.Error("InvalidateSurface has to be called before surface is created");
+                return null;
+            }
             if (!FContext.IsValidContext()) throw new Exception("Invalid FenUISharp window context.");
 
             _cachedSurface = FContext.GetCurrentWindow()?.RenderContext.CreateAdditional(_cachedImageInfo.Value);

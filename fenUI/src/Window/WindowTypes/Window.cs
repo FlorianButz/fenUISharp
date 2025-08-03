@@ -81,6 +81,7 @@ namespace FenUISharp
         public FRenderContext RenderContext { get; private set; }
 
         public Dispatcher Dispatcher { get; private set; }
+        public Dispatcher STADispatcher { get; private set; }
 
         #endregion
 
@@ -144,7 +145,12 @@ namespace FenUISharp
         {
             if (!FenUI.HasBeenInitialized) throw new Exception("FenUI has to be initialized before creating a window.");
             FenUI.activeInstances.Add(this);
+
+            // Used for running actions on the UI thread
             Dispatcher = new();
+
+            // Used for running actions from the UI thread in the STA thread
+            STADispatcher = new();
 
             WindowTitle = title;
             WindowClass = className;
@@ -805,10 +811,12 @@ namespace FenUISharp
 
         protected IntPtr WindowsProcedure(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
+            STADispatcher.UpdateQueue(); // Dispatch queued events
+
             switch (msg)
             {
                 case 0x0102: // Keyboard input
-                    Dispatcher.Invoke(() =>  OnKeyboardInputTextReceived?.Invoke((char)wParam));
+                    Dispatcher.Invoke(() => OnKeyboardInputTextReceived?.Invoke((char)wParam));
                     break;
 
                 case (int)WindowMessages.WM_DEVICECHANGE:

@@ -4,6 +4,7 @@ using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using FenUISharp.Native;
 
+// TODO: FIX NOT ALL DRAG DESTINATIONS NOT WORKING
 
 namespace FenUISharp
 {
@@ -15,6 +16,21 @@ namespace FenUISharp
         void DragOver([In] uint grfKeyState, [In] POINT pt, [In, Out] ref uint pdwEffect);
         void DragLeave();
         void Drop([In] IntPtr pDataObj, [In] uint grfKeyState, [In] POINT pt, [In, Out] ref uint pdwEffect);
+    }
+
+    // COM interface definition for drag source
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("00000121-0000-0000-C000-000000000046")]
+    public interface IDropSource
+    {
+        [PreserveSig]
+        int QueryContinueDrag(
+            [MarshalAs(UnmanagedType.Bool)] bool fEscapePressed,
+            uint grfKeyState);
+
+        [PreserveSig]
+        int GiveFeedback(uint dwEffect);
     }
 
     [Flags]
@@ -279,6 +295,7 @@ namespace FenUISharp
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern IntPtr GlobalSize(IntPtr hMem);
     }
+
 
     public static class DragDropRegistration
     {

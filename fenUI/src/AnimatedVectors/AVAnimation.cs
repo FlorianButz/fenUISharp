@@ -9,10 +9,10 @@ namespace FenUISharp.AnimatedVectors
         public bool PerKeyframeEase { get; init; } = false;
         public float Duration { get; init; } = 1f;
         public float ExtendDuration { get; init; } = 0f;
-        public Func<float, float> Easing { get; init; } = (x) => x;
+
+        public Func<Func<float, float>> CreateEasing { get; init; } = () => (x) => x;
 
         public List<AVKeyframe> Keyframes { get; init; } = new();
-        internal Action? RecreateEasing { get; init; }
     }
 
     public class AVKeyframe

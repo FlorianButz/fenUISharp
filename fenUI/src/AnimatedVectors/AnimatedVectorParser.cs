@@ -143,7 +143,7 @@ namespace FenUISharp.AnimatedVectors
             {
                 foreach (var animation in animations.Elements("animation"))
                 {
-                    Action? recreateEasing = null;
+                    Func<Func<float, float>>? createEasing = null;
 
                     // Get affected paths
                     string[] affectedPathsString = (animation.Attribute("affected-paths")?.Value ?? "").Split(' ');
@@ -169,9 +169,6 @@ namespace FenUISharp.AnimatedVectors
                     bool dontResetValues = (animation.Attribute("dont-reset")?.Value ?? "") == "true";
                     bool perKeyframeEase = (animation.Attribute("per-keyframe-ease")?.Value ?? "") == "true";
 
-                    // Get easing function
-                    Func<float, float> easing = (x) => x;
-
                     string easingRaw = (animation.Attribute("easing")?.Value ?? "");
                     // Test for different special easing cases
                     // Cubic easing
@@ -186,13 +183,13 @@ namespace FenUISharp.AnimatedVectors
                         // Parse values and create easing function
                         try
                         {
-                            easing = BezierEasing.CreateEasing(
+                            createEasing = () => BezierEasing.CreateEasing(
                                 float.Parse(easingValues[0], CultureInfo.InvariantCulture),
                                 float.Parse(easingValues[1], CultureInfo.InvariantCulture),
                                 float.Parse(easingValues[2], CultureInfo.InvariantCulture),
                                 float.Parse(easingValues[3], CultureInfo.InvariantCulture));
                         }
-                        catch (Exception e) { easing = (x) => x; FLogger.Error("Unexpected values while trying to parse FAV animation easing"); }
+                        catch (Exception e) { createEasing = null; FLogger.Error("Unexpected values while trying to parse FAV animation easing"); }
                     }
                     else if (easingRaw.StartsWith("spring(") && easingRaw.EndsWith(")"))
                     {
@@ -205,13 +202,16 @@ namespace FenUISharp.AnimatedVectors
                         // Parse values and create spring
                         try
                         {
-                            Spring spring = new Spring(
-                                float.Parse(easingValues[0], CultureInfo.InvariantCulture) / duration /* Springs are non plottable. To avoid it clipping too much out of the animation duration, divide speed through duration */,
-                                float.Parse(easingValues[1], CultureInfo.InvariantCulture));
-                            recreateEasing += () => spring.ResetVector(Vector2.Zero);
-                            easing = (x) => spring.Update(FContext.DeltaTime, Vector2.One * x).x;
+                            createEasing = () =>
+                            {
+                                Spring spring = new Spring(
+                                    /* Springs are non plottable. To avoid it clipping too much out of the animation duration, divide speed through duration */
+                                    float.Parse(easingValues[0], CultureInfo.InvariantCulture) / duration,
+                                    float.Parse(easingValues[1], CultureInfo.InvariantCulture));
+                                return (x) => spring.Update(FContext.DeltaTime, Vector2.One * x).x;
+                            };
                         }
-                        catch (Exception e) { easing = (x) => x; FLogger.Error("Unexpected values while trying to parse FAV animation easing"); }
+                        catch (Exception e) { createEasing = null; FLogger.Error("Unexpected values while trying to parse FAV animation easing"); }
                     }
                     else if (easingRaw.StartsWith("snap-spring(") && easingRaw.EndsWith(")"))
                     {
@@ -224,27 +224,30 @@ namespace FenUISharp.AnimatedVectors
                         // Parse values and create spring
                         try
                         {
-                            Spring spring = new Spring(
-                                float.Parse(easingValues[0], CultureInfo.InvariantCulture) / duration /* Springs are non plottable. To avoid it clipping too much out of the animation duration, divide speed through duration */,
-                                float.Parse(easingValues[1], CultureInfo.InvariantCulture));
-                            recreateEasing += () => spring.ResetVector(Vector2.Zero);
-                            easing = (x) => spring.Update(FContext.DeltaTime, Vector2.One).x;
+                            createEasing = () =>
+                            {
+                                Spring spring = new Spring(
+                                    /* Springs are non plottable. To avoid it clipping too much out of the animation duration, divide speed through duration */
+                                    float.Parse(easingValues[0], CultureInfo.InvariantCulture) / duration,
+                                    float.Parse(easingValues[1], CultureInfo.InvariantCulture));
+                                return (x) => { return spring.Update(FContext.DeltaTime, Vector2.One).x; };
+                            };
                         }
-                        catch (Exception e) { easing = (x) => x; FLogger.Error("Unexpected values while trying to parse FAV animation easing"); }
+                        catch (Exception e) { createEasing = null; FLogger.Error("Unexpected values while trying to parse FAV animation easing"); }
                     }
                     // Other common easing types
                     else if (easingRaw.Equals("linear"))
-                        easing = (x) => x;
+                        createEasing = () => (x) => x;
                     else if (easingRaw.Equals("ease"))
-                        easing = BezierEasing.Ease;
+                        createEasing = () => BezierEasing.Ease;
                     else if (easingRaw.Equals("ease-in"))
-                        easing = BezierEasing.EaseIn;
+                        createEasing = () => BezierEasing.EaseIn;
                     else if (easingRaw.Equals("ease-out"))
-                        easing = BezierEasing.EaseOut;
+                        createEasing = () => BezierEasing.EaseOut;
                     else if (easingRaw.Equals("ease-in-out"))
-                        easing = BezierEasing.EaseInOut;
+                        createEasing = () => BezierEasing.EaseInOut;
                     else if (easingRaw.Equals("snap"))
-                        easing = (x) => x >= 0.5f ? 1 : 0;
+                        createEasing = () => (x) => x >= 0.5f ? 1 : 0;
 
                     string animationID = animation.Attribute("id")?.Value ?? throw new Exception("Every animation must specify an ID");
 
@@ -278,14 +281,13 @@ namespace FenUISharp.AnimatedVectors
                     {
                         AffectedPathIDs = affectedPaths,
                         Duration = duration,
-                        Easing = easing,
                         Keyframes = keyframes,
                         UseObjectAnchor = useObjAnchor,
                         UseObjectSizeTranslation = useObjSizeTranslation,
                         DontResetValues = dontResetValues,
                         ExtendDuration = extendDuration,
                         PerKeyframeEase = perKeyframeEase,
-                        RecreateEasing = recreateEasing
+                        CreateEasing = createEasing ?? (() => (x) => x)
                     }));
                 }
             }

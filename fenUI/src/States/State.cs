@@ -81,9 +81,12 @@ namespace FenUISharp.States
         /// A resolver can modify the order in which entries are prioritized. By default, the highest priority is the active value
         /// </summary>
         /// <param name="resolver"></param>
-        public void SetResolver(Func<List<StateEntry<T>>, StateEntry<T>> resolver)
+        public void SetResolver(Func<List<StateEntry<T>>, StateEntry<T>>? resolver)
         {
-            _resolver = resolver;
+            if(resolver == null)
+                _resolver = entries => entries.OrderBy(x => x.Priority).Last();
+            else
+                _resolver = resolver;
             UpdateList();
         }
 

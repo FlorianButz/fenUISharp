@@ -87,14 +87,14 @@ namespace FenUISharp.Objects
 
             const float btnSize = 15f;
 
-            var copyBtn = new FImageButton(new FImage(() => Resources.GetImage("fenui-builtin-copy")), size: () => new(btnSize, btnSize));
+            var copyBtn = new FDisplayButton(new FImage(() => Resources.GetImage("fenui-builtin-copy")), size: () => new(btnSize, btnSize));
             copyBtn.Layout.Alignment.SetStaticState(new(0, 0));
             copyBtn.Layout.AlignmentAnchor.SetStaticState(new(0, 0));
             copyBtn.Transform.LocalPosition.SetStaticState(new(activePicker.Layout.ClampSize(activePicker.Transform.Size.CachedValue).x, 7.5f));
             copyBtn.RenderMaterial.Value = FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.TransparentInteractableMaterial;
             copyBtn.SetParent(activePickerPanel);
 
-            var pasteBtn = new FImageButton(new FImage(() => Resources.GetImage("fenui-builtin-paste")), size: () => new(btnSize, btnSize));
+            var pasteBtn = new FDisplayButton(new FImage(() => Resources.GetImage("fenui-builtin-paste")), size: () => new(btnSize, btnSize));
             pasteBtn.Layout.Alignment.SetStaticState(new(0, 0));
             pasteBtn.Layout.AlignmentAnchor.SetStaticState(new(0, 0));
             pasteBtn.RenderMaterial.Value = FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.TransparentInteractableMaterial;
