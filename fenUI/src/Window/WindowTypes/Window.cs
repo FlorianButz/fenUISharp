@@ -178,12 +178,17 @@ namespace FenUISharp
             // Pre initialize OLE DragDrop
             DragDropRegistration.Initialize();
 
+            // Setting always on top
             _alwaysOnTop = alwaysOnTop;
             SetAlwaysOnTop(_alwaysOnTop);
 
+            // Setting render context type
             _startWithType = type;
 
+            // Setting taskbar visibility
             SetTaskbarIconVisibility(!hideTaskbarIcon);
+            
+            // Recalcing client area bounds
             RecalcClientBounds();
         }
 

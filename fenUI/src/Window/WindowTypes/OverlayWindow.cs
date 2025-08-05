@@ -12,6 +12,8 @@ namespace FenUISharp
         private int _activeDisplay = 0;
         public int ActiveDisplayIndex { get => _activeDisplay; set { _activeDisplay = value; UpdateWindowMetrics(_activeDisplay); } }
 
+        private const int DWMWA_EXCLUDED_FROM_PEEK = 12;
+
         public OverlayWindow(
             string title, string className, RenderContextType type, int monitorIndex = 0) :
             base(title, className, type, null, null)
@@ -71,7 +73,13 @@ namespace FenUISharp
         {
             WindowSize = new Vector2(GetSystemMetrics(0), GetSystemMetrics(1));
 
-            return base.CreateWin32Window(wndClass, WindowSize, position);
+            IntPtr hWnd = base.CreateWin32Window(wndClass, WindowSize, position);
+
+            // Exclude window from aero peek. Not needed with transparent overlays
+            int excludeValue = 1; // True
+            DwmSetWindowAttribute(hWnd, DWMWA_EXCLUDED_FROM_PEEK, ref excludeValue, sizeof(int));
+
+            return hWnd;
         }
 
         const int ENUM_CURRENT_SETTINGS = -1;
