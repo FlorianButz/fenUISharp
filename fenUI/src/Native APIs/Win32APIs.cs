@@ -2,10 +2,217 @@ using System.Runtime.InteropServices;
 
 namespace FenUISharp.Native
 {
+    internal class WindowStyles
+    {
+        // Premade composites
+        public const int WS_OVERLAPPEDWINDOW =
+            (int)WindowStyles.WS_OVERLAPPED |
+            (int)WindowStyles.WS_CAPTION |
+            (int)WindowStyles.WS_SYSMENU |
+            (int)WindowStyles.WS_THICKFRAME |
+            (int)WindowStyles.WS_MINIMIZEBOX |
+            (int)WindowStyles.WS_MAXIMIZEBOX;
+
+        public const int WS_NATIVE =
+            (int)WindowStyles.WS_OVERLAPPED |
+            (int)WindowStyles.WS_CAPTION |
+            (int)WindowStyles.WS_SYSMENU |
+            (int)WindowStyles.WS_MINIMIZEBOX;
+
+        public const int WS_NOTITLEBAR =
+            (int)WindowStyles.WS_OVERLAPPED |
+            (int)WindowStyles.WS_POPUP |
+            (int)WindowStyles.WS_THICKFRAME;
+
+        // Extended window styles
+        public const int WS_EX_NOREDIRECTIONBITMAP = 0x00200000;
+        public const long WS_EX_LAYERED = 0x00080000;
+        public const long WS_EX_APPWINDOW = 0x00040000;
+        public const long WS_EX_TOOLWINDOW = 0x00000080;
+
+        // Window styles
+        public const long WS_POPUP = unchecked((int)0x80000000);
+        public const long WS_VISIBLE = 0x10000000L;
+        public const long WS_OVERLAPPED = 0x00000000;
+        public const long WS_CAPTION = 0x00C00000;
+        public const long WS_SYSMENU = 0x00080000;
+        public const long WS_THICKFRAME = 0x00040000;
+        public const long WS_MINIMIZEBOX = 0x00020000;
+        public const long WS_MAXIMIZEBOX = 0x00010000;
+        public const long WS_BORDER = 0x0080000;
+    }
+
+    internal class DWMWINDOWATTRIBUTE
+    {
+        public const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
+        public const int DWMWA_MICA_EFFECT = 1029;      // Dark mode Mica
+        public const int DWMWA_CAPTION_COLOR = 35;      // Title bar color
+        public const int DWMWA_TEXT_COLOR_SYSTEM = 36;   // System text color adaptation
+        public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+    }
+
+    internal class WindowMessages
+    {
+        public const uint WM_NCCREATE = 0x0081;
+        public const uint WM_NCDESTROY = 0x0082;
+        public const uint WM_CREATE = 0x0001;
+        public const uint WM_DESTROY = 0x0002;
+        public const uint WM_SIZE = 0x0005;
+        public const uint WM_PAINT = 0x000F;
+        public const uint WM_CLOSE = 0x0010;
+        public const uint WM_SETFOCUS = 0x0007;
+        public const uint WM_KILLFOCUS = 0x0008;
+        public const int WM_SETTINGCHANGE = 0x001A;
+        public const int WM_DEVICECHANGE = 0x0219;
+        public const int WM_INITMENUPOPUP = 0x0117;
+        public const int WM_NCHITTEST = 0x0084;
+        public const int WM_DPICHANGED = 0x02E0;
+        public const int WM_GETMINMAXINFO = 0x24;
+        public const int WM_ACTIVATE = 0x0006;
+        public const int WM_KEYDOWN = 0x0100;
+        public const int WM_MOUSEMOVE = 0x0200;
+        public const int WM_LBUTTONDOWN = 0x0201;
+        public const int WM_LBUTTONUP = 0x0202;
+        public const int WM_MBUTTONDOWN = 0x0207;
+        public const int WM_MBUTTONUP = 0x0208;
+        public const int WM_RBUTTONDOWN = 0x0204;
+        public const int WM_RBUTTONUP = 0x0205;
+        public const int WM_MOUSEHOVER = 0x02A1;
+        public const int WM_MOUSELEAVE = 0x02A3;
+        public const int WM_DROPFILES = 0x0233;
+        public const int WM_SETCURSOR = 0x0020;
+        public const int WM_TIMER = 0x0113;
+        public const int WM_QUIT = 0x0012;
+        public const int WM_SETICON = 0x80;
+        public const int WM_USER = 0x0400;
+        public const int WM_COMMAND = 0x0111;
+        public const int WM_MENUDRAG = 0x123;
+        public const int WM_MOVING = 0x0216;
+        public const int WM_MOVE = 0x0003;
+        public const int WM_SIZING = 0x0214;
+        public const int WM_EXITSIZEMOVE = 0x0232;
+        public const int WM_ENTERSIZEMOVE = 0x023;
+    }
+
     internal class Win32APIs
     {
+        [DllImport("kernel32.dll", SetLastError = true)]
+        internal static extern IntPtr GetModuleHandle(string lpModuleName);
+
         [DllImport("user32.dll")]
         internal static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        internal static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        internal static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+        [DllImport("user32.dll")]
+        internal static extern bool SetLayeredWindowAttributes(IntPtr hWnd, uint crKey, byte bAlpha, uint dwFlags);
+
+        [DllImport("user32.dll")]
+        internal static extern bool GetLayeredWindowAttributes(IntPtr hWnd, out uint pcrKey, out byte pbAlpha, out uint pdwFlags);
+
+        [DllImport("user32.dll")]
+        internal static extern bool UpdateLayeredWindow(IntPtr hWnd, IntPtr hdcDst, ref POINT pptDst, ref SIZE psize, IntPtr hdcSrc, ref POINT pptSrc, uint crKey, ref BLENDFUNCTION pblend, uint dwFlags);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        internal static extern ushort RegisterClassExA(ref WNDCLASSEX lpwcx);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        internal static extern IntPtr CreateWindowExA(
+            int dwExStyle,
+            string lpClassName,
+            string lpWindowName,
+            int dwStyle,
+            int x,
+            int y,
+            int nWidth,
+            int nHeight,
+            IntPtr hWndParent,
+            IntPtr hMenu,
+            IntPtr hInstance,
+            IntPtr lpParam);
+
+        [DllImport("dwmapi.dll")]
+        internal static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS pMarInset);
+
+        [DllImport("dwmapi.dll")]
+        internal static extern int DwmSetWindowAttribute(
+            IntPtr hwnd,
+            uint attr,
+            ref int attrValue,
+            int attrSize);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern bool SetWindowSize(IntPtr hWnd, int width, int height);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+
+        [DllImport("user32.dll")]
+        internal static extern IntPtr DefWindowProcW(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        internal static extern IntPtr GetWindowLongPtrW(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        internal static extern IntPtr SetWindowLongPtrW(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+        [DllImport("user32.dll")]
+        internal static extern bool GetMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
+
+        [DllImport("user32.dll")]
+        internal static extern bool TranslateMessage([In] ref MSG lpMsg);
+
+        [DllImport("user32.dll")]
+        internal static extern IntPtr DispatchMessage([In] ref MSG lpmsg);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll")]
+        internal static extern bool ClientToScreen(IntPtr hWnd, ref POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        internal static extern bool ScreenToClient(IntPtr hWnd, ref POINT lpPoint);
+
+
+        [DllImport("user32.dll")]
+        internal static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip,
+            MonitorEnumDelegate lpfnEnum, IntPtr dwData);
+
+        internal delegate bool MonitorEnumDelegate(IntPtr hMonitor, IntPtr hdcMonitor,
+            ref RECT lprcMonitor, IntPtr dwData);
+
+        internal static RECT GetMonitorRect(int monitorIndex)
+        {
+            RECT rect = new RECT();
+            int count = 0;
+
+            MonitorEnumDelegate callback = (IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData) =>
+            {
+                if (count == monitorIndex)
+                {
+                    rect = lprcMonitor;
+                    return false; // Stop enumeration after finding the desired monitor
+                }
+                count++;
+                return true;
+            };
+
+            EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, callback, IntPtr.Zero);
+            return rect;
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -99,21 +306,6 @@ namespace FenUISharp.Native
         SWP_NOACTIVATE = 0x0010
     }
 
-    public enum WindowStyles : long
-    {
-        WS_POPUP = unchecked((int)0x80000000),
-        WS_EX_LAYERED = 0x00080000,
-        WS_EX_APPWINDOW = 0x00040000,
-        WS_EX_TOOLWINDOW = 0x00000080,
-        WS_VISIBLE = 0x10000000L,
-        WS_OVERLAPPED = 0x00000000,
-        WS_CAPTION = 0x00C00000,
-        WS_SYSMENU = 0x00080000,
-        WS_THICKFRAME = 0x00040000,
-        WS_MINIMIZEBOX = 0x00020000,
-        WS_MAXIMIZEBOX = 0x00010000,
-        WS_BORDER = 0x00800000
-    }
 
     public enum WindowLongs : int
     {
@@ -144,7 +336,7 @@ namespace FenUISharp.Native
         public string szTip;
     }
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     public struct WNDCLASSEX
     {
         public uint cbSize;
@@ -156,61 +348,28 @@ namespace FenUISharp.Native
         public IntPtr hIcon;
         public IntPtr hCursor;
         public IntPtr hbrBackground;
-        [MarshalAs(UnmanagedType.LPTStr)]
         public string lpszMenuName;
-        [MarshalAs(UnmanagedType.LPTStr)]
         public string lpszClassName;
         public IntPtr hIconSm;
     }
 
-    public enum WindowMessages : uint
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CREATESTRUCT
     {
-        WM_SETTINGCHANGE = 0x001A,
-        WM_DEVICECHANGE = 0x0219,
-        WM_INITMENUPOPUP = 0x0117,
-        WM_NCHITTEST = 0x0084,
-
-        WM_DPICHANGED = 0x02E0,
-
-        WM_SETFOCUS = 0x0007,
-        WM_KILLFOCUS = 0x0008,
-
-        WM_NCDESTROY = 0x0082,
-
-        WM_GETMINMAXINFO = 0x24,
-
-        WM_ACTIVATE = 0x0006,
-        WM_DESTROY = 0x0002,
-        WM_PAINT = 0x000F,
-        WM_SIZE = 0x0005,
-        WM_KEYDOWN = 0x0100,
-        WM_MOUSEMOVE = 0x0200,
-
-        WM_LBUTTONDOWN = 0x0201,
-        WM_LBUTTONUP = 0x0202,
-        WM_MBUTTONDOWN = 0x0207,
-        WM_MBUTTONUP = 0x0208,
-        WM_RBUTTONDOWN = 0x0204,
-        WM_RBUTTONUP = 0x0205,
-
-        WM_MOUSEHOVER = 0x02A1,
-        WM_MOUSELEAVE = 0x02A3,
-
-        WM_DROPFILES = 0x0233,
-        WM_SETCURSOR = 0x0020,
-        WM_TIMER = 0x0113,
-        WM_QUIT = 0x0012,
-        WM_SETICON = 0x80,
-        WM_USER = 0x0400,
-        WM_COMMAND = 0x0111,
-        WM_MENUDRAG = 0x123,
-        WM_CLOSE = 0x0010,
-
-        WM_MOVING = 0x0216,
-        WM_MOVE = 0x0003,
-        WM_SIZING = 0x0214,
-        WM_EXITSIZEMOVE = 0x0232,
-        WM_ENTERSIZEMOVE = 0x0231
+        public IntPtr lpCreateParams;
+        public IntPtr hInstance;
+        public IntPtr hMenu;
+        public IntPtr hwndParent;
+        public int cy;
+        public int cx;
+        public int y;
+        public int x;
+        public int style;
+        [MarshalAs(UnmanagedType.LPWStr)]
+        public string lpszName;
+        [MarshalAs(UnmanagedType.LPWStr)]
+        public string lpszClass;
+        public uint dwExStyle;
     }
 
     [StructLayout(LayoutKind.Sequential)]

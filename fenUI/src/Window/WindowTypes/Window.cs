@@ -80,6 +80,8 @@ namespace FenUISharp
         public DragDropHandler DropTarget { get; private set; }
         public FRenderContext RenderContext { get; private set; }
 
+        public SkiaDirectCompositionContext DCBridge { get; private set; }
+
         public Dispatcher Dispatcher { get; private set; }
         public Dispatcher STADispatcher { get; private set; }
 
@@ -173,6 +175,16 @@ namespace FenUISharp
             GCHandle gch = GCHandle.Alloc(this);
             SetWindowLongPtr(hWnd, -21 /* GWLP_USERDATA */, GCHandle.ToIntPtr(gch));
 
+            { // Remove WS_EX_LAYERED and add WS_EX_NOREDIRECTIONBITMAP for high-performance composition:
+                const int GWL_EXSTYLE = -20;
+                const uint WS_EX_LAYERED = 0x00080000;
+                const uint WS_EX_NOREDIRECTIONBITMAP = 0x00200000;
+                var style = Win32APIs.GetWindowLongPtr(hWnd, GWL_EXSTYLE).ToInt64();
+                style &= ~((long)WS_EX_LAYERED);
+                style |= WS_EX_NOREDIRECTIONBITMAP;
+                SetWindowLongPtr(hWnd, GWL_EXSTYLE, new IntPtr(style));
+            }
+
             WindowThemeManager = new ThemeManager(Resources.GetTheme("default-dark"));
 
             // Pre initialize OLE DragDrop
@@ -236,7 +248,7 @@ namespace FenUISharp
         {
             // Setup OLE DragDrop
             // Keep a reference to prevent garbage collection
-            DropTarget = new DragDropHandler(this);
+            // DropTarget = new DragDropHandler(this);
 
             // Get COM interface pointer for the drop target
             IntPtr pDropTarget = Marshal.GetComInterfaceForObject(
@@ -265,6 +277,9 @@ namespace FenUISharp
             _renderThread.Name = "Logic Thread";
             _renderThread.Start();
 
+            // Create DirectComposition context
+            // STADispatcher.Invoke(() => DCBridge = new(this, RenderFrame));
+
             MSG msg;
             while (_isRunning)
             {
@@ -286,7 +301,7 @@ namespace FenUISharp
             FContext.WithWindow(this); // Make sure to activate this window for the current thread
 
             // Initialize FRenderContext
-            CreateAndUpdateRenderContext(_startWithType);
+            // CreateAndUpdateRenderContext(_startWithType);
 
             FContext.WithRootViewPane(null);
 
@@ -328,10 +343,10 @@ namespace FenUISharp
 
                     OnWindowUpdateCall();
 
-                    if (IsNextFrameRendering())
+                    if (IsNextFrameRendering() && DCBridge != null)
                     {
                         OnBeginRender?.Invoke();
-                        RenderFrame();
+                        // DCBridge.Draw();
                         OnEndRender?.Invoke();
 
                         _isDirty = false;
@@ -386,8 +401,11 @@ namespace FenUISharp
 
         private readonly object _renderLock = new object();
 
-        protected virtual void RenderFrame()
+        protected virtual void RenderFrame(SKCanvas canvas)
         {
+            canvas.DrawRect(new SKRect(100, 200, 400, 600), new SKPaint() { Color = SKColors.Yellow });
+
+            return;
             if (_isResizing) return;
 
             lock (_renderLock)
@@ -820,6 +838,20 @@ namespace FenUISharp
 
             switch (msg)
             {
+                case (int)WindowMessages.WM_PAINT:
+                    if (_isDirty || _fullRedraw)
+                    {
+                        if (RenderContext != null && RenderContext.Surface != null)
+                        {
+                            RenderContext.BeginDraw();
+                                                    // DCBridge.Draw();
+                            RenderContext.EndDraw();
+                        }
+                        _isDirty = false;
+                        _fullRedraw = false;
+                    }
+                    return IntPtr.Zero;
+
                 case 0x0102: // Keyboard input
                     Dispatcher.Invoke(() => OnKeyboardInputTextReceived?.Invoke((char)wParam));
                     break;

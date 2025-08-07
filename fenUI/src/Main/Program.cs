@@ -15,8 +15,12 @@ namespace FenUISharp
         {
             FenUI.Init();
             FenUI.SetupAppModel("FlorianButz.fenUI");
-            FenUI.EnableDebugFunctions();
-            FenUI.Demo();
+
+            FWindow testWindow = new FTestWin("Test Window!", "testWindow");
+            testWindow.BeginWindowLoop();
+
+            // FenUI.EnableDebugFunctions();
+            // FenUI.Demo();
         }
     }
 }

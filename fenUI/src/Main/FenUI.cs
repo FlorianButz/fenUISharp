@@ -128,6 +128,7 @@ namespace FenUISharp
             SetCurrentProcessExplicitAppUserModelID(appModelId);
         }
 
+        // TODO: Switch to using debug mode enabled with args
         internal static bool debugEnabled { get; private set; } = false;
 
         /// <summary>
