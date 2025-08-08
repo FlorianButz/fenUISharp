@@ -7,6 +7,7 @@ using Vortice.Mathematics;
 using static Vortice.Direct3D12.D3D12;
 using Vortice.DirectComposition;
 using System.Runtime.InteropServices;
+using FenUISharp.Logging;
 
 namespace FenUISharp
 {
@@ -14,8 +15,11 @@ namespace FenUISharp
     {
         public int SizeX { get; protected set; }
         public int SizeY { get; protected set; }
+
+        // Window handle
         public IntPtr hWnd { get; }
 
+        // Formats
         public Format ColorFormat { get; }
         public Format DepthStencilFormat { get; }
 
@@ -28,6 +32,7 @@ namespace FenUISharp
         public IDCompositionTarget DCompTarget { get; private set; }
         public IDCompositionVisual RootVisual { get; private set; }
 
+        // DirectX objects
         public IDXGISwapChain3? SwapChain { get; private set; }
         public ID3D12CommandQueue? CommandQueue { get; private set; }
         public ID3D12GraphicsCommandList CommandList { get; private set; }
@@ -40,7 +45,7 @@ namespace FenUISharp
         {
             try
             {
-                Console.WriteLine("Starting DirectCompositionContext initialization...");
+                FLogger.Log("Starting DirectCompositionContext initialization...");
 
                 this.SizeX = sx;
                 this.SizeY = sy;
@@ -48,50 +53,50 @@ namespace FenUISharp
                 this.ColorFormat = colorFormat;
                 this.DepthStencilFormat = depthStencilFormat;
 
-                Console.WriteLine($"Window Handle: {windowHandle}, Size: {sx}x{sy}");
+                FLogger.Log($"Window Handle: {windowHandle}, Size: {sx}x{sy}");
 
                 // Step 1: Create DXGI Factory
-                Console.WriteLine("Creating DXGI Factory...");
+                FLogger.Log("Creating DXGI Factory...");
                 Factory = DXGI.CreateDXGIFactory1<IDXGIFactory2>();
-                Console.WriteLine("DXGI Factory created successfully");
+                FLogger.Log("DXGI Factory created successfully");
 
                 // Step 2: Get hardware adapter
-                Console.WriteLine("Getting hardware adapter...");
+                FLogger.Log("Getting hardware adapter...");
                 using var adapter = GetHardwareAdapter();
-                Console.WriteLine($"Hardware adapter: {adapter.Description1.Description}");
+                FLogger.Log($"Hardware adapter: {adapter.Description1.Description}");
 
                 // Step 3: Create D3D12 Device
-                Console.WriteLine("Creating D3D12 Device...");
+                FLogger.Log("Creating D3D12 Device...");
                 FeatureLevel = FeatureLevel.Level_11_0;
                 Device = D3D12CreateDevice<ID3D12Device>(adapter, FeatureLevel);
-                Console.WriteLine($"D3D12 Device created: {Device.NativePointer}");
+                FLogger.Log($"D3D12 Device created: {Device.NativePointer}");
 
                 // Step 4: Create Command Queue
-                Console.WriteLine("Creating command queue...");
+                FLogger.Log("Creating command queue...");
                 var commandQueueDesc = new CommandQueueDescription(CommandListType.Direct);
                 CommandQueue = Device.CreateCommandQueue(commandQueueDesc);
-                Console.WriteLine("Command queue created successfully");
+                FLogger.Log("Command queue created successfully");
 
                 // Step 5: Create DirectComposition (this is likely where it's failing)
-                Console.WriteLine("Creating DirectComposition device...");
+                FLogger.Log("Creating DirectComposition device...");
                 CreateDirectCompositionDevice();
-                Console.WriteLine("DirectComposition device created successfully");
+                FLogger.Log("DirectComposition device created successfully");
 
                 // Step 6: Create SwapChain
-                Console.WriteLine("Creating swap chain...");
+                FLogger.Log("Creating swap chain...");
                 CreateSwapchain();
-                Console.WriteLine("Swap chain created successfully");
+                FLogger.Log("Swap chain created successfully");
 
                 // Step 7: Create Command Objects
-                Console.WriteLine("Creating command objects...");
+                FLogger.Log("Creating command objects...");
                 CreateCommandObjects();
-                Console.WriteLine("Command objects created successfully");
+                FLogger.Log("Command objects created successfully");
 
-                Console.WriteLine("DirectCompositionContext initialization completed!");
+                FLogger.Log("DirectCompositionContext initialization completed!");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in DirectCompositionContext constructor: {ex}");
+                FLogger.Log($"Error in DirectCompositionContext constructor: {ex}");
 
                 // Clean up any partially created objects
                 try { Dispose(); } catch { }
@@ -102,7 +107,7 @@ namespace FenUISharp
 
         private void CreateDirectCompositionDevice()
         {
-            Console.WriteLine("Creating D3D11 device for DirectComposition interop...");
+            FLogger.Log("Creating D3D11 device for DirectComposition interop...");
 
             using var adapter = GetHardwareAdapter();
 
@@ -131,14 +136,14 @@ namespace FenUISharp
             if (hr.Failure)
                 throw new InvalidOperationException($"Failed to create D3D11 device for DirectComposition interop: {hr}");
 
-            Console.WriteLine($"D3D11 device created with feature level: {featureLevel}");
+            FLogger.Log($"D3D11 device created with feature level: {featureLevel}");
 
             using var dxgiDevice = d3d11Device.QueryInterface<IDXGIDevice>();
 
             if (dxgiDevice == null)
                 throw new InvalidOperationException("Failed to get IDXGIDevice from D3D11 device");
 
-            Console.WriteLine("Creating DirectComposition device from D3D11 DXGI device...");
+            FLogger.Log("Creating DirectComposition device from D3D11 DXGI device...");
 
             hr = DComp.DCompositionCreateDevice(dxgiDevice, out IDCompositionDevice dcompDevice);
             if (hr.Failure || dcompDevice == null)
@@ -146,21 +151,21 @@ namespace FenUISharp
 
             DCompDevice = dcompDevice;
 
-            Console.WriteLine("Creating composition target for window...");
+            FLogger.Log("Creating composition target for window...");
             hr = DCompDevice.CreateTargetForHwnd(hWnd, true, out IDCompositionTarget target);
             if (hr.Failure || target == null)
                 throw new InvalidOperationException($"Failed to create DirectComposition target. HRESULT: {hr}");
 
             DCompTarget = target;
 
-            Console.WriteLine("Creating root visual...");
+            FLogger.Log("Creating root visual...");
             hr = DCompDevice.CreateVisual(out IDCompositionVisual visual);
             if (hr.Failure || visual == null)
                 throw new InvalidOperationException($"Failed to create DirectComposition visual. HRESULT: {hr}");
 
             RootVisual = visual;
 
-            Console.WriteLine("Setting root visual on target...");
+            FLogger.Log("Setting root visual on target...");
             DCompTarget.SetRoot(RootVisual);
 
             // Dispose D3D11 context & device when no longer needed (you might want to keep them as class fields if needed for interop)
@@ -177,7 +182,7 @@ namespace FenUISharp
                 var width = (uint)SizeX;
                 var height = (uint)SizeY;
 
-                Console.WriteLine($"Creating swap chain with size {width}x{height}");
+                FLogger.Log($"Creating swap chain with size {width}x{height}");
 
                 SwapChainDescription1 swapChainDesc = new()
                 {
@@ -192,11 +197,11 @@ namespace FenUISharp
                     AlphaMode = AlphaMode.Premultiplied
                 };
 
-                Console.WriteLine("Creating swap chain for composition...");
+                FLogger.Log("Creating swap chain for composition...");
                 var tempSwap = Factory.CreateSwapChainForComposition(CommandQueue, swapChainDesc);
                 SwapChain = tempSwap.QueryInterface<IDXGISwapChain3>();
 
-                Console.WriteLine("Setting swap chain content on root visual...");
+                FLogger.Log("Setting swap chain content on root visual...");
                 RootVisual.SetContent(SwapChain);
                 DCompDevice.Commit();
 
@@ -204,7 +209,7 @@ namespace FenUISharp
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception in CreateSwapchain: {ex}");
+                FLogger.Log($"Exception in CreateSwapchain: {ex}");
                 throw;
             }
         }
@@ -213,10 +218,10 @@ namespace FenUISharp
         {
             try
             {
-                Console.WriteLine("Creating command allocator...");
+                FLogger.Log("Creating command allocator...");
                 CommandAllocator = Device.CreateCommandAllocator(CommandListType.Direct);
 
-                Console.WriteLine("Creating command list...");
+                FLogger.Log("Creating command list...");
                 CommandList = Device.CreateCommandList<ID3D12GraphicsCommandList>(
                     0, // nodeMask
                     CommandListType.Direct,
@@ -226,11 +231,11 @@ namespace FenUISharp
 
                 // Close the command list initially
                 CommandList.Close();
-                Console.WriteLine("Command objects created successfully");
+                FLogger.Log("Command objects created successfully");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception in CreateCommandObjects: {ex}");
+                FLogger.Log($"Exception in CreateCommandObjects: {ex}");
                 throw;
             }
         }
@@ -259,7 +264,7 @@ namespace FenUISharp
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Warning: UpdateColorSpace failed: {ex.Message}");
+                FLogger.Log($"Warning: UpdateColorSpace failed: {ex.Message}");
                 // Non-critical, continue
             }
         }
@@ -268,18 +273,18 @@ namespace FenUISharp
         {
             try
             {
-                Console.WriteLine("Enumerating adapters...");
+                FLogger.Log("Enumerating adapters...");
 
                 if (Factory.QueryInterfaceOrNull<IDXGIFactory6>() is IDXGIFactory6 factory6)
                 {
-                    Console.WriteLine("Using IDXGIFactory6 for adapter enumeration");
+                    FLogger.Log("Using IDXGIFactory6 for adapter enumeration");
                     for (uint adapterIndex = 0;
                         factory6.EnumAdapterByGpuPreference(adapterIndex, GpuPreference.HighPerformance, out IDXGIAdapter1? adapter).Success;
                         adapterIndex++)
                     {
                         if (adapter != null && (adapter.Description1.Flags & AdapterFlags.Software) == 0)
                         {
-                            Console.WriteLine($"Found hardware adapter: {adapter.Description1.Description}");
+                            FLogger.Log($"Found hardware adapter: {adapter.Description1.Description}");
                             return adapter;
                         }
                         adapter?.Dispose();
@@ -288,14 +293,14 @@ namespace FenUISharp
                     factory6.Dispose();
                 }
 
-                Console.WriteLine("Using IDXGIFactory2 for adapter enumeration");
+                FLogger.Log("Using IDXGIFactory2 for adapter enumeration");
                 for (uint adapterIndex = 0;
                     Factory.EnumAdapters1(adapterIndex, out IDXGIAdapter1? adapter).Success;
                     adapterIndex++)
                 {
                     if (adapter != null && (adapter.Description1.Flags & AdapterFlags.Software) == 0)
                     {
-                        Console.WriteLine($"Found hardware adapter: {adapter.Description1.Description}");
+                        FLogger.Log($"Found hardware adapter: {adapter.Description1.Description}");
                         return adapter;
                     }
                     adapter?.Dispose();
@@ -305,7 +310,7 @@ namespace FenUISharp
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception in GetHardwareAdapter: {ex}");
+                FLogger.Log($"Exception in GetHardwareAdapter: {ex}");
                 throw;
             }
         }
@@ -341,7 +346,7 @@ namespace FenUISharp
         {
             try
             {
-                Console.WriteLine("Disposing DirectCompositionContext...");
+                FLogger.Log("Disposing DirectCompositionContext...");
 
                 WaitForGpu();
 
@@ -357,11 +362,11 @@ namespace FenUISharp
                 Device?.Dispose();
                 Factory?.Dispose();
 
-                Console.WriteLine("DirectCompositionContext disposed");
+                FLogger.Log("DirectCompositionContext disposed");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception during disposal: {ex}");
+                FLogger.Log($"Exception during disposal: {ex}");
             }
         }
 
@@ -408,7 +413,7 @@ namespace FenUISharp
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception in Present: {ex}");
+                FLogger.Log($"Exception in Present: {ex}");
                 throw;
             }
         }
