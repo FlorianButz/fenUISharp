@@ -112,14 +112,21 @@ namespace FenUISharp
 
         public void Dispose()
         {
-            DrawAction = null!;
+            Surface?.Dispose();
+            Surface = null!;
+            backendTexture?.Dispose();
+            backendTexture = null!;
+            resourceInfo?.Dispose();
+            resourceInfo = null!;
+            grContext?.Dispose();
+            grContext = null!;
+            backBuffer?.Dispose();
+            backBuffer = null!;
 
-            this.backBuffer?.Dispose();
-            this.backendTexture?.Dispose();
-            this.DirectCompositionContext?.Dispose();
-            this.grContext?.Dispose();
-            this.resourceInfo?.Dispose();
-            this.Surface?.Dispose();
+            DrawAction = null;
+
+            DirectCompositionContext?.Dispose();
+            DirectCompositionContext = null!;
         }
 
         internal void OnResize(Vector2 size)
