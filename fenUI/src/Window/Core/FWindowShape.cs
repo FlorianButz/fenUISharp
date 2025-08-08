@@ -3,7 +3,7 @@ using FenUISharp.Native;
 
 namespace FenUISharp
 {
-    public class FWindowShape
+    public class FWindowShape : IDisposable
     {
         private WeakReference<FWindow> window { get; set; }
         public FWindow Window { get => window.TryGetTarget(out var target) ? target : throw new Exception("Window not set."); }
@@ -74,6 +74,11 @@ namespace FenUISharp
 
             Win32APIs.ClientToScreen(Window.hWnd, ref clientPoint);
             return new Vector2(clientPoint.x, clientPoint.y);
+        }
+
+        public void Dispose()
+        {
+            
         }
     }
 }

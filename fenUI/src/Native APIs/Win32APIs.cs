@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace FenUISharp.Native
 {
@@ -26,20 +27,20 @@ namespace FenUISharp.Native
 
         // Extended window styles
         public const int WS_EX_NOREDIRECTIONBITMAP = 0x00200000;
-        public const long WS_EX_LAYERED = 0x00080000;
-        public const long WS_EX_APPWINDOW = 0x00040000;
-        public const long WS_EX_TOOLWINDOW = 0x00000080;
+        public const int WS_EX_LAYERED = 0x00080000;
+        public const int WS_EX_APPWINDOW = 0x00040000;
+        public const int WS_EX_TOOLWINDOW = 0x00000080;
 
         // Window styles
-        public const long WS_POPUP = unchecked((int)0x80000000);
-        public const long WS_VISIBLE = 0x10000000L;
-        public const long WS_OVERLAPPED = 0x00000000;
-        public const long WS_CAPTION = 0x00C00000;
-        public const long WS_SYSMENU = 0x00080000;
-        public const long WS_THICKFRAME = 0x00040000;
-        public const long WS_MINIMIZEBOX = 0x00020000;
-        public const long WS_MAXIMIZEBOX = 0x00010000;
-        public const long WS_BORDER = 0x0080000;
+        public const int WS_POPUP = unchecked((int)0x80000000);
+        public const int WS_VISIBLE = 0x10000000;
+        public const int WS_OVERLAPPED = 0x00000000;
+        public const int WS_CAPTION = 0x00C00000;
+        public const int WS_SYSMENU = 0x00080000;
+        public const int WS_THICKFRAME = 0x00040000;
+        public const int WS_MINIMIZEBOX = 0x00020000;
+        public const int WS_MAXIMIZEBOX = 0x00010000;
+        public const int WS_BORDER = 0x0080000;
     }
 
     internal class DWMWINDOWATTRIBUTE
@@ -53,6 +54,7 @@ namespace FenUISharp.Native
 
     internal class WindowMessages
     {
+        public const uint WM_CHAR = 0x0102;
         public const uint WM_NCCREATE = 0x0081;
         public const uint WM_NCDESTROY = 0x0082;
         public const uint WM_CREATE = 0x0001;
@@ -94,8 +96,78 @@ namespace FenUISharp.Native
         public const int WM_ENTERSIZEMOVE = 0x023;
     }
 
+    public enum ShowWindowCommand : int
+    {
+        SW_HIDE = 0,
+        SW_SHOWNORMAL = 1,
+        SW_NORMAL = 1,
+        SW_SHOWMINIMIZED = 2,
+        SW_SHOWMAXIMIZED = 3,
+        SW_MAXIMIZE = 3,
+        SW_SHOWNOACTIVATE = 4,
+        SW_SHOW = 5,
+        SW_MINIMIZE = 6,
+        SW_SHOWMINNOACTIVE = 7,
+        SW_SHOWNA = 8,
+        SW_RESTORE = 9,
+        SW_SHOWDEFAULT = 10,
+        SW_FORCEMINIMIZE = 11
+    }
+
+    public class HitTest
+    {
+        public const int HTLEFT = 10;
+        public const int HTRIGHT = 11;
+        public const int HTTOP = 12;
+        public const int HTTOPLEFT = 13;
+        public const int HTTOPRIGHT = 14;
+        public const int HTBOTTOM = 15;
+        public const int HTBOTTOMLEFT = 16;
+        public const int HTBOTTOMRIGHT = 17;
+        public const int HTCLIENT = 1;
+    }
+
     internal class Win32APIs
     {
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string lpszClass, string lpszWindow);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern IntPtr SetParent(IntPtr hWnd, IntPtr hWndParent);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern bool DestroyWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        internal static extern void PostQuitMessage(int nExitCode);
+
+        [DllImport("user32.dll")]
+        internal static extern IntPtr SetCursor(IntPtr hCursor);
+
+        [DllImport("user32.dll")]
+        internal static extern IntPtr LoadCursor(IntPtr hInstance, int lpCursorName);
+
+        [DllImport("uxtheme.dll", EntryPoint = "#135")]
+        internal static extern int ShouldSystemUseDarkMode();
+
+        [DllImport("uxtheme.dll", EntryPoint = "#136")]
+        internal static extern void AllowDarkModeForWindow(IntPtr hWnd, bool allow);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        internal static extern int GetWindowTextA(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        internal static extern int SetWindowTextA(IntPtr hWnd, string lpString);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        internal static extern bool IsWindowVisible(IntPtr hWnd);
+
         [DllImport("kernel32.dll", SetLastError = true)]
         internal static extern IntPtr GetModuleHandle(string lpModuleName);
 
@@ -106,7 +178,13 @@ namespace FenUISharp.Native
         internal static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
 
         [DllImport("user32.dll")]
+        internal static extern IntPtr GetWindowLongPtrA(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
         internal static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+        [DllImport("user32.dll")]
+        internal static extern IntPtr SetWindowLongPtrA(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
 
         [DllImport("user32.dll")]
         internal static extern bool SetLayeredWindowAttributes(IntPtr hWnd, uint crKey, byte bAlpha, uint dwFlags);
@@ -119,6 +197,22 @@ namespace FenUISharp.Native
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         internal static extern ushort RegisterClassExA(ref WNDCLASSEX lpwcx);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern IntPtr CreateWindowEx(
+            int dwExStyle,
+            string lpClassName,
+            string lpWindowName,
+            int dwStyle,
+            int X,
+            int Y,
+            int nWidth,
+            int nHeight,
+            IntPtr hWndParent,
+            IntPtr hMenu,
+            IntPtr hInstance,
+            IntPtr lpParam);
+
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         internal static extern IntPtr CreateWindowExA(
@@ -166,6 +260,12 @@ namespace FenUISharp.Native
 
         [DllImport("user32.dll")]
         internal static extern IntPtr SetWindowLongPtrW(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+        [DllImport("user32.dll")]
+        internal static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        internal static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
         [DllImport("user32.dll")]
         internal static extern bool GetMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
@@ -245,13 +345,14 @@ namespace FenUISharp.Native
         AC_SRC_ALPHA = 0x01
     }
 
-    public enum DWM_SYSTEMBACKDROP_TYPE
+    // DWM_SYSTEMBACKDROP_TYPE
+    public enum MicaBackdropType
     {
-        DWMSBT_AUTO = 1,
-        DWMSBT_NONE = 2,
-        DWMSBT_MAINWINDOW = 3,
-        DWMSBT_TRANSIENTWINDOW = 4,
-        DWMSBT_TABBEDWINDOW = 5
+        Auto = 1,
+        None = 2,
+        MainWindow = 3,
+        TransientWindow = 4,
+        // DWMSBT_TABBEDWINDOW = 5
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -305,12 +406,11 @@ namespace FenUISharp.Native
         SWP_NOZORDER = 0x0004,
         SWP_NOACTIVATE = 0x0010
     }
-
-
-    public enum WindowLongs : int
+    
+    public class WindowLongs
     {
-        GWL_EXSTYLE = -20,
-        GWL_STYLE = -16
+        public const int GWL_EXSTYLE = -20;
+        public const int GWL_STYLE = -16;
     }
 
     public enum NIF : uint

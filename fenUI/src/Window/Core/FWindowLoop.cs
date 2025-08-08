@@ -4,7 +4,7 @@ using FenUISharp.Native;
 
 namespace FenUISharp
 {
-    public class FWindowLoop
+    public class FWindowLoop : IDisposable
     {
         private WeakReference<FWindow> window { get; set; }
         public FWindow Window { get => window.TryGetTarget(out var target) ? target : throw new Exception("Window not set."); }
@@ -85,6 +85,12 @@ namespace FenUISharp
                 else
                     Thread.SpinWait(20);
             }
+        }
+
+        public void Dispose()
+        {
+            this.LogicThread?.Interrupt();
+            this.LogicThread = null;
         }
     }
 }

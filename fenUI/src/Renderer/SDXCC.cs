@@ -1,3 +1,4 @@
+using FenUISharp.Mathematics;
 using SkiaSharp;
 using Vortice.Direct3D11;
 using Vortice.Direct3D12;
@@ -5,7 +6,7 @@ using Vortice.DXGI;
 
 namespace FenUISharp
 {
-    public class SkiaDirectCompositionContext
+    public class SkiaDirectCompositionContext : IDisposable
     {
         public Action<SKCanvas> DrawAction { get; private set; }
 
@@ -107,6 +108,26 @@ namespace FenUISharp
                 Surface.Flush();
 
             }, PresentFlags.DoNotWait);
+        }
+
+        public void Dispose()
+        {
+            DrawAction = null!;
+
+            this.backBuffer?.Dispose();
+            this.backendTexture?.Dispose();
+            this.DirectCompositionContext?.Dispose();
+            this.grContext?.Dispose();
+            this.resourceInfo?.Dispose();
+            this.Surface?.Dispose();
+        }
+
+        internal void OnResize(Vector2 size)
+        {
+            width = (int)size.x;
+            height = (int)size.y;
+
+            DirectCompositionContext.Resize(width, height);
         }
     }
 }

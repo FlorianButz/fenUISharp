@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 using FenUISharp.Logging;
 using FenUISharp.Mathematics;
 using FenUISharp.Native;
@@ -10,15 +11,23 @@ namespace FenUISharp
     {
         public IntPtr hWnd { get; private set; }
 
-        public string WindowTitle { get; protected set; }
+        public string WindowTitle
+        {
+            get { StringBuilder s = new(); Win32APIs.GetWindowTextA(hWnd, s, 999); return s.ToString(); }
+            set { Win32APIs.SetWindowTextA(hWnd, value); }
+        }
         public string WindowClass { get; protected set; }
 
-        public int TargetRefreshRate { get; set; } = 60;
+        public int TargetRefreshRate { get; set; } = 60; // TODO: Ideally use monitors refresh rate
+
+        // Window components
 
         public FWindowShape Shape { get; protected set; }
         public FWindowProcedure Procedure { get; protected set; }
         public FWindowLoop Loop { get; protected set; }
         public FWindowCallbacks Callbacks { get; protected set; }
+        public FWindowProperties Properties { get; protected set; }
+        public FWindowSurface Surface { get; protected set; }
         public DragDropHandler? DropTarget { get; private set; }
 
         public FTime Time { get; protected set; } = new FTime();
@@ -28,19 +37,30 @@ namespace FenUISharp
 
         public SkiaDirectCompositionContext? SkiaDirectCompositionContext { get; set; }
 
-        private bool _isRunning = false;
+        public MultiAccess<Cursor> ActiveCursor = new MultiAccess<Cursor>(Cursor.ARROW);
+
+        internal bool _isRunning = false;
+        internal bool _isDirty = true;
+        internal bool _fullRedraw;
         private static readonly WndProcDelegate _wndProcDelegate = StaticWndProc;
 
         public FWindow(string title, string className, Vector2? position = null, Vector2? size = null)
         {
-            this.WindowTitle = title;
             this.WindowClass = className;
 
             var wndClass = RegisterClass(className);
 
+            // Creating the hidden owner
+            // IntPtr hiddenOwnerHandle = IntPtr.Zero;
+            // if (!isTaskbarIconVisible)
+            //     FWindowProperties.CreateHiddenOwner(out hiddenOwnerHandle);
+
+            // Create the window
             hWnd = CreateWindow(wndClass, position ?? new(-1, -1), size ?? new(600, 800));
             if (hWnd == IntPtr.Zero)
                 throw new Exception($"Window creation failed: error {Marshal.GetLastWin32Error()}");
+
+            this.WindowTitle = title;
 
             // Creating the components of the window
             var components = GetComponents();
@@ -50,6 +70,11 @@ namespace FenUISharp
             Procedure = components.Item2;
             Loop = components.Item3;
             Callbacks = components.Item4;
+            Properties = components.Item5;
+            Surface = components.Item6;
+
+            // Properties._hiddenOwnerWindowHandle = hiddenOwnerHandle;
+            Properties.UseSystemDarkMode = true; // Default to true, can be changed later
 
             // Creating dispatchers
             LogicDispatcher = new Dispatcher();
@@ -64,14 +89,24 @@ namespace FenUISharp
             DragDropRegistration.Initialize();
         }
 
-        protected (FWindowShape, FWindowProcedure, FWindowLoop, FWindowCallbacks) GetComponents()
+        protected (FWindowShape, FWindowProcedure, FWindowLoop, FWindowCallbacks, FWindowProperties, FWindowSurface) GetComponents()
         {
             var Shape = new FWindowShape(this);
-            var Procedure = new FWindowProcedure(this) { _isRunning = () => _isRunning};
+            var Procedure = new FWindowProcedure(this) { _isRunning = () => _isRunning };
             var Loop = new FWindowLoop(this) { _isRunning = () => _isRunning };
             var Callbacks = new FWindowCallbacks(this);
+            var Properties = new FWindowProperties(this);
+            var Surface = new FWindowSurface(this);
 
-            return (Shape, Procedure, Loop, Callbacks);
+            return (Shape, Procedure, Loop, Callbacks, Properties, Surface);
+        }
+
+        public void WithView(FenUISharp.Objects.View model)
+        {
+            LogicDispatcher.Invoke(() =>
+            {
+                Surface.RootViewPane.ViewModel = model;
+            });
         }
 
         public abstract IntPtr CreateWindow(WNDCLASSEX wndClass, Vector2 position, Vector2 size);
@@ -118,13 +153,36 @@ namespace FenUISharp
             SkiaDirectCompositionContext = new(this, DrawAction);
         }
 
-        public void DrawAction(SKCanvas canvas)
+        public virtual void DrawAction(SKCanvas canvas)
         {
-            canvas.Clear(new SKColor(0, 0, 0, 1)); // A tiny bit of alpha (not zero!)
-            // throw new NotImplementedException();
+            ClearSurface(canvas);
+            DrawBackdrop(canvas);
+
+            Surface.Draw(canvas);
+        }
+
+        public virtual void ClearSurface(SKCanvas canvas)
+            => canvas.Clear(Properties.UseMica ? SKColors.Transparent : Surface.ClearColor());
+
+        public virtual void DrawBackdrop(SKCanvas canvas)
+        {
+
         }
 
         public void BeginWindowLoop()
+        {
+            // Display the window
+            // Properties.ShowWindow(ShowWindowCommand.SW_SHOW);
+
+            // Initialize OLE drag drop
+            SetupOLEDragDrop();
+
+            // Start the window loop
+            _isRunning = true;
+            Loop.Begin(SetupWindowLogicOnBegin);
+        }
+
+        private void SetupOLEDragDrop()
         {
             // Setup OLE DragDrop
             // Keep a reference to prevent garbage collection
@@ -149,15 +207,30 @@ namespace FenUISharp
 
             // Release the COM interface pointer
             Marshal.Release(pDropTarget);
-
-            // Start the window loop
-            _isRunning = true;
-            Loop.Begin(SetupWindowLogicOnBegin);
         }
+
+        public void RequestFocus()
+            => Win32APIs.SetForegroundWindow(hWnd);
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            Shape?.Dispose();
+            Procedure?.Dispose();
+            Loop?.Dispose();
+            Properties?.Dispose();
+            Surface?.Dispose();
+
+            SkiaDirectCompositionContext?.Dispose();
+        }
+
+        public void Redraw() => _isDirty = true;
+        public void FullRedraw()
+        {
+            _isDirty = true;
+            _fullRedraw = true;
+
+            if (Surface.RootViewPane != null)
+                Surface.RootViewPane.RecursiveInvalidate(Objects.UIObject.Invalidation.All);
         }
     }
 }

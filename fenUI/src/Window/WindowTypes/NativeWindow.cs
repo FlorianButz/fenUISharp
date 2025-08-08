@@ -76,7 +76,7 @@ namespace FenUISharp
         public void UpdateMica()
         {
             // First, apply the Mica system backdrop
-            int micaEffect = _useMica ? (_useMicaMainWindow ? (int)DWM_SYSTEMBACKDROP_TYPE.DWMSBT_MAINWINDOW : (int)DWM_SYSTEMBACKDROP_TYPE.DWMSBT_TRANSIENTWINDOW) : (int)DWM_SYSTEMBACKDROP_TYPE.DWMSBT_NONE;
+            int micaEffect = _useMica ? (_useMicaMainWindow ? (int)MicaBackdropType.MainWindow : (int)MicaBackdropType.TransientWindow) : (int)MicaBackdropType.None;
             DwmSetWindowAttribute(
                 hWnd,
                 (uint)DWMWINDOWATTRIBUTE.DWMWA_SYSTEMBACKDROP_TYPE,
