@@ -32,6 +32,7 @@ namespace FenUISharp
         public Action<Vector2>? OnWindowMoved { get; set; } // When moving the window
 
         public Action? OnWindowClose { get; set; } // When the window is closed
+        public Action? OnWindowDestroy { get; set; } // When the window is destroyed
 
         internal Action<char>? OnKeyboardInputTextReceived { get; set; } // When a character is typed in the window
 
