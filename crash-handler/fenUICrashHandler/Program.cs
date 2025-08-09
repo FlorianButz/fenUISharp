@@ -7,9 +7,6 @@ using FenUISharp.Objects.Buttons;
 using FenUISharp.Objects.Text;
 using FenUISharp.Objects.Text.Model;
 using SkiaSharp;
-using Windows.ApplicationModel.DataTransfer;
-using Windows.Foundation.Metadata;
-using Windows.Storage;
 
 namespace FenUISharpCrashHandler
 {
@@ -29,20 +26,22 @@ namespace FenUISharpCrashHandler
             // else { Environment.Exit(0); return; }
 
             FenUI.Init(new string[] { "disable_crashhandler", "disable_winfeatures" });
+            FenUI.EnableDebugFunctions();
             FenUI.SetupAppModel("fenUISharp.crashhandler");
 
-            NativeWindow nativeWindow = new NativeWindow("FenUI Crash Handler", "fenUICrashHandler", Window.RenderContextType.Software, new(400 + 100, 200 + 100));
-            nativeWindow.SystemDarkMode = true;
-            nativeWindow.WindowThemeManager.SetTheme(Resources.GetTheme("default-dark"));
+            FNativeWindow nativeWindow = new FNativeWindow("FenUI Crash Handler", "fenUICrashHandler", size: new(400 + 100, 200 + 100));
 
             string iconPath = Resources.ExtractResourceToTempFile<FenUI>($"{FenUI.ResourceLibName}.icons.fenui-logo-error.ico");
-            nativeWindow.SetWindowIcon(iconPath);
+            nativeWindow.Properties.SetWindowIcon(iconPath);
 
+            nativeWindow.Properties.UseSystemDarkMode = true;
+            nativeWindow.Properties.UseMica = true;
+            nativeWindow.Properties.MicaBackdropType = FenUISharp.Native.MicaBackdropType.TransientWindow;
+            nativeWindow.WindowThemeManager.SetTheme(Resources.GetTheme("default-dark"));
             nativeWindow.WithView(new CrashHandlerTempView());
-
             nativeWindow.RequestFocus();
 
-            nativeWindow.SetWindowVisibility(true);
+            nativeWindow.Properties.IsWindowVisible = true;
             nativeWindow.BeginWindowLoop();
         }
     }

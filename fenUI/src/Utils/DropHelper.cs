@@ -109,15 +109,16 @@ namespace FenUISharp
     [ClassInterface(ClassInterfaceType.None)]
     public class DragDropHandler : IDropTarget
     {
-        public DragDropHandler(Window root) => WindowRoot = root;
-        private Window WindowRoot { get; set; }
+        public DragDropHandler(FWindow root) => window = new(root);
+        private WeakReference<FWindow> window { get; set; }
+        public FWindow Window { get => window.TryGetTarget(out var target) ? target : throw new Exception("Window not set."); }
 
         public Action<FDropData?>? dragEnter { get; set; }
         public Action<FDropData?>? dragOver { get; set; }
         public Action? dragLeave { get; set; }
         public Action<FDropData?>? dragDrop { get; set; }
 
-        public FDropData? lastDropData;
+        internal FDropData? lastDropData;
 
         public MultiAccess<DROPEFFECT> dropEffect { get; set; } = new MultiAccess<DROPEFFECT>(DROPEFFECT.None);
 
@@ -129,7 +130,7 @@ namespace FenUISharp
 
             lastDropData = HandleDropAction(pDataObj);
             IsDragDropActionInProgress = true;
-            WindowRoot.Dispatcher.Invoke(() => dragEnter?.Invoke(lastDropData));
+            dragEnter?.Invoke(lastDropData);
         }
 
         void IDropTarget.DragOver(uint grfKeyState, POINT pt, ref uint pdwEffect)
@@ -137,20 +138,19 @@ namespace FenUISharp
             pdwEffect = (uint)dropEffect.Value;
 
             IsDragDropActionInProgress = true;
-            WindowRoot.Dispatcher.Invoke(() => dragOver?.Invoke(lastDropData));
+            dragOver?.Invoke(lastDropData);
         }
 
         void IDropTarget.DragLeave()
         {
             IsDragDropActionInProgress = false;
-
-            WindowRoot.Dispatcher.Invoke(() => dragLeave?.Invoke());
+            dragLeave?.Invoke();
         }
 
         public void Drop([In] IntPtr pDataObj, [In] uint grfKeyState, [In] POINT pt, [In, Out] ref uint pdwEffect)
         {
             lastDropData = HandleDropAction(pDataObj);
-            WindowRoot.Dispatcher.Invoke(() => dragDrop?.Invoke(lastDropData));
+            dragDrop?.Invoke(lastDropData);
         }
 
         const int DV_E_FORMATETC = unchecked((int)0x80040064);

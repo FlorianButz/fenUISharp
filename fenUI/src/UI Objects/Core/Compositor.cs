@@ -34,7 +34,7 @@ namespace FenUISharp.Objects
             LocalZIndex = new(() => 0, owner, this);
 
             if (activeInstances == 0)
-                FContext.GetCurrentWindow().OnPreUpdate += CacheZOrderedListOfEverything;
+                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += CacheZOrderedListOfEverything;
 
             activeInstances++;
         }
@@ -66,7 +66,6 @@ namespace FenUISharp.Objects
         {
             return _cachedOrderedList;
         }
-
 
         static void TraverseAndCollect(UIObject current, List<UIObject> list, bool enabledAndVisibleOnly = false)
         {
@@ -101,7 +100,7 @@ namespace FenUISharp.Objects
         {
             if (globalBounds.Height < 1 || globalBounds.Width < 1) return null;
 
-            SKImage? behind = FContext.GetCurrentWindow().RenderContext.CaptureWindowRegion(globalBounds, quality);
+            SKImage? behind = FContext.GetCurrentWindow().SkiaDirectCompositionContext?.CaptureWindowRegion(globalBounds, quality);
 
             return behind;
 
@@ -144,7 +143,7 @@ namespace FenUISharp.Objects
         {
             activeInstances--;
             if (activeInstances <= 0)
-                FContext.GetCurrentWindow().OnPreUpdate -= CacheZOrderedListOfEverything;
+                FContext.GetCurrentWindow().Callbacks.OnPreUpdate -= CacheZOrderedListOfEverything;
         }
 
         public void OnInternalStateChanged<T>(T value)

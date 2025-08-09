@@ -72,7 +72,7 @@ namespace FenUISharp.Objects
         {
             base.Update();
 
-            if (Indeterminate && FContext.GetCurrentWindow().IsWindowFocused && FContext.GetCurrentWindow().IsWindowShown)
+            if (Indeterminate && FContext.GetCurrentWindow().Properties.IsWindowFocused && FContext.GetCurrentWindow().Properties.IsWindowVisible)
             {
                 time -= (float)(IndeterminateSpeed * FContext.DeltaTime);
                 time = time % 1;

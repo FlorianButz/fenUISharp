@@ -44,7 +44,7 @@ namespace FenUISharp.States
             if (FContext.GetCurrentWindow() == null)
                 throw new Exception("States can only be declared in a valid FenUISharp window context");
             else
-                FContext.GetCurrentWindow().OnPreUpdate += Update;
+                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += Update;
 
             owner.OnObjectDisposed += Dispose;
         }
@@ -66,7 +66,7 @@ namespace FenUISharp.States
             if (FContext.GetCurrentWindow() == null)
                 throw new Exception("States can only be declared in a valid FenUISharp window context");
             else
-                FContext.GetCurrentWindow().OnPreUpdate += Update;
+                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += Update;
 
             owner.OnObjectDisposed += Dispose;
         }
@@ -179,7 +179,7 @@ namespace FenUISharp.States
         public void Dispose()
         {
             if (FContext.GetCurrentWindow() != null)
-                FContext.GetCurrentWindow().OnPreUpdate -= Update;
+                FContext.GetCurrentWindow().Callbacks.OnPreUpdate -= Update;
 
             if (Owner.TryGetTarget(out var target))
                 target.OnObjectDisposed -= Dispose;

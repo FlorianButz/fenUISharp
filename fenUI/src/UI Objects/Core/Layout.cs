@@ -63,8 +63,8 @@ namespace FenUISharp.Objects
 
                 Vector2 sizeOffset = new(clampedSize.x * anchor.x, clampedSize.y * anchor.y);
                 Vector2 relativeParentPos = new Vector2(
-                    (owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Bounds.Width ?? 0)) * align.x + absoluteMarginCorrection.x,
-                    (owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Bounds.Height ?? 0)) * align.y + absoluteMarginCorrection.y);
+                    (owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Shape.Bounds.Width ?? 0)) * align.x + absoluteMarginCorrection.x,
+                    (owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Shape.Bounds.Height ?? 0)) * align.y + absoluteMarginCorrection.y);
 
                 // A ghost is actually haunting this and I have no idea why it does what it does; edit: seems to be working now; edit 2: it did not work. DO NOT ADD THE LOCAL POSITION TO THIS THING!
                 // var returnPos = relativeParentPos - sizeOffset; // Basically not needed anymore, though I'll leave it here so I get reminded of the mistakes from my past
@@ -85,8 +85,8 @@ namespace FenUISharp.Objects
             {
                 var clampedSize = ClampSize(localSize);
 
-                Vector2 stretchSize = new((owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Bounds.Width ?? 0)) - MarginHorizontal.CachedValue * 2,
-                    (owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Bounds.Height ?? 0)) - MarginVertical.CachedValue * 2);
+                Vector2 stretchSize = new((owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Shape.Bounds.Width ?? 0)) - MarginHorizontal.CachedValue * 2,
+                    (owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Shape.Bounds.Height ?? 0)) - MarginVertical.CachedValue * 2);
 
                 var absoluteCorrection = new Vector2(AbsoluteMarginHorizontal.CachedValue.x + AbsoluteMarginHorizontal.CachedValue.y, AbsoluteMarginVertical.CachedValue.x + AbsoluteMarginVertical.CachedValue.y);
 

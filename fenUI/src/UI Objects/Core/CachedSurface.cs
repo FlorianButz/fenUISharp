@@ -8,7 +8,7 @@ namespace FenUISharp.Objects
 {
     public class CachedSurface(Action<SKCanvas?> DrawAction) : IDisposable
     {
-        private SKSurface? _cachedSurface;
+        private FAdditionalSurface? _cachedSurface;
         private SKImageInfo? _cachedImageInfo;
         private SKImage? _cachedSnapshot;
 
@@ -20,8 +20,7 @@ namespace FenUISharp.Objects
         public bool TryGetSurface(out SKSurface surface)
         {
             if (_cachedSurface == null) { surface = null; return false; }
-
-            surface = _cachedSurface;
+            surface = _cachedSurface.SkiaSurface;
             return true;
         }
 
@@ -34,18 +33,18 @@ namespace FenUISharp.Objects
             }
             if (!FContext.IsValidContext()) throw new Exception("Invalid FenUISharp window context.");
 
-            _cachedSurface = FContext.GetCurrentWindow()?.RenderContext.CreateAdditional(_cachedImageInfo.Value);
+            _cachedSurface = FContext.GetCurrentWindow()?.SkiaDirectCompositionContext?.CreateAdditional(_cachedImageInfo.Value);
 
-            _cachedSurface?.Canvas.Scale(quality, quality);
-            _cachedSurface?.Canvas.Translate(padding, padding);
+            _cachedSurface?.SkiaSurface.Canvas.Scale(quality, quality);
+            _cachedSurface?.SkiaSurface.Canvas.Translate(padding, padding);
 
-            return _cachedSurface;
+            return _cachedSurface?.SkiaSurface;
         }
 
         public SKSurface? Draw(PostProcessChain? effectChain = null)
         {
             if (_cachedSurface != null)
-                return _cachedSurface;
+                return _cachedSurface.SkiaSurface;
             else
             {
                 var surface = CreateSurface();
@@ -126,10 +125,10 @@ namespace FenUISharp.Objects
             if (_cachedSurface == null)
                 return null;
 
-            Compositor.Dump(_cachedSurface.Snapshot(), "buffer_surf_whole");
+            Compositor.Dump(_cachedSurface.SkiaSurface.Snapshot(), "buffer_surf_whole");
 
-            var snapshot = _cachedSurface.Snapshot(new SKRectI((int)region.Left, (int)region.Top, (int)region.Right, (int)region.Bottom));
-            var scaled = RMath.CreateLowResImage(snapshot, RMath.Clamp(quality, 0.01f, 1f), FContext.GetCurrentWindow().RenderContext.SamplingOptions);
+            var snapshot = _cachedSurface.SkiaSurface.Snapshot(new SKRectI((int)region.Left, (int)region.Top, (int)region.Right, (int)region.Bottom));
+            var scaled = RMath.CreateLowResImage(snapshot, RMath.Clamp(quality, 0.01f, 1f), SkiaDirectCompositionContext.SamplingOptions);
             snapshot?.Dispose();
 
             Compositor.Dump(scaled, "buffer_cropped_scaled");
@@ -143,7 +142,7 @@ namespace FenUISharp.Objects
 
             if (_cachedSurface != null)
             {
-                _cachedSurface?.Canvas.Dispose();
+                _cachedSurface?.SkiaSurface?.Canvas.Dispose();
                 _cachedSurface?.Dispose();
                 _cachedSurface = null;
             }

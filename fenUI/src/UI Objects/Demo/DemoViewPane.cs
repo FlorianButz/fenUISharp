@@ -90,7 +90,7 @@ namespace FenUISharp.Objects
 
                 float val = 0;
                 int lastText = 0;
-                FContext.GetCurrentWindow().OnPreUpdate += () =>
+                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += () =>
                 {
                     val = ((float)Math.Sin(FContext.Time) + 1) / 2 + 1.5f;
 
@@ -283,7 +283,11 @@ namespace FenUISharp.Objects
 
                 FTextInputField textInputField = new(new FText(TextModelFactory.CreateBasic("")));
                 textInputField.SetParent(subpanel);
-                FTextInputField textInputFieldPassword = new(new FText(TextModelFactory.CreateBasic(""))) { PlaceholderText = "Type in password...", TextInputMode = FTextInputField.TextInputFieldMode.Password };
+                FTextInputField textInputFieldPassword = new(new FText(TextModelFactory.CreateBasic("")))
+                {
+                    PlaceholderText = "Type in password...",
+                    TextInputMode = FTextInputField.TextInputFieldMode.Password
+                };
                 textInputFieldPassword.SetParent(subpanel);
 
                 sublayout.FullUpdateLayout();
@@ -303,8 +307,12 @@ namespace FenUISharp.Objects
 
                 FSegmentedControl segmentedControl1 = new(new(new()
                 {
-                    [TextModelFactory.CreateBasic("Light")] = (x) => { FContext.GetCurrentWindow().WindowThemeManager.SetTheme(Resources.GetTheme("default-light")); FContext.GetCurrentWindow().SystemDarkMode = false; },
-                    [TextModelFactory.CreateBasic("Dark")] = (x) => { FContext.GetCurrentWindow().WindowThemeManager.SetTheme(Resources.GetTheme("default-dark")); FContext.GetCurrentWindow().SystemDarkMode = true; }
+                    [TextModelFactory.CreateBasic("Light")] =
+                        (x) => {    FContext.GetCurrentWindow().WindowThemeManager.SetTheme(Resources.GetTheme("default-light"));
+                                        FContext.GetCurrentWindow().Properties.UseSystemDarkMode = false; },
+                    [TextModelFactory.CreateBasic("Dark")] =
+                        (x) => {    FContext.GetCurrentWindow().WindowThemeManager.SetTheme(Resources.GetTheme("default-dark"));
+                                        FContext.GetCurrentWindow().Properties.UseSystemDarkMode = true; }
                 }), 1);
                 segmentedControl1.SetParent(subpanel);
 

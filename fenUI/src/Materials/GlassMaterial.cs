@@ -63,15 +63,18 @@ namespace FenUISharp.Materials
             SKImage? blurredWindowArea = null;
 
             {
-                using var blurSurf = FContext.GetCurrentWindow().RenderContext.CreateAdditional(windowArea.Info);
-                using var blurCanv = blurSurf.Canvas;
+                using var blurSurf = FContext.GetCurrentWindow().SkiaDirectCompositionContext?.CreateAdditional(windowArea.Info);
+
+                if (blurSurf == null) return;
+
+                using var blurCanv = blurSurf.SkiaSurface.Canvas;
 
                 var bRadius = BlurRadius();
                 using var blur = SKImageFilter.CreateBlur(bRadius / 1.25f, bRadius / 1.25f);
                 using var blurPaint = new SKPaint { IsAntialias = true, ImageFilter = blur };
                 blurCanv.DrawImage(windowArea, 0, 0, blurPaint);
 
-                blurredWindowArea = blurSurf.Snapshot();
+                blurredWindowArea = blurSurf.SkiaSurface.Snapshot();
             }
 
             // Compositor.EnableDump = true;
@@ -88,8 +91,11 @@ namespace FenUISharp.Materials
             caller.Padding.SetStaticState(35, 1);
 
             SKImageInfo skImageInfo = new((int)MathF.Ceiling(pathBounds.Width / DisplacementMapDownscale), (int)MathF.Ceiling(pathBounds.Height / DisplacementMapDownscale));
-            using var displacementSurface = FContext.GetCurrentWindow().RenderContext.CreateAdditional(skImageInfo);
-            using var displacementMapCanvas = displacementSurface.Canvas;
+            using var displacementSurface = FContext.GetCurrentWindow().SkiaDirectCompositionContext?.CreateAdditional(skImageInfo);
+
+            if (displacementSurface == null) return;
+
+            using var displacementMapCanvas = displacementSurface.SkiaSurface.Canvas;
             int falloff = Distance();
 
             Vector2 pathOffsetAdjustment = new(-pathBounds.Left, -pathBounds.Top);
@@ -118,7 +124,7 @@ namespace FenUISharp.Materials
 
             // Get displacement map
             using SKShader displacementMap =
-                displacementSurface.Snapshot().ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, new SKSamplingOptions(SKFilterMode.Nearest, SKMipmapMode.Nearest));
+                displacementSurface.SkiaSurface.Snapshot().ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, new SKSamplingOptions(SKFilterMode.Nearest, SKMipmapMode.Nearest));
             using SKShader? masterShader = CreateShader(
                 displacementMap,
                 blurredWindowArea.ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear)),

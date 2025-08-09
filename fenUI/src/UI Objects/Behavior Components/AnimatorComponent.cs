@@ -96,7 +96,7 @@ namespace FenUISharp.Behavior
                 if (!IsRunning)
                     return;
 
-                _timePassed += (float)FContext.GetCurrentWindow().DeltaTime;
+                _timePassed += (float)FContext.DeltaTime;
 
                 // Normalize time and clamp between 0 and 1.
                 float t = Math.Clamp(_timePassed / Duration, 0f, 1f);
