@@ -24,7 +24,7 @@ namespace FenUISharp
         /// </summary>
         public Action<char>? OnTextTyped { get; set; }
 
-        private Window _window { get; init; }
+        private FWindow _window { get; init; }
 
         private const char VK_CONTROL = (char)0x11;
         private const char VK_SHIFT = (char)0x10;
@@ -33,7 +33,7 @@ namespace FenUISharp
 
         private List<KeyBind> keybinds;
 
-        public KeyboardInputManager(Window window)
+        public KeyboardInputManager(FWindow window)
         {
             this._window = window;
             keybinds = new();
@@ -41,17 +41,17 @@ namespace FenUISharp
             WindowFeatures.GlobalHooks.OnKeyTyped += KeyTyped;
             WindowFeatures.GlobalHooks.OnKeyPressed += KeyPressed;
             WindowFeatures.GlobalHooks.OnKeyReleased += KeyReleased;
-            FContext.GetCurrentWindow().OnKeyboardInputTextReceived += TextTyped;
+            FContext.GetCurrentWindow().Callbacks.OnKeyboardInputTextReceived += TextTyped;
         }
 
         private void KeyTyped(int obj)
         {
-            _window.Dispatcher.Invoke(() => OnKeyTyped?.Invoke((char)obj));
+            _window.LogicDispatcher.Invoke(() => OnKeyTyped?.Invoke((char)obj));
         }
 
         private void TextTyped(char c)
         {
-            _window.Dispatcher.Invoke(() => OnTextTyped?.Invoke(c));
+            _window.LogicDispatcher.Invoke(() => OnTextTyped?.Invoke(c));
         }
 
         private void KeyReleased(int vkCode)
@@ -74,7 +74,7 @@ namespace FenUISharp
                     break;
             }
 
-            _window.Dispatcher.Invoke(() => OnKeyReleased?.Invoke(c));
+            _window.LogicDispatcher.Invoke(() => OnKeyReleased?.Invoke(c));
         }
 
         private void KeyPressed(int vkCode)
@@ -109,14 +109,14 @@ namespace FenUISharp
                     if (!keybind.Flags.HasFlag(KeyBindFlags.Alt) && IsAltPressed) continue;
                     if (!keybind.Flags.HasFlag(KeyBindFlags.Shift) && IsShiftPressed) continue;
 
-                    if (!keybind.IgnoreFocus && !_window.IsWindowFocused) continue;
+                    if (!keybind.IgnoreFocus && !_window.Properties.IsWindowFocused) continue;
 
-                    _window.Dispatcher.Invoke(() => keybind.OnKeybindExecuted?.Invoke());
+                    _window.LogicDispatcher.Invoke(() => keybind.OnKeybindExecuted?.Invoke());
                 }
             }
 
-            if (!_window.IsWindowFocused) return;
-            _window.Dispatcher.Invoke(() => OnKeyPressed?.Invoke(c));
+            if (!_window.Properties.IsWindowFocused) return;
+            _window.LogicDispatcher.Invoke(() => OnKeyPressed?.Invoke(c));
         }
 
         private int NormalizeVKCode(int vkCode)

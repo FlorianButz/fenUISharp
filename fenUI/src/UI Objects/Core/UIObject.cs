@@ -125,7 +125,7 @@ namespace FenUISharp.Objects
             if (!_wasBeginCalled || !DisableWhenOutOfParentBounds)
                 _insideParent = true;
 
-            bool returnValue = RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Bounds, Shape.GlobalBounds);
+            bool returnValue = RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Shape.Bounds, Shape.GlobalBounds);
             _insideParent = returnValue;
         }
 
@@ -483,7 +483,7 @@ namespace FenUISharp.Objects
         {
             if (IsDisposed) return false;
             
-            if (!RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Bounds, Shape.GlobalBounds) && DisableWhenOutOfParentBounds) return false;
+            if (!RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Shape.Bounds, Shape.GlobalBounds) && DisableWhenOutOfParentBounds) return false;
             // if (!RMath.IsRectPartiallyInside(Shape.GlobalBounds, FContext.GetCurrentWindow().GetCurrentDirtyClipPath())) return false; // Technically smart, though it wouldn't work like that
 
             if (!GlobalEnabled) return false;

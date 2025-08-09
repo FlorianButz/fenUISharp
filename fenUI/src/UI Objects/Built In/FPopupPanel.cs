@@ -167,7 +167,7 @@ namespace FenUISharp.Objects
         {
             base.LateUpdate();
 
-            GlobalBounds = FContext.GetCurrentWindow().Bounds;
+            GlobalBounds = FContext.GetCurrentWindow().Shape.Bounds;
             Transform.LocalPosition.SetStaticState(GetPanelPosition(Transform.GlobalToLocal(GlobalTargetPoint.CachedValue), Transform.GlobalToLocal(GlobalBounds), DistanceToTarget));
 
             // Calc

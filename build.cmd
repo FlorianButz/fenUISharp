@@ -14,7 +14,7 @@ echo Building fenUI without crash handler...
 echo:
 
 cd "fenUI"
-dotnet publish -c Debug -r win-x64
+dotnet publish -c Debug -r win-x64 --self-contained false
 cd ".."
 
 echo Copying new fenUI build to crash handler...

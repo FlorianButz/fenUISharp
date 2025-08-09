@@ -118,7 +118,7 @@ namespace FenUISharp.Objects
             EnableMouseActions = new(() => false, owner, (x) => { });
             EnableMouseScrolling = new(() => false, owner, (x) => { });
 
-            FContext.GetCurrentWindow().MouseAction += FuncOnMouseAction;
+            FContext.GetCurrentWindow().Callbacks.ClientMouseAction += FuncOnMouseAction;
             WindowFeatures.GlobalHooks.OnMouseScroll += Global_FuncOnMouseScroll;
             WindowFeatures.GlobalHooks.OnMouseMove += Global_FuncOnMouseMove;
             WindowFeatures.GlobalHooks.OnMouseAction += FuncOnMouseActionGlobal;
@@ -126,8 +126,8 @@ namespace FenUISharp.Objects
             if (activeInstances == 0)
             {
                 _surfaces = new();
-                FContext.GetCurrentWindow().OnPreUpdate += CacheTopmostMouseAction;
-                FContext.GetCurrentWindow().OnPreUpdate += CacheTopmostMouseScroll;
+                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += CacheTopmostMouseAction;
+                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += CacheTopmostMouseScroll;
             }
 
             activeInstances++;
@@ -230,7 +230,7 @@ namespace FenUISharp.Objects
 
             if (capturedOwner == null) return;
             if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
-            if (!FContext.GetCurrentWindow().IsWindowFocused || !TestIfTopMost_MouseScrolling() || !TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition)) return;
+            if (!FContext.GetCurrentWindow().Properties.IsWindowFocused || !TestIfTopMost_MouseScrolling() || !TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition)) return;
 
             OnMouseScroll?.Invoke(_lastDelta);
             _lastDelta = 0;
@@ -421,7 +421,7 @@ namespace FenUISharp.Objects
             _surfaces.Remove(this);
             Owner = null;
 
-            FContext.GetCurrentWindow().MouseAction -= FuncOnMouseAction;
+            FContext.GetCurrentWindow().Callbacks.ClientMouseAction -= FuncOnMouseAction;
             WindowFeatures.GlobalHooks.OnMouseScroll -= Global_FuncOnMouseScroll;
             WindowFeatures.GlobalHooks.OnMouseMove -= Global_FuncOnMouseMove;
             WindowFeatures.GlobalHooks.OnMouseAction -= FuncOnMouseActionGlobal;
@@ -429,8 +429,8 @@ namespace FenUISharp.Objects
             activeInstances--;
             if (activeInstances <= 0)
             {
-                FContext.GetCurrentWindow().OnPreUpdate += CacheTopmostMouseAction;
-                FContext.GetCurrentWindow().OnPreUpdate += CacheTopmostMouseScroll;
+                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += CacheTopmostMouseAction;
+                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += CacheTopmostMouseScroll;
             }
         }
     }

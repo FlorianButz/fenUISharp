@@ -5,13 +5,13 @@ using FenUISharp.Native;
 
 namespace FenUISharp
 {
-    public class FTestWin : FWindow
+    public class FNativeWindow : FWindow
     {
-        public FTestWin(string title, string className, Vector2? position = null, Vector2? size = null) : base(title, className, position, size)
+        public FNativeWindow(string title, string className, Vector2? position = null, Vector2? size = null) : base(title, className, position, size)
         {
         }
 
-        public override nint CreateWindow(WNDCLASSEX wndClass, Vector2 position, Vector2 size)
+        protected override nint CreateWindow(WNDCLASSEX wndClass, Vector2 position, Vector2 size)
         {
             if (position == new Vector2(-1, -1))
             {

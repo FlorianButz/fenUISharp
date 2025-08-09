@@ -113,14 +113,14 @@ namespace FenUISharp
         private WeakReference<FWindow> window { get; set; }
         public FWindow Window { get => window.TryGetTarget(out var target) ? target : throw new Exception("Window not set."); }
 
-        internal Action<FDropData?>? dragEnter { get; set; }
-        internal Action<FDropData?>? dragOver { get; set; }
-        internal Action? dragLeave { get; set; }
-        internal Action<FDropData?>? dragDrop { get; set; }
+        public Action<FDropData?>? dragEnter { get; set; }
+        public Action<FDropData?>? dragOver { get; set; }
+        public Action? dragLeave { get; set; }
+        public Action<FDropData?>? dragDrop { get; set; }
 
         internal FDropData? lastDropData;
 
-        internal MultiAccess<DROPEFFECT> dropEffect { get; set; } = new MultiAccess<DROPEFFECT>(DROPEFFECT.None);
+        public MultiAccess<DROPEFFECT> dropEffect { get; set; } = new MultiAccess<DROPEFFECT>(DROPEFFECT.None);
 
         public bool IsDragDropActionInProgress { get; set; } = false;
 

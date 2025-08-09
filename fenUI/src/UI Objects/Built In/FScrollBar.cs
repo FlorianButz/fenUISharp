@@ -74,7 +74,7 @@ namespace FenUISharp.Objects
 
             lastThumbInteractionRect = GetThumbRect(Shape.LocalBounds);
 
-            Alpha -= AlphaFadeSpeed * (float)FContext.GetCurrentWindow().DeltaTime;
+            Alpha -= AlphaFadeSpeed * (float)FContext.DeltaTime;
             if (Alpha < 0f) Alpha = 0;
 
             if (InteractiveSurface.IsMouseHovering) Alpha = AlphaFadeTime;

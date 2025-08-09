@@ -1,14 +1,15 @@
 using FenUISharp.Objects;
+using FenUISharp.Themes;
 
 namespace FenUISharp
 {
     public static class FContext
     {
-        public static float Time { get => (float)(CurrentWindow?.Time ?? 0); } 
-        public static float DeltaTime { get => (float)(CurrentWindow?.DeltaTime ?? 0); } 
+        public static float Time { get => (float)(CurrentWindow?.Time.Time ?? 0); } 
+        public static float DeltaTime { get => (float)(CurrentWindow?.Time.DeltaTime ?? 0); } 
 
         [ThreadStatic]
-        private static Window? CurrentWindow;
+        private static FWindow? CurrentWindow;
 
         [ThreadStatic]
         private static Dispatcher? CurrentDispatcher;
@@ -16,15 +17,16 @@ namespace FenUISharp
         [ThreadStatic]
         private static ModelViewPane? RootViewPane;
 
-        public static Window GetCurrentWindow() => CurrentWindow ?? throw new Exception("GetCurrentWindow() cannot be called in an invalid FenUI context");
+        public static FWindow GetCurrentWindow() => CurrentWindow ?? throw new Exception("GetCurrentWindow() cannot be called in an invalid FenUI context");
         public static Dispatcher GetCurrentDispatcher() => CurrentDispatcher ?? throw new Exception("GetCurrentDispatcher() cannot be called in an invalid FenUI context");
         public static ModelViewPane? GetRootViewPane() => RootViewPane;
         public static KeyboardInputManager GetKeyboardInputManager() => CurrentWindow?.WindowKeyboardInput ?? throw new Exception("GetKeyboardInputManager() cannot be called in an invalid FenUI context");
+        public static ThemeManager GetCurrentThemeManager() => CurrentWindow?.WindowThemeManager ?? throw new Exception("GetCurrentWindow() cannot be called in an invalid FenUI context");
 
-        internal static void WithWindow(Window window)
+        internal static void WithWindow(FWindow window)
         {
             CurrentWindow = window;
-            CurrentDispatcher = window.Dispatcher;
+            CurrentDispatcher = window.LogicDispatcher;
         }
 
         internal static void WithRootViewPane(ModelViewPane? view)

@@ -17,19 +17,24 @@ namespace FenUISharp
             FenUI.Init();
             FenUI.SetupAppModel("FlorianButz.fenUI");
 
-            FWindow testWindow = new FTestWin("Test Window!", "testWindow");
-            // testWindow.Properties.ExcludeFromPeek = true;
-            testWindow.Properties.UseMica = true;
-            testWindow.Properties.MicaBackdropType = Native.MicaBackdropType.MainWindow;
-            testWindow.Properties.VisibleInTaskbar = false;
+            // FWindow testWindow = new FNativeWindow("Test Window!", "testWindow");
+            // // testWindow.Properties.ExcludeFromPeek = true;
+            // testWindow.Properties.UseMica = true;
+            // testWindow.Properties.MicaBackdropType = Native.MicaBackdropType.MainWindow;
+            // testWindow.Properties.VisibleInTaskbar = false;
+            // testWindow.Properties.AlwaysOnTop = true;
 
-            // testWindow.Properties.AllowResize = false;
+            // string iconPath = Resources.ExtractResourceToTempFile<FenUI>($"{FenUI.ResourceLibName}.icons.fenui.ico");
+            // testWindow.Properties.SetWindowIcon(iconPath);
+            // testWindow.Properties.CreateTrayIcon(iconPath, "Test Tooltip!");
 
-            testWindow.Properties.ShowWindow(Native.ShowWindowCommand.SW_SHOW);
-            testWindow.BeginWindowLoop();
+            // // testWindow.Properties.AllowResize = false;
 
-            // FenUI.EnableDebugFunctions();
-            // FenUI.Demo();
+            // testWindow.Properties.ShowWindow(Native.ShowWindowCommand.SW_SHOW);
+            // testWindow.BeginWindowLoop();
+
+            FenUI.EnableDebugFunctions();
+            FenUI.Demo();
         }
     }
 }

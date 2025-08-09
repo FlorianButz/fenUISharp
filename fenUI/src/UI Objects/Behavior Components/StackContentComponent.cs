@@ -328,7 +328,7 @@ namespace FenUISharp.Behavior
                 _snappedScrollPosition = _scrollPosition;
 
             if (ScrollSpring != null && _contentSize > _pageSize)
-                _scrollDisplayPosition = ScrollSpring.Update((float)FContext.GetCurrentWindow().DeltaTime, new Vector2(_snappedScrollPosition, 0)).x;
+                _scrollDisplayPosition = ScrollSpring.Update((float)FContext.DeltaTime, new Vector2(_snappedScrollPosition, 0)).x;
             else if (ScrollSpring == null)
                 _scrollDisplayPosition = _snappedScrollPosition;
             else

@@ -30,7 +30,7 @@ namespace FenUISharp.Objects
         {
             base.Update();
 
-            if (!FContext.GetCurrentWindow().IsNextFrameRendering()) return;
+            if (!FContext.GetCurrentWindow().Surface.IsNextFrameRendering()) return;
             Invalidate(Invalidation.SurfaceDirty);
         }
 

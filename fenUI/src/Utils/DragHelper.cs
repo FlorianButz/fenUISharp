@@ -58,7 +58,7 @@ namespace FenUISharp
             }
             catch (Exception ex)
             {
-                FLogger.Log($"GetData failed: {ex.Message}");
+                FLogger.Error($"GetData failed: {ex.Message}");
                 return E_UNEXPECTED;
             }
 

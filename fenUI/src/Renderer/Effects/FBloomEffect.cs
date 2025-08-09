@@ -20,10 +20,12 @@ namespace FenUISharp.RuntimeEffects
             int downHeight = snap.Height / downscale;
 
             var downInfo = new SKImageInfo(downWidth, downHeight);
-            using var downscaledSurface = FContext.GetCurrentWindow().RenderContext.CreateAdditional(downInfo);
+            using var downscaledSurface = FContext.GetCurrentWindow().SkiaDirectCompositionContext?.CreateAdditional(downInfo);
+
+            if (downscaledSurface == null) return;
 
             // Draw the source image downscaled into the temporary surface
-            var downCanvas = downscaledSurface.Canvas;
+            var downCanvas = downscaledSurface.SkiaSurface.Canvas;
             downCanvas.Clear(SKColors.Transparent);
             downCanvas.Scale(1f / downscale);
 
@@ -32,7 +34,7 @@ namespace FenUISharp.RuntimeEffects
             using var bloomPaint = new SKPaint { Shader = thresholdIntensityShader };
 
             downCanvas.DrawRect(0, 0, info.sourceInfo.Width, info.sourceInfo.Height, bloomPaint); // Scaled automatically
-            using var downscaledImage = downscaledSurface.Snapshot();
+            using var downscaledImage = downscaledSurface?.SkiaSurface.Snapshot();
 
             int save = info.target.Canvas.Save();
 

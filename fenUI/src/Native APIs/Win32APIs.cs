@@ -3,7 +3,7 @@ using System.Text;
 
 namespace FenUISharp.Native
 {
-    internal class WindowStyles
+    internal static class WindowStyles
     {
         // Premade composites
         public const int WS_OVERLAPPEDWINDOW =
@@ -43,7 +43,7 @@ namespace FenUISharp.Native
         public const int WS_BORDER = 0x0080000;
     }
 
-    internal class DWMWINDOWATTRIBUTE
+    internal static class DWMWINDOWATTRIBUTE
     {
         public const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
         public const int DWMWA_MICA_EFFECT = 1029;      // Dark mode Mica
@@ -52,7 +52,7 @@ namespace FenUISharp.Native
         public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
     }
 
-    internal class WindowMessages
+    internal static class WindowMessages
     {
         public const uint WM_CHAR = 0x0102;
         public const uint WM_NCCREATE = 0x0081;
@@ -93,7 +93,7 @@ namespace FenUISharp.Native
         public const int WM_MOVE = 0x0003;
         public const int WM_SIZING = 0x0214;
         public const int WM_EXITSIZEMOVE = 0x0232;
-        public const int WM_ENTERSIZEMOVE = 0x023;
+        public const int WM_ENTERSIZEMOVE = 0x0231;
     }
 
     public enum ShowWindowCommand : int
@@ -114,7 +114,7 @@ namespace FenUISharp.Native
         SW_FORCEMINIMIZE = 11
     }
 
-    public class HitTest
+    public static class HitTest
     {
         public const int HTLEFT = 10;
         public const int HTRIGHT = 11;
@@ -127,8 +127,23 @@ namespace FenUISharp.Native
         public const int HTCLIENT = 1;
     }
 
-    internal class Win32APIs
+    internal static class Win32APIs
     {
+        [DllImport("user32.dll")]
+        internal static extern uint GetDpiForWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        internal static extern bool GetCursorPos(out POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        internal static extern int GetSystemMetrics(int nIndex);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        internal static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
         [DllImport("user32.dll", SetLastError = true)]
         internal static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
 
@@ -286,6 +301,29 @@ namespace FenUISharp.Native
         [DllImport("user32.dll")]
         internal static extern bool ScreenToClient(IntPtr hWnd, ref POINT lpPoint);
 
+        [DllImport("user32.dll")]
+        internal static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+        
+        [DllImport("user32.dll")]
+        internal static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+        [DllImport("user32.dll")]
+        internal static extern IntPtr LoadImage(IntPtr hInstance, string lpszName, uint uType, int cx, int cy, uint fuLoad);
+
+        [DllImport("shell32.dll")]
+        internal static extern bool Shell_NotifyIconA(uint dwMessage, ref NOTIFYICONDATAA lpData);
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        internal static extern int SetCurrentProcessExplicitAppUserModelID(string AppID);
+
+        [DllImport("user32.dll")]
+        internal static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);
+
+        [DllImport("user32.dll", CharSet = CharSet.Ansi)]
+        internal static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
+
+        [DllImport("user32.dll")]
+        internal static extern bool EnumDisplayDevices(string lpDevice, uint iDevNum, ref DISPLAY_DEVICE lpDisplayDevice, uint dwFlags);
 
         [DllImport("user32.dll")]
         internal static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip,
@@ -313,6 +351,85 @@ namespace FenUISharp.Native
             EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, callback, IntPtr.Zero);
             return rect;
         }
+    }
+
+    
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    public struct DEVMODE
+    {
+        private const int CCHDEVICENAME = 32;
+        private const int CCHFORMNAME = 32;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CCHDEVICENAME)]
+        public string dmDeviceName;
+        public ushort dmSpecVersion;
+        public ushort dmDriverVersion;
+        public ushort dmSize;
+        public ushort dmDriverExtra;
+        public uint dmFields;
+        public int dmPositionX;
+        public int dmPositionY;
+        public uint dmDisplayOrientation;
+        public uint dmDisplayFixedOutput;
+        public short dmColor;
+        public short dmDuplex;
+        public short dmYResolution;
+        public short dmTTOption;
+        public short dmCollate;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CCHFORMNAME)]
+        public string dmFormName;
+        public ushort dmLogPixels;
+        public uint dmBitsPerPel;
+        public uint dmPelsWidth;
+        public uint dmPelsHeight;
+        public uint dmDisplayFlags;
+        public uint dmDisplayFrequency; // <- REFRESH RATE
+        public uint dmICMMethod;
+        public uint dmICMIntent;
+        public uint dmMediaType;
+        public uint dmDitherType;
+        public uint dmReserved1;
+        public uint dmReserved2;
+        public uint dmPanningWidth;
+        public uint dmPanningHeight;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    public struct DISPLAY_DEVICE
+    {
+        public int cb;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string DeviceName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string DeviceString;
+        public uint StateFlags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string DeviceID;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string DeviceKey;
+    }
+
+    // DPI awareness
+    internal static class DPI_AWARENESS_CONTEXT
+    {
+        public static readonly IntPtr UNAWARE = new IntPtr(-1);
+        public static readonly IntPtr SYSTEM_AWARE = new IntPtr(-2);
+        public static readonly IntPtr PER_MONITOR_AWARE = new IntPtr(-3);
+        public static readonly IntPtr PER_MONITOR_AWARE_V2 = new IntPtr(-4);
+        public static readonly IntPtr UNAWARE_GDISCALED = new IntPtr(-5);
+    }
+
+    // Struct for monitor info
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    public struct MONITORINFOEX
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string szDevice;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -406,8 +523,8 @@ namespace FenUISharp.Native
         SWP_NOZORDER = 0x0004,
         SWP_NOACTIVATE = 0x0010
     }
-    
-    public class WindowLongs
+
+    public static class WindowLongs
     {
         public const int GWL_EXSTYLE = -20;
         public const int GWL_STYLE = -16;
