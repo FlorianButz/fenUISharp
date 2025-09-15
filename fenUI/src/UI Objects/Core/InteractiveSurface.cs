@@ -418,16 +418,19 @@ namespace FenUISharp.Objects
 
         public void Dispose()
         {
-            _surfaces.Remove(this);
+            if(_surfaces != null)
+                _surfaces.Remove(this);
             Owner = null;
 
-            FContext.GetCurrentWindow().Callbacks.ClientMouseAction -= FuncOnMouseAction;
+            if(!FContext.IsDisposingWindow)
+                FContext.GetCurrentWindow().Callbacks.ClientMouseAction -= FuncOnMouseAction;
+
             WindowFeatures.GlobalHooks.OnMouseScroll -= Global_FuncOnMouseScroll;
             WindowFeatures.GlobalHooks.OnMouseMove -= Global_FuncOnMouseMove;
             WindowFeatures.GlobalHooks.OnMouseAction -= FuncOnMouseActionGlobal;
 
             activeInstances--;
-            if (activeInstances <= 0)
+            if (activeInstances <= 0 && !FContext.IsDisposingWindow)
             {
                 FContext.GetCurrentWindow().Callbacks.OnPreUpdate += CacheTopmostMouseAction;
                 FContext.GetCurrentWindow().Callbacks.OnPreUpdate += CacheTopmostMouseScroll;

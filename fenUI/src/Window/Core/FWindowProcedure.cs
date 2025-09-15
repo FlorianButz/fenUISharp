@@ -19,27 +19,26 @@ namespace FenUISharp
 
         public IntPtr WindowsProcedure(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
-            Window.WindowDispatcher.UpdateQueue(); // Dispatch queued events
+            // Do not update window queue here. Messages are not sent consistently
 
             switch (msg)
             {
                 // When a char is typed and the window is focused
-                case WindowMessages.WM_CHAR: // Keyboard input
+                case (int)WindowMessages.WM_CHAR: // Keyboard input
                     Window.LogicDispatcher.Invoke(() => Window.Callbacks.OnKeyboardInputTextReceived?.Invoke((char)wParam));
                     break;
 
                 // When a device is changed. I don't know what this does
                 case (int)WindowMessages.WM_DEVICECHANGE:
                     FLogger.Log<FWindowProcedure>($"WM_DEVICECHANGE: Device change for window {Window.hWnd}");
-
                     Window.LogicDispatcher.Invoke(() => Window.Callbacks.OnDevicesChanged?.Invoke());
                     break;
 
                 // When the window is resized and needs min/max size info
                 case (int)WindowMessages.WM_GETMINMAXINFO:
+                    MINMAXINFO minMaxInfo = Marshal.PtrToStructure<MINMAXINFO>(lParam);
 
                     // Put minimum and maximum window size into MINMAXINFO struct
-                    MINMAXINFO minMaxInfo = Marshal.PtrToStructure<MINMAXINFO>(lParam);
                     minMaxInfo.ptMinTrackSize = new POINT() { x = (int)Window.Shape.MinSize.x, y = (int)Window.Shape.MinSize.y };
                     minMaxInfo.ptMaxTrackSize = new POINT() { x = (int)Window.Shape.MaxSize.x, y = (int)Window.Shape.MaxSize.y };
 
@@ -84,16 +83,13 @@ namespace FenUISharp
                     // Console.WriteLine("WM_MOVE");
                     Window.LogicDispatcher.Invoke(() =>
                         Window.Callbacks.OnWindowMove?.Invoke(Window.Shape.Position));
-
-                        Window.LogicDispatcher.Invoke(() => Window.SkiaDirectCompositionContext?.OnResize(Window.Shape.Size));
-                    
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_ENTERSIZEMOVE:
                     FLogger.Log<FWindowProcedure>($"");
                     FLogger.Log<FWindowProcedure>($"WM_ENTERSIZEMOVE: Window {Window.hWnd}");
                     _isSizeMoving = true;
-                    break;
+                    return IntPtr.Zero;
 
                 // When the window exits a resize or move action
                 case (int)WindowMessages.WM_EXITSIZEMOVE:
@@ -117,7 +113,9 @@ namespace FenUISharp
                         Window.LogicDispatcher.Invoke(() => Window.Callbacks.OnWindowEndMove?.Invoke(Window.Shape.Position));
                     }
 
+                    // Redraw all
                     Window.FullRedraw();
+
                     _isSizeMoving = false;
                     _isSizing = false;
                     break;
@@ -141,21 +139,6 @@ namespace FenUISharp
                     // Notify that focus was gained
                     Window.LogicDispatcher?.Invoke(() => Window.Callbacks.OnFocusGained?.Invoke());
                     return IntPtr.Zero;
-
-                // Executed when the not client area is destroyed. Happens after WM_DESTROY
-                case (int)WindowMessages.WM_NCDESTROY:
-                    FLogger.Log<FWindowProcedure>($"WM_NCDESTROY: Free up GCHandle for window {Window.hWnd}");
-
-                    IntPtr ptr = Win32APIs.GetWindowLongPtrA(hWnd, -21);
-                    if (ptr != IntPtr.Zero)
-                    {
-                        GCHandle.FromIntPtr(ptr).Free();
-                        Win32APIs.SetWindowLongPtrA(hWnd, -21, IntPtr.Zero);
-                    }
-
-                    FLogger.Log<FWindowProcedure>($"Fully destroyed window {hWnd}. Bye!");
-                    FLogger.Log<FWindowProcedure>($"");
-                    break;
 
                 // Client area & focused keyboard and mouse callbacks
                 case (int)WindowMessages.WM_KEYDOWN:
@@ -197,23 +180,56 @@ namespace FenUISharp
 
                     return IntPtr.Zero;
 
+                // After WM_CLOSE or DestroyWindow
+                case (int)WindowMessages.WM_NCDESTROY:
+                    FLogger.Log<FWindowProcedure>($"WM_NCDESTROY: {Window.hWnd}");
+
+                    FLogger.Log<FWindow>($"Cleaning up GCHandle...");
+                    IntPtr ptr = Win32APIs.GetWindowLongPtrA(hWnd, -21);
+                    if (ptr != IntPtr.Zero)
+                    {
+                        GCHandle.FromIntPtr(ptr).Free();
+
+                        FLogger.Log<FWindow>($"Resetting userdata (-21) for window {hWnd}...");
+                        Win32APIs.SetWindowLongPtrA(hWnd, -21, IntPtr.Zero);
+                    }
+
+                    // Set running flag to false
+                    FLogger.Log<FWindow>($"Disabling running flag");
+                    Window._isRunning = false;
+
+                    // Cleaning up all resources
+                    FLogger.Log<FWindowProcedure>($"Cleaning up all resources...");
+                    Window.CleanUp();
+
+                    FLogger.Log<FWindowProcedure>($"Fully destroyed window {hWnd}. Bye!");
+                    FLogger.Log<FWindowProcedure>($"");
+                    break;
+
+                // When windows wants to know what areas of the window are interactable
+                case (int)WindowMessages.WM_NCHITTEST:
+                    var custom = Window.WindowHitTest(wParam, lParam);
+                    if (custom != IntPtr.Zero) return custom;
+                    else return Win32APIs.DefWindowProcW(hWnd, msg, wParam, lParam);
+
                 // When the window close button is pressed (X)
                 case (int)WindowMessages.WM_CLOSE:
                     FLogger.Log<FWindowProcedure>($"WM_CLOSE: Window with handle {Window.hWnd} closed");
 
-                    // The window should always hide first, even if the HideWindowOnClose is false
-                    // Hiding the window first is much faster than waiting for the destruction
-                    Window.Properties.IsWindowVisible = false;
+                    Window.Callbacks.OnWindowClose?.Invoke();
 
                     // Check if HideWindowOnClose is false
                     if (!Window.Properties.HideWindowOnClose)
                     {
-                        // FLogger.Log<FWindowProcedure>($"Adding disposal of window {Window.hWnd} to logic queue");
-
                         // Initiate window destruction and disposal
                         FLogger.Log<FWindowProcedure>($"Disposing window {Window.hWnd}...");
-                        Window.Callbacks.OnWindowClose?.Invoke();
                         Window.Dispose();
+                    }
+                    else
+                    {
+                        // The window should always hide first, even if the HideWindowOnClose is false
+                        // Hiding the window first is much faster than waiting for the destruction
+                        Window.Properties.IsWindowVisible = false;
                     }
 
                     return IntPtr.Zero;
@@ -221,12 +237,13 @@ namespace FenUISharp
                 // When the window is destroyed
                 case (int)WindowMessages.WM_DESTROY:
 
-                    // Notify when the window gets destroyed
-                    Window.Callbacks.OnWindowDestroy?.Invoke();
-
-                    // Post the quit message. 0 means OK
-                    FLogger.Log<FWindowProcedure>("WM_DESTROY: Posting quit message 0");
-                    Win32APIs.PostQuitMessage(0);
+                    // Check if on main thread. If this is not done the process will crash when closing a child window
+                    if (FenUI.IsMainThread)
+                    {
+                        // Post the quit message. 0 means OK
+                        FLogger.Log<FWindowProcedure>("WM_DESTROY: Posting quit message 0");
+                        Win32APIs.PostQuitMessage(0);
+                    }
 
                     return IntPtr.Zero;
             }
@@ -244,6 +261,7 @@ namespace FenUISharp
         {
             if (oldSize != size)
                 Window.LogicDispatcher.Invoke(() => Window.Callbacks.OnWindowResize?.Invoke(size));
+            // Window.SkiaDirectCompositionContext.OnResize(Window.Shape.ClientSize);
 
             // Update old resize
             oldSize = size;
@@ -251,8 +269,11 @@ namespace FenUISharp
             // Set window to dirty
             Window._isDirty = true;
 
+            // Don't do a full redraw. Just updating layout works
+
             // Calling a full redraw
-            Window.LogicDispatcher.Invoke(() => Window.FullRedraw()); // Make sure it gets executed a tick later
+            Window.LogicDispatcher.Invoke(() => Window.Redraw()); // Make sure it gets executed a tick later
+            Window.LogicDispatcher.Invoke(() => Window.Surface.RootViewPane?.RecursiveInvalidate(Objects.UIObject.Invalidation.LayoutDirty)); // Make sure it gets executed a tick later
         }
 
         public void Dispose()

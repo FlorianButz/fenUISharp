@@ -115,12 +115,14 @@ namespace FenUISharp.Behavior
         {
             base.ComponentDestroy();
 
+            if (!FContext.IsValidContext()) return;
+
             if (currentlySelected == this) currentlySelected = null;
             Surface.OnMouseAction -= OnClick;
 
             selectableComponents.Remove(this);
             FContext.GetKeyboardInputManager().UnregisterKeybind(tabKeybind);
-            
+
             if (selectableComponents.Count <= 0)
                 WindowFeatures.GlobalHooks.OnMouseAction -= OnGlobalClick;
         }
@@ -131,7 +133,7 @@ namespace FenUISharp.Behavior
 
             if (!IsSelected || (currentlySelected == null && selectableComponents.IndexOf(this) == 0)) return;
             int currentIndex = ((currentlySelected == null) ? (lastSelected == null ? 0 : (selectableComponents.IndexOf(lastSelected) + 1)) : (selectableComponents.IndexOf(currentlySelected) + 1)) % selectableComponents.Count;
-            if (currentIndex < 0) currentIndex = selectableComponents.Count-1;
+            if (currentIndex < 0) currentIndex = selectableComponents.Count - 1;
 
             SetSelected(selectableComponents[currentIndex]);
         }
@@ -142,7 +144,7 @@ namespace FenUISharp.Behavior
 
             if (!IsSelected || (currentlySelected == null && selectableComponents.IndexOf(this) == 0)) return;
             int currentIndex = ((currentlySelected == null) ? (lastSelected == null ? 0 : (selectableComponents.IndexOf(lastSelected) - 1)) : (selectableComponents.IndexOf(currentlySelected) - 1)) % selectableComponents.Count;
-            if (currentIndex < 0) currentIndex = selectableComponents.Count-1;
+            if (currentIndex < 0) currentIndex = selectableComponents.Count - 1;
 
             FLogger.Log("Current Index: " + currentIndex);
             SetSelected(selectableComponents[currentIndex]);

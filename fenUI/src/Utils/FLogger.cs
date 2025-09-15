@@ -8,7 +8,7 @@ namespace FenUISharp.Logging
         {
             if (!ForbiddenTypes.Contains(typeof(T)))
                 if (string.IsNullOrWhiteSpace(message)) Log("");
-                else Log($"[{typeof(T).Name}] {message}");
+                else Log($"<{typeof(T).Name}> {message}");
         }
 
         public static void Log(string message)
@@ -20,21 +20,21 @@ namespace FenUISharp.Logging
             }
 
             Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine($"[{DateTime.Now.ToLongTimeString()}][LOG] {message}");
+            Console.WriteLine($"[{DateTime.Now.ToLongTimeString()}][LOG][{Thread.CurrentThread.Name}] {message}");
             Console.ResetColor();
         }
 
         public static void Warn(string message)
         {
             Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"[{DateTime.Now.ToLongTimeString()}][WRN] {message}");
+            Console.WriteLine($"[{DateTime.Now.ToLongTimeString()}][WRN][{Thread.CurrentThread.Name}] {message}");
             Console.ResetColor();
         }
 
         public static void Error(string message)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"[{DateTime.Now.ToLongTimeString()}][ERR] {message}");
+            Console.WriteLine($"[{DateTime.Now.ToLongTimeString()}][ERR][{Thread.CurrentThread.Name}] {message}");
             Console.ResetColor();
         }
     }

@@ -20,8 +20,8 @@ cd ".."
 echo Copying new fenUI build to crash handler...
 echo:
 
-set "SOURCE=%~dp0fenUI\bin\Release\net9.0-windows10.0.19041.0\win-x64"
-set "DEST=%~dp0crash-handler\fenUICrashHandler\lib"
+set "SOURCE=%~dp0\fenUI\bin\Release\net9.0-windows10.0.19041.0\"
+set "DEST=%~dp0\crash-handler\fenUICrashHandler\lib"
 
 for %%I in ("%SOURCE%") do set "SOURCE=%%~fI"
 for %%I in ("%DEST%") do set "DEST=%%~fI"
@@ -38,7 +38,7 @@ if not exist "%DEST%" (
 echo Copying from "%SOURCE%" to "%DEST%"
 echo:
 
-xcopy /e /v /y "%SOURCE%\" "%DEST%\"
+xcopy /e /v /y "%SOURCE%\\" "%DEST%\\"
 
 echo Building crash handler...
 echo:
@@ -49,7 +49,7 @@ echo Build fenUI with new crash handler...
 echo:
 
 cd "fenUI"
-dotnet publish -c Debug -r win-x64
+dotnet build -c Release
 cd ".."
 
 echo Copy new fenUI build to out folder...
@@ -59,7 +59,7 @@ if not exist "out" (
     mkdir "out"
 )
 
-copy "fenUI\bin\Release\net9.0-windows10.0.19041.0\win-x64\fenUI.dll" "out"
+copy "fenUI\bin\Release\net9.0-windows10.0.19041.0\fenUI.dll" "out"
 
 echo:
 echo:

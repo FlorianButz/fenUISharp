@@ -178,7 +178,7 @@ namespace FenUISharp.States
 
         public void Dispose()
         {
-            if (FContext.GetCurrentWindow() != null)
+            if (FContext.IsValidContext())
                 FContext.GetCurrentWindow().Callbacks.OnPreUpdate -= Update;
 
             if (Owner.TryGetTarget(out var target))

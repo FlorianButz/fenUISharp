@@ -23,6 +23,8 @@ namespace FenUISharp.Objects
         {
             if (Owner.TryGetTarget(out var owner))
             {
+                SKRect lastSurface = SurfaceDrawRect;
+
                 var size = owner.Layout.ApplyLayoutToSize(owner.Transform.Size.CachedValue);
                 LocalBounds = new(0, 0, size.x, size.y);
                 SurfaceDrawRect = new(-owner.Padding.CachedValue, -owner.Padding.CachedValue,
@@ -30,6 +32,12 @@ namespace FenUISharp.Objects
 
                 LastGlobalBounds = GlobalBounds;
                 GlobalBounds = owner.Transform.DrawLocalToGlobal(SurfaceDrawRect);
+
+                if (lastSurface.Left != SurfaceDrawRect.Left ||
+                    lastSurface.Right != SurfaceDrawRect.Right ||
+                    lastSurface.Height != SurfaceDrawRect.Height ||
+                    lastSurface.Width != SurfaceDrawRect.Width)
+                    owner.LayoutChangedThisFrame = true;
             }
         }
     }

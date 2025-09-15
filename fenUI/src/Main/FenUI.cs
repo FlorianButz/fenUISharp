@@ -22,10 +22,17 @@ namespace FenUISharp
         public static bool HasBeenInitialized { get; private set; } = false;
         public static string CrashHandlerPath { get; private set; } = "";
 
+        [ThreadStatic]
+        private static bool _isMainThread;
+        public static bool IsMainThread { get => _isMainThread; }
+
         public static void Init(string[]? flags = null)
         {
             if (HasBeenInitialized) return;
             HasBeenInitialized = true;
+
+            // Mark this thread as main
+            _isMainThread = true;
 
             // Create array if null
             flags = flags ?? new string[0];
@@ -39,11 +46,36 @@ namespace FenUISharp
             {
                 // Extract crash handler
                 FLogger.Log<FenUI>("Extracting crash handler...");
-                CrashHandlerPath = ContentExtractor.ExtractToFile(
-                    "fenUICrashHandler.exe",
-                    destinationPath: Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? throw new InvalidOperationException("Destination path null"), "fenUICrashHandler.exe"),
-                    overwrite: false // Setting this to true could break the application and stops it from running if the crashhandler is still active
-                );
+
+                CrashHandlerPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
+                    ?? throw new InvalidOperationException("Destination path null"), "fenUICrashHandler.exe");
+                var crashHandlerDllPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
+                    ?? throw new InvalidOperationException("Destination path null"), "fenUICrashHandler.dll");
+                var crashHandlerRuntimeConfigPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
+                    ?? throw new InvalidOperationException("Destination path null"), "fenUICrashHandler.runtimeconfig.json");
+
+                // This will fail if the crash handler is still running. However never replacing it is not a solution, so just silently let it fail
+                try
+                {
+                    ContentExtractor.ExtractToFile(
+                        "fenUICrashHandler.runtimeconfig.json",
+                        destinationPath: crashHandlerRuntimeConfigPath,
+                        overwrite: true
+                    );
+
+                    ContentExtractor.ExtractToFile(
+                        "fenUICrashHandler.dll",
+                        destinationPath: crashHandlerDllPath,
+                        overwrite: true
+                    );
+
+                    ContentExtractor.ExtractToFile(
+                        "fenUICrashHandler.exe",
+                        destinationPath: CrashHandlerPath,
+                        overwrite: true
+                    );
+                }
+                catch (Exception e) { FLogger.Error($"Error while extracting crash-handler: {e.Message}, {e.StackTrace}"); }
             }
 
             AppDomain.CurrentDomain.UnhandledException += UnhandledException;
@@ -91,9 +123,8 @@ namespace FenUISharp
             Console.WriteLine();
             Console.WriteLine("======== UNHANDLED EXCEPTION ========");
             Console.WriteLine(ex.ToString());
-
             Console.WriteLine($"-> Inner: {ex.InnerException} -> Msg: {ex.Message} -> Src: {ex.Source}");
-
+            
             ConsoleCapture.SaveErrorLogToFile(crashlogPath);
 
             // Running crash handler

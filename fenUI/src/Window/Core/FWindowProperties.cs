@@ -211,7 +211,7 @@ namespace FenUISharp
 
             if (smallIconPath != null)
             {
-                FLogger.Log<FWindowProperties>($"Loading small icon from file..."); 
+                FLogger.Log<FWindowProperties>($"Loading small icon from file...");
                 smallHIcon = Win32APIs.LoadImage(IntPtr.Zero, smallIconPath, 1 /* IMAGE_ICON */, 0, 0, 0x00000010 /* LR_LOADFROMFILE */);
             }
 
@@ -231,9 +231,19 @@ namespace FenUISharp
 
         public void Dispose()
         {
+
+        }
+
+        public void DisposeParent()
+        {
+            // Revert to using no parent
+            Win32APIs.SetWindowLongPtr(Window.hWnd, -8 /* GWL_HWNDPARENT */, IntPtr.Zero /*No parent*/);
+
             if (_hiddenOwnerWindowHandle != IntPtr.Zero)
                 // Destroy the hidden owner window if it exists
                 Win32APIs.DestroyWindow(_hiddenOwnerWindowHandle);
+
+            _hiddenOwnerWindowHandle = IntPtr.Zero;
         }
     }
 }

@@ -59,6 +59,7 @@ namespace FenUISharp.Objects
 
         public Invalidation InvalidationState { get; private set; } // TODO: Fix in the future that state will not represent a child update when it was added as parent after constructor
         public bool WindowRedrawThisObject { get; internal set; }
+        public bool LayoutChangedThisFrame { get; internal set; }
         public bool LockInvalidation { get; set; }
 
         /// <summary>
@@ -316,13 +317,14 @@ namespace FenUISharp.Objects
             // Check for transform/layout/surface rebuild
             if (InvalidationState.HasFlag(Invalidation.TransformDirty) || InvalidationState.HasFlag(Invalidation.LayoutDirty) || InvalidationState.HasFlag(Invalidation.SurfaceDirty))
             {
-                ClearInvalidation(Invalidation.LayoutDirty);
                 lateLayoutUpdate = true;
 
-                if (InvalidationState.HasFlag(Invalidation.TransformDirty))
+                if (InvalidationState.HasFlag(Invalidation.TransformDirty) ||
+                    InvalidationState.HasFlag(Invalidation.LayoutDirty))
                 {
                     lateTransformUpdate = true;
                     ClearInvalidation(Invalidation.TransformDirty);
+                    ClearInvalidation(Invalidation.LayoutDirty);
                     DispatchBehaviorEvent(BehaviorEventType.BeforeLayout);
 
                     DispatchBehaviorEvent(BehaviorEventType.BeforeTransform);
@@ -537,6 +539,13 @@ namespace FenUISharp.Objects
             }
         }
 
+        internal void OnEndFrame()
+        {
+            Children?.ForEach(x => x.OnEndFrame());
+            LayoutChangedThisFrame = false;
+            // WindowRedrawThisObject = false; // Already done by FWindowSurface
+        }
+
         public virtual void Dispose()
         {
             if (IsDisposed)
@@ -544,12 +553,14 @@ namespace FenUISharp.Objects
                 FLogger.Warn($"{GetType().FullName} has already been disposed.");
                 return;
             }
-            
+
             OnObjectDisposed?.Invoke();
             OnObjectDisposed = null;
 
             Children.ToList().ForEach(x => x.Dispose());
+            Children.Clear();
             BehaviorComponents.ToList().ForEach(x => x.Dispose());
+            BehaviorComponents.Clear();
 
             Transform.Dispose();
             Transform = null;
@@ -567,6 +578,7 @@ namespace FenUISharp.Objects
             RemoveFromParent();
 
             ObjectSurface.Dispose();
+            ObjectSurface = null;
 
             IsDisposed = true;
         }

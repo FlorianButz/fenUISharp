@@ -16,7 +16,6 @@ namespace FenUISharp.Objects
             }
         }
 
-
         public State<Vector2> LocalPosition { get; init; }
         public Vector2 Position { get; private set; }
 
@@ -53,7 +52,9 @@ namespace FenUISharp.Objects
             Rotation = new(() => 0, owner, this);
             Anchor = new(() => new(0.5f, 0.5f), owner, this);
         }
-        
+
+        private Vector2? thisFrameVisibleSize;
+        private Vector2? lastVisibleSize;
 
         public void UpdateTransform()
         {
@@ -63,8 +64,19 @@ namespace FenUISharp.Objects
                 matrix = SKMatrix.Concat(matrix, MatrixProcessor.ProcessMatrix(matrix));
 
             // Layout calculations
-            var size = Owner?.Layout.ApplyLayoutToSize(Size.CachedValue);
-            Owner?.Layout.ApplyLayoutToPositioning(size ?? new(0, 0), out CalculatedLayoutOff, out CalculatedAnchorCorrection);
+            lastVisibleSize = thisFrameVisibleSize;
+            thisFrameVisibleSize = Owner?.Layout.ApplyLayoutToSize(Size.CachedValue);
+            Owner?.Layout.ApplyLayoutToPositioning(thisFrameVisibleSize ?? new(0, 0), out CalculatedLayoutOff, out CalculatedAnchorCorrection);
+
+            // Check if size changed, invalidate if so
+            if (thisFrameVisibleSize?.x != lastVisibleSize?.x || thisFrameVisibleSize?.y != lastVisibleSize?.y)
+            {
+                if (Owner != null)
+                {
+                    Owner.LayoutChangedThisFrame = true;
+                    Owner.Invalidate(UIObject.Invalidation.SurfaceDirty);
+                }
+            }
 
             Position = LocalPosition.CachedValue + (CalculatedLayoutOff - CalculatedAnchorCorrection);
 

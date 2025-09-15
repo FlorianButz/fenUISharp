@@ -56,6 +56,7 @@ namespace FenUISharp
 
         public MultiAccess<Cursor> ActiveCursor = new MultiAccess<Cursor>(Cursor.ARROW);
 
+        internal bool _disposingOrDisposed = false;
         internal bool _isRunning = false;
         internal bool _isDirty = false;
         internal bool _fullRedraw;
@@ -130,11 +131,11 @@ namespace FenUISharp
 
         protected virtual void OnAfterWindowCreation() { }
 
-        protected (FWindowShape, FWindowProcedure, FWindowLoop, FWindowCallbacks, FWindowProperties, FWindowSurface) GetComponents()
+        protected virtual (FWindowShape, FWindowProcedure, FWindowLoop, FWindowCallbacks, FWindowProperties, FWindowSurface) GetComponents()
         {
             var Shape = new FWindowShape(this);
             var Procedure = new FWindowProcedure(this) { _isRunning = () => _isRunning };
-            var Loop = new FWindowLoop(this) { _isRunning = () => _isRunning };
+            var Loop = new FWindowLoop(this) { _logicIsRunning = () => _isRunning && !_disposingOrDisposed, _windowIsRunning = () => _isRunning };
             var Callbacks = new FWindowCallbacks(this);
             var Properties = new FWindowProperties(this);
             var Surface = new FWindowSurface(this);
@@ -174,11 +175,14 @@ namespace FenUISharp
         {
             IntPtr ptr = Win32APIs.GetWindowLongPtrW(hWnd, -21 /* GWLP_USERDATA */);
 
+            // Make sure it's not null
             if (ptr != IntPtr.Zero)
             {
+                // Getting GCHandle from the IntPtr
                 GCHandle gch = GCHandle.FromIntPtr(ptr);
 
-                if (gch.Target != null)
+                // Testing if it's null or a valid FWindow class
+                if (gch.Target != null && gch.Target is FWindow)
                 {
                     var instance = (FWindow)gch.Target;
                     return instance.Procedure.WindowsProcedure(hWnd, msg, wParam, lParam);
@@ -196,7 +200,8 @@ namespace FenUISharp
             FContext.WithWindow(this);
 
             // Create skia render context
-            SkiaDirectCompositionContext = new(this, DrawAction);
+            if (!_disableSDXCC)
+                SkiaDirectCompositionContext = new(this, DrawAction);
 
             // Create keyboard input for this window
             WindowKeyboardInput = new(this);
@@ -205,6 +210,10 @@ namespace FenUISharp
             Surface.SetupSurface();
         }
 
+        private bool _disableSDXCC = false;
+        public void DisableDirectContextCreation()
+            => _disableSDXCC = true;
+
         /// <summary>
         /// Is executed automatically by the SkiaDirectCompositionContext
         /// </summary>
@@ -212,6 +221,10 @@ namespace FenUISharp
         protected virtual void DrawAction(SKCanvas canvas)
         {
             Surface.Draw(canvas);
+
+            // Reset flags
+            _isDirty = false;
+            _fullRedraw = false;
         }
 
         internal virtual void ClearSurface(SKCanvas canvas)
@@ -219,7 +232,7 @@ namespace FenUISharp
 
         internal virtual void DrawBackdrop(SKCanvas canvas)
         {
-            
+
         }
 
         public void BeginWindowLoop()
@@ -273,43 +286,78 @@ namespace FenUISharp
         public void RequestFocus()
             => Win32APIs.SetForegroundWindow(hWnd);
 
+        internal void CallUpdate() => Update();
+        protected virtual void Update()
+        {
+            
+        }
+
         public virtual void Dispose()
         {
+            if (_disposingOrDisposed) return;
+            FContext.isDisposingWindow = true;
+
+            // Set disposed flag
+            _disposingOrDisposed = true;
+
+            // The window should always hide first, even if the HideWindowOnClose is false
+            // Hiding the window first is much faster than waiting for the destruction
+            Properties.IsWindowVisible = false;
+
             // Disposing all components
-            FLogger.Log<FWindow>($"Invoking disposal of window components...");
+            FLogger.Log<FWindow>($"Early cleanup of window components...");
+            EarlyCleanUp();
 
-            LogicDispatcher.Invoke(() =>
+            // Callback
+            Callbacks.OnWindowDestroy?.Invoke();
+
+            // Execute DestroyWindow on main thread
+            FLogger.Log<FWindow>($"Invoking window destruction...");
+            WindowDispatcher.Invoke(() =>
             {
-                FLogger.Log<FWindow>($"Disposing of window components...");
-
-                Shape?.Dispose();
-                Shape = null!;
-                Procedure?.Dispose();
-                Procedure = null!;
-                Loop?.Dispose();
-                Loop = null!;
-                Properties?.Dispose();
-                Properties = null!;
-                Surface?.Dispose();
-                Surface = null!;
-
-                WindowKeyboardInput?.Dispose();
-                WindowKeyboardInput = null;
+                // Remove window
+                FLogger.Log<FWindow>($"Destroying window");
+                Win32APIs.DestroyWindow(hWnd);
             });
-
-            FLogger.Log<FWindow>($"Disposing SkiaDirectCompositionContext...");
-
-            SkiaDirectCompositionContext?.Dispose();
-            SkiaDirectCompositionContext = null!;
-
-            FLogger.Log<FWindow>($"Disabling running flag");
-
-            // Set running flag to false
-            _isRunning = false;
-            Win32APIs.DestroyWindow(hWnd);
 
             // Remove this window from the active instances
             FenUI.activeInstances.Remove(this);
+        }
+
+        internal void EarlyCleanUp()
+        {
+            // ALWAYS dispose surface first. All UIObjects will clean up and
+            // maybe need references to window keyboard input, a valid FContext etc...
+            FLogger.Log<FWindow>($"Disposing surface...");
+            Surface?.Dispose();
+
+            // Removing parent
+            FLogger.Log<FWindow>($"Disposing parent window...");
+            Properties?.DisposeParent();
+
+            FLogger.Log<FWindow>($"Disposing window keyboard input...");
+            WindowKeyboardInput?.Dispose();
+            WindowKeyboardInput = null;
+        }
+
+        internal void CleanUp()
+        {
+            // Disposing components
+            FLogger.Log<FWindow>($"Disposing of window components...");
+            Shape?.Dispose();
+            Shape = null!;
+            Procedure?.Dispose();
+            Procedure = null!;
+            Loop?.Dispose();
+            Loop = null!;
+            Properties?.Dispose();
+            Properties = null!;
+            
+            Surface = null!;
+
+            FLogger.Log<FWindow>($"Disposing SkiaDirectCompositionContext...");
+            SkiaDirectCompositionContext?.Dispose();
+            SkiaDirectCompositionContext = null!;
         }
 
         protected virtual void SetTargetRefreshrateToMonitorRefreshrate()
@@ -333,6 +381,9 @@ namespace FenUISharp
                 }
             }
         }
+
+        internal virtual IntPtr WindowHitTest(IntPtr wParam, IntPtr lParam)
+            => IntPtr.Zero;
 
         public void Redraw() => _isDirty = true;
         public void FullRedraw()

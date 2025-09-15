@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using FenUISharp.Mathematics;
 using FenUISharp.Native;
+using FenUISharp.Objects;
 using Microsoft.Win32;
 using SkiaSharp;
 
@@ -9,8 +10,8 @@ namespace FenUISharp
     public class FTransparentWindow : FWindow
     {
         public FTransparentWindow(
-            string title, string className, Vector2? windowSize, Vector2? windowPosition) :
-            base(title, className, windowSize, windowPosition)
+            string title, string className, Vector2? position, Vector2? size) :
+            base(title, className, position, size)
         {
             Properties.AllowResize = false;
         }
@@ -24,7 +25,7 @@ namespace FenUISharp
             }
 
             var hWnd = Win32APIs.CreateWindowExA(
-                (int)WindowStyles.WS_EX_LAYERED,
+                (int)WindowStyles.WS_EX_NOREDIRECTIONBITMAP,
                 this.WindowClass,
                 this.WindowTitle,
                 (int)WindowStyles.WS_POPUP,
@@ -44,37 +45,5 @@ namespace FenUISharp
         {
             canvas.Clear(SKColors.Transparent);
         }
-
-        // internal override void UpdateWindowFrame()
-        // {
-        //     base.UpdateWindowFrame();
-
-        //     POINT ptSrc = new POINT { x = 0, y = 0 };
-        //     POINT ptDst = new POINT { x = (int)WindowPosition.x, y = (int)WindowPosition.y };
-        //     SIZE size = new SIZE { cx = (int)WindowSize.x, cy = (int)WindowSize.y };
-
-        //     BLENDFUNCTION blend = new BLENDFUNCTION
-        //     {
-        //         BlendOp = (int)AlphaBlendOptions.AC_SRC_OVER,
-        //         SourceConstantAlpha = 255,
-        //         AlphaFormat = (int)AlphaBlendOptions.AC_SRC_ALPHA
-        //     };
-
-        //     IntPtr hdcScreen = GetDC(IntPtr.Zero);
-        //     UpdateLayeredWindow(
-        //         hWnd,
-        //         hdcScreen,
-        //         ref ptDst,
-        //         ref size,
-        //         RenderContext._hdcMemory,
-        //         ref ptSrc,
-        //         0,
-        //         ref blend,
-        //         (int)LayeredWindowFlags.ULW_ALPHA
-        //     );
-
-        //     ReleaseDC(IntPtr.Zero, hdcScreen);
-        //     DwmFlush();
-        // }
     }
 }

@@ -9,6 +9,7 @@ using Vortice.DirectComposition;
 using System.Runtime.InteropServices;
 using FenUISharp.Logging;
 using Vortice.Direct3D12.Debug;
+using SharpGen.Runtime;
 
 namespace FenUISharp
 {
@@ -56,6 +57,8 @@ namespace FenUISharp
         public ColorSpaceType ColorSpace = ColorSpaceType.RgbFullG22NoneP709;
         public uint BufferCount { get; } = 2;
 
+        private IDXGIAdapter1? _cachedAdapter;
+
         public DirectCompositionContext(IntPtr windowHandle, int sx, int sy, Format colorFormat = Format.B8G8R8A8_UNorm, Format depthStencilFormat = Format.D32_Float)
         {
             try
@@ -79,51 +82,56 @@ namespace FenUISharp
                     }
                 }
 
-                FLogger.Log<DirectCompositionContext>($"Window Handle: {windowHandle}, Size: {sx}x{sy}");
-
                 FLogger.Log<DirectCompositionContext>("Creating DXGI Factory...");
                 Factory = DXGI.CreateDXGIFactory1<IDXGIFactory2>();
-                FLogger.Log<DirectCompositionContext>("DXGI Factory created successfully");
 
                 FLogger.Log<DirectCompositionContext>("Getting hardware adapter...");
-                using var adapter = GetHardwareAdapter();
-                FLogger.Log<DirectCompositionContext>($"Hardware adapter: {adapter.Description1.Description}");
+                _cachedAdapter = GetHardwareAdapter();
+                FLogger.Log<DirectCompositionContext>($"Hardware adapter: {_cachedAdapter.Description1.Description}");
 
                 FLogger.Log<DirectCompositionContext>("Creating D3D12 Device...");
                 FeatureLevel = FeatureLevel.Level_11_0;
-                Device = D3D12CreateDevice<ID3D12Device>(adapter, FeatureLevel);
+
+                // Add retry logic for device creation
+                ID3D12Device? device = null;
+                var attempts = 0;
+                const int maxAttempts = 3;
+
+                while (device == null && attempts < maxAttempts)
+                {
+                    try
+                    {
+                        device = D3D12CreateDevice<ID3D12Device>(_cachedAdapter, FeatureLevel);
+                    }
+                    catch (SharpGenException ex) when (ex.ResultCode == Vortice.DXGI.ResultCode.InvalidCall && attempts < maxAttempts - 1)
+                    {
+                        FLogger.Log<DirectCompositionContext>($"Device creation attempt {attempts + 1} failed, retrying...");
+                        System.Threading.Thread.Sleep(100); // Brief delay
+                        attempts++;
+                    }
+                }
+
+                if (device == null)
+                    throw new InvalidOperationException("Failed to create D3D12 device after multiple attempts");
+
+                Device = device;
                 FLogger.Log<DirectCompositionContext>($"D3D12 Device created: {Device.NativePointer}");
 
-                FLogger.Log<DirectCompositionContext>("Creating command queue...");
+                // Rest of initialization...
                 var commandQueueDesc = new CommandQueueDescription(CommandListType.Direct);
                 CommandQueue = Device.CreateCommandQueue(commandQueueDesc);
-                FLogger.Log<DirectCompositionContext>("Command queue created successfully");
 
-                FLogger.Log<DirectCompositionContext>("Creating DirectComposition device...");
                 CreateDirectCompositionDevice();
-                FLogger.Log<DirectCompositionContext>("DirectComposition device created successfully");
-
-                FLogger.Log<DirectCompositionContext>("Creating swap chain...");
                 CreateSwapchain();
-                FLogger.Log<DirectCompositionContext>("Swap chain created successfully");
-
-                FLogger.Log<DirectCompositionContext>("Creating command objects...");
                 CreateCommandObjects();
-                FLogger.Log<DirectCompositionContext>("Command objects created successfully");
-
-                FLogger.Log<DirectCompositionContext>("Initiating Fence...");
                 InitFence();
-                FLogger.Log<DirectCompositionContext>("Fence created successfully");
 
                 FLogger.Log<DirectCompositionContext>("DirectCompositionContext initialization completed!");
             }
             catch (Exception ex)
             {
                 FLogger.Log<DirectCompositionContext>($"Error in DirectCompositionContext constructor: {ex}");
-
-                // Clean up any partially created objects
                 try { Dispose(); } catch { }
-
                 throw;
             }
         }
@@ -132,68 +140,87 @@ namespace FenUISharp
         {
             FLogger.Log<DirectCompositionContext>("Creating D3D11 device for DirectComposition interop...");
 
-            using var adapter = GetHardwareAdapter();
+            // Use the cached adapter instead of getting a new one
+            if (_cachedAdapter == null)
+                throw new InvalidOperationException("Cached adapter is null");
 
-            // Create D3D11 device for interop
             var creationFlags = Vortice.Direct3D11.DeviceCreationFlags.BgraSupport;
 
             if (FenUI.debugEnabled)
                 creationFlags |= Vortice.Direct3D11.DeviceCreationFlags.Debug;
 
-            var featureLevels = new[] { Vortice.Direct3D.FeatureLevel.Level_11_0, Vortice.Direct3D.FeatureLevel.Level_10_1, Vortice.Direct3D.FeatureLevel.Level_10_0 };
+            var featureLevels = new[] {
+        Vortice.Direct3D.FeatureLevel.Level_11_0,
+        Vortice.Direct3D.FeatureLevel.Level_10_1,
+        Vortice.Direct3D.FeatureLevel.Level_10_0
+    };
 
-            var hr = Vortice.Direct3D11.D3D11.D3D11CreateDevice(
-                adapter,
-                Vortice.Direct3D.DriverType.Unknown,
-                creationFlags,
-                featureLevels,
-                out d3d11Device,
-                out var featureLevel,
-                out d3d11Context);
+            // Add retry logic here too
+            var attempts = 0;
+            const int maxAttempts = 3;
 
-            if (hr.Failure)
-                throw new InvalidOperationException($"Failed to create D3D11 device for DirectComposition interop: {hr}");
+            while (d3d11Device == null && attempts < maxAttempts)
+            {
+                try
+                {
+                    var hr = Vortice.Direct3D11.D3D11.D3D11CreateDevice(
+                        _cachedAdapter,
+                        Vortice.Direct3D.DriverType.Unknown,
+                        creationFlags,
+                        featureLevels,
+                        out d3d11Device,
+                        out var featureLevel,
+                        out d3d11Context);
 
-            FLogger.Log<DirectCompositionContext>($"D3D11 device created with feature level: {featureLevel}");
+                    if (hr.Success && d3d11Device != null)
+                    {
+                        FLogger.Log<DirectCompositionContext>($"D3D11 device created with feature level: {featureLevel}");
+                        break;
+                    }
+                }
+                catch (Exception ex) when (attempts < maxAttempts - 1)
+                {
+                    FLogger.Log<DirectCompositionContext>($"D3D11 device creation attempt {attempts + 1} failed: {ex.Message}");
+                    System.Threading.Thread.Sleep(50);
+                }
+
+                attempts++;
+            }
+
+            if (d3d11Device == null)
+                throw new InvalidOperationException("Failed to create D3D11 device after multiple attempts");
 
             using var dxgiDevice = d3d11Device.QueryInterface<IDXGIDevice>();
-
             if (dxgiDevice == null)
                 throw new InvalidOperationException("Failed to get IDXGIDevice from D3D11 device");
 
             FLogger.Log<DirectCompositionContext>("Creating DirectComposition device from D3D11 DXGI device...");
 
-            hr = DComp.DCompositionCreateDevice3(dxgiDevice, out IDCompositionDevice? dcompDevice);
-            if (hr.Failure || dcompDevice == null)
-                throw new InvalidOperationException($"Failed to create DirectComposition device. HRESULT: {hr}");
+            var hr2 = DComp.DCompositionCreateDevice3(dxgiDevice, out IDCompositionDevice? dcompDevice);
+            if (hr2.Failure || dcompDevice == null)
+                throw new InvalidOperationException($"Failed to create DirectComposition device. HRESULT: {hr2}");
 
             DCompDevice = dcompDevice;
             DCompDevice3 = DCompDevice.QueryInterface<IDCompositionDevice3>();
 
             FLogger.Log<DirectCompositionContext>("Creating composition target for window...");
-            hr = DCompDevice.CreateTargetForHwnd(hWnd, true, out IDCompositionTarget target);
-            if (hr.Failure || target == null)
-                throw new InvalidOperationException($"Failed to create DirectComposition target. HRESULT: {hr}");
+            hr2 = DCompDevice.CreateTargetForHwnd(hWnd, true, out IDCompositionTarget target);
+            if (hr2.Failure || target == null)
+                throw new InvalidOperationException($"Failed to create DirectComposition target. HRESULT: {hr2}");
 
             DCompTarget = target;
 
             FLogger.Log<DirectCompositionContext>("Creating root visual...");
-            hr = DCompDevice.CreateVisual(out IDCompositionVisual visual);
-            if (hr.Failure || visual == null)
-                throw new InvalidOperationException($"Failed to create DirectComposition visual. HRESULT: {hr}");
+            hr2 = DCompDevice.CreateVisual(out IDCompositionVisual visual);
+            if (hr2.Failure || visual == null)
+                throw new InvalidOperationException($"Failed to create DirectComposition visual. HRESULT: {hr2}");
 
             RootVisual = visual;
 
             FLogger.Log<DirectCompositionContext>("Setting root visual on target...");
             DCompTarget.SetRoot(RootVisual);
 
-            // // Disposing DX11 device
-            // FLogger.Log<DirectCompositionContext>($"Disposing D3D11 Device and Context...");
-            // d3d11Context.Dispose();
-            // d3d11Device.Dispose();
-
-            FLogger.Log<DirectCompositionContext>($"Done creating DXCC");
-            FLogger.Log<DirectCompositionContext>($"");
+            FLogger.Log<DirectCompositionContext>("Done creating DXCC");
         }
 
         private void CreateSwapchain()
@@ -413,68 +440,7 @@ namespace FenUISharp
             // FLogger.Log<DirectCompositionContext>($"WaitForGpu took: {elapsed.TotalMilliseconds}ms");
         }
 
-        public void Dispose()
-        {
-            try
-            {
-                WaitForGpu();
-
-                // Dispoing DComp resources
-                FLogger.Log<DirectCompositionContext>("Disposing DirectCompositionContext...");
-
-                RootVisual?.Dispose();
-                RootVisual = null!;
-                DCompTarget?.Dispose();
-                DCompTarget = null!;
-                DCompDevice?.Dispose();
-                DCompDevice = null!;
-
-                FLogger.Log<DirectCompositionContext>("DirectCompositionContext disposed");
-
-                FLogger.Log<DirectCompositionContext>("Disposing DirectX11...");
-
-                d3d11Context?.Dispose();
-                d3d11Device?.Dispose();
-
-                FLogger.Log<DirectCompositionContext>("DirectX11 disposed");
-
-                // Disposing DX resources
-                FLogger.Log<DirectCompositionContext>("Disposing DirectX12 resources...");
-
-                CommandList?.Dispose();
-                CommandList = null!;
-                CommandAllocator?.Dispose();
-                CommandAllocator = null!;
-                CommandQueue?.Dispose();
-                CommandQueue = null!;
-                SwapChain?.Dispose();
-                SwapChain = null!;
-                Device?.Dispose();
-                Factory?.Dispose();
-                Factory = null!;
-
-                FLogger.Log<DirectCompositionContext>("DirectX12 disposed");
-
-                // Disposing fence
-                FLogger.Log<DirectCompositionContext>("Disposing fence...");
-
-                Fence?.Dispose();
-                Fence = null!;
-                FenceEvent?.Dispose();
-                FenceEvent = null!;
-
-                FLogger.Log<DirectCompositionContext>("Fence disposed");
-
-                FLogger.Log<DirectCompositionContext>("Done disposing DXCC");
-                FLogger.Log<DirectCompositionContext>("");
-            }
-            catch (Exception ex)
-            {
-                FLogger.Log<DirectCompositionContext>($"Exception during disposal: {ex}");
-            }
-        }
-
-        public void Present(Action<ID3D12GraphicsCommandList>? drawAction = null, PresentFlags flags = PresentFlags.None)
+        public void Present(Action<(ID3D12GraphicsCommandList commandList, ID3D12Resource backBuffer)>? drawAction = null, PresentFlags flags = PresentFlags.None)
         {
             try
             {
@@ -497,7 +463,7 @@ namespace FenUISharp
                 );
 
                 // Execute custom drawing commands
-                drawAction?.Invoke(CommandList ?? throw new NullReferenceException("CommandList null"));
+                drawAction?.Invoke((CommandList ?? throw new NullReferenceException("CommandList null"), backBuffer));
 
                 // Transition back to present state
                 CommandList?.ResourceBarrierTransition(
@@ -520,6 +486,95 @@ namespace FenUISharp
             {
                 FLogger.Log<DirectCompositionContext>($"Exception in Present: {ex}");
                 throw;
+            }
+        }
+
+        // Add to DirectCompositionContext class
+        private bool _disposed = false;
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+
+            try
+            {
+                _disposed = true;
+
+                // Wait for GPU to complete all operations
+                try
+                {
+                    WaitForGpu();
+                }
+                catch (Exception ex)
+                {
+                    FLogger.Log<DirectCompositionContext>($"Warning: WaitForGpu failed during dispose: {ex.Message}");
+                }
+
+                FLogger.Log<DirectCompositionContext>("Disposing DirectCompositionContext...");
+
+                // Dispose in reverse order of creation
+
+                // 1. Clear DirectComposition tree first
+                try
+                {
+                    RootVisual?.SetContent(null);
+                    DCompDevice?.Commit();
+                }
+                catch { /* Ignore errors during cleanup */ }
+
+                // 2. Dispose DirectComposition objects
+                RootVisual?.Dispose();
+                RootVisual = null!;
+                DCompTarget?.Dispose();
+                DCompTarget = null!;
+                DCompDevice3?.Dispose();
+                DCompDevice3 = null!;
+                DCompDevice?.Dispose();
+                DCompDevice = null!;
+
+                // 3. Dispose D3D11 objects (used by DirectComposition)
+                d3d11Context?.ClearState();
+                d3d11Context?.Flush();
+                d3d11Context?.Dispose();
+                d3d11Context = null!;
+                d3d11Device?.Dispose();
+                d3d11Device = null!;
+
+                // 4. Dispose D3D12 resources
+                LastBackBuffer?.Dispose();
+                LastBackBuffer = null!;
+                CommandList?.Dispose();
+                CommandList = null!;
+                CommandAllocator?.Dispose();
+                CommandAllocator = null!;
+                SwapChain?.Dispose();
+                SwapChain = null!;
+                CommandQueue?.Dispose();
+                CommandQueue = null!;
+
+                // 5. Dispose fence objects
+                try
+                {
+                    FenceEvent?.Set(); // Wake up any waiting threads
+                }
+                catch { }
+                FenceEvent?.Dispose();
+                FenceEvent = null!;
+                Fence?.Dispose();
+                Fence = null!;
+
+                // 6. Dispose device and factory last
+                Device?.Dispose();
+                _cachedAdapter?.Dispose(); // Don't forget the cached adapter!
+                _cachedAdapter = null!;
+                Factory?.Dispose();
+                Factory = null!;
+
+                FLogger.Log<DirectCompositionContext>("DirectCompositionContext disposed successfully");
+            }
+            catch (Exception ex)
+            {
+                FLogger.Log<DirectCompositionContext>($"Exception during disposal: {ex}");
             }
         }
     }

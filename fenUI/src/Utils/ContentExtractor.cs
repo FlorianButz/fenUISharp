@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
+using FenUISharp.Logging;
 
 namespace FenUISharp
 {
@@ -16,6 +17,8 @@ namespace FenUISharp
             string expectedSha256 = null)
         {
             assembly ??= Assembly.GetCallingAssembly();
+
+            assembly.GetManifestResourceNames().ToList().ForEach(x => FLogger.Log(x));
 
             var resourceName = ResolveResourceName(assembly, shortOrFullResourceName);
             if (resourceName == null)

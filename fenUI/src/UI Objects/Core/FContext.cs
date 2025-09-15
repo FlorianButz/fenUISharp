@@ -6,7 +6,11 @@ namespace FenUISharp
     public static class FContext
     {
         public static float Time { get => (float)(CurrentWindow?.Time.Time ?? 0); } 
-        public static float DeltaTime { get => (float)(CurrentWindow?.Time.DeltaTime ?? 0); } 
+        public static float DeltaTime { get => (float)(CurrentWindow?.Time.DeltaTime ?? 0); }
+        public static bool IsDisposingWindow { get => isDisposingWindow; }
+
+        [ThreadStatic]
+        internal static bool isDisposingWindow;
 
         [ThreadStatic]
         private static FWindow? CurrentWindow;
@@ -34,6 +38,6 @@ namespace FenUISharp
             RootViewPane = view;
         }
 
-        public static bool IsValidContext() => CurrentWindow != null && CurrentDispatcher != null;
+        public static bool IsValidContext() => CurrentWindow != null && CurrentDispatcher != null && !CurrentWindow._disposingOrDisposed;
     }
 }

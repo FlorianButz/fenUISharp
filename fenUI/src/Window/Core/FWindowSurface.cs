@@ -1,3 +1,4 @@
+using FenUISharp.Mathematics;
 using FenUISharp.Objects;
 using SkiaSharp;
 
@@ -31,6 +32,8 @@ namespace FenUISharp
             RootViewPane.Layout.StretchHorizontal.Value = () => true;
             RootViewPane.Layout.StretchVertical.Value = () => true;
 
+            RootViewPane.DisableWhenOutOfParentBounds = false;
+
             // Make root pane default
             FContext.WithRootViewPane(RootViewPane);
         }
@@ -52,8 +55,8 @@ namespace FenUISharp
                 int notClipped = canvas.Save();
 
                 // Calculate and get clip path
-                // using var clipPath = CalculateThisFramesDirtyClipPath();
-                // canvas.ClipPath(clipPath);
+                using var clipPath = CalculateThisFramesDirtyClipPath();
+                canvas.ClipPath(clipPath);
 
                 // Clear surface and draw backdrop
                 Window.ClearSurface(canvas);
@@ -118,6 +121,15 @@ namespace FenUISharp
                     // Draw bounds area red
                     using var paint = new SKPaint() { Color = SKColors.Red.WithAlpha(1) };
                     canvas.DrawRect(SKRect.Create(0, 0, Window.Shape.ClientSize.x, Window.Shape.ClientSize.y), paint);
+
+                    paint.Color = SKColors.Yellow.WithAlpha(25);
+                    paint.IsStroke = true;
+                    paint.StrokeWidth = 2;
+                    foreach (var area in Window.Shape.GetWinRegion())
+                    {
+                        area.Inflate(-2, -2);
+                        canvas.DrawRect(area, paint);
+                    }
                 }
 
                 // Trigger callback
@@ -245,6 +257,17 @@ namespace FenUISharp
             _cachedDirtyPath = new SKPath(clipPath);
 
             return clipPath;
+        }
+
+        internal bool MouseHitTest(Vector2 vector2)
+        {
+            var list = RootViewPane?.Composition.GetZOrderedListOfChildren(RootViewPane);
+            if (list == null) return false;
+
+            foreach (var x in list)
+                if (x.Shape.GlobalBounds.Contains(new SKPoint(vector2.x, vector2.y))) return true;
+
+            return false;
         }
     }
 }

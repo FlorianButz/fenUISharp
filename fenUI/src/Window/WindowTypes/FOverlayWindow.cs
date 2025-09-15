@@ -19,21 +19,24 @@ namespace FenUISharp
 
             // Exclude window from aero peek. Not needed with transparent overlays
             Properties.ExcludeFromAeroPeek = true;
+            
+            // Not needed in taskbar
+            Properties.VisibleInTaskbar = false;
         }
 
         public void UpdateWindowMetrics(int activeMonitorDisplay = 0)
         {
             int x, y, width, height;
 
-            if (activeMonitorDisplay == 0)
-            {
-                // Use primary monitor metrics from system metrics
-                width = Win32APIs.GetSystemMetrics(0);  // SM_CXSCREEN
-                height = Win32APIs.GetSystemMetrics(1); // SM_CYSCREEN
-                x = 0;
-                y = 0;
-            }
-            else
+            // if (activeMonitorDisplay == 0)
+            // {
+            //     // Use primary monitor metrics from system metrics
+            //     width = Win32APIs.GetSystemMetrics(0);  // SM_CXSCREEN
+            //     height = Win32APIs.GetSystemMetrics(1); // SM_CYSCREEN
+            //     x = 0;
+            //     y = 0;
+            // }
+            // else
             {
                 // Otherwise get rect of monitor from the index
                 var monitorRect = Win32APIs.GetMonitorRect(activeMonitorDisplay);

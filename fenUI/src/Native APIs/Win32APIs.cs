@@ -28,6 +28,7 @@ namespace FenUISharp.Native
         // Extended window styles
         public const int WS_EX_NOREDIRECTIONBITMAP = 0x00200000;
         public const int WS_EX_LAYERED = 0x00080000;
+        public const int WS_EX_TRANSPARENT = 0x00000020;
         public const int WS_EX_APPWINDOW = 0x00040000;
         public const int WS_EX_TOOLWINDOW = 0x00000080;
 
@@ -52,48 +53,48 @@ namespace FenUISharp.Native
         public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
     }
 
-    internal static class WindowMessages
+    internal enum WindowMessages : int
     {
-        public const uint WM_CHAR = 0x0102;
-        public const uint WM_NCCREATE = 0x0081;
-        public const uint WM_NCDESTROY = 0x0082;
-        public const uint WM_CREATE = 0x0001;
-        public const uint WM_DESTROY = 0x0002;
-        public const uint WM_SIZE = 0x0005;
-        public const uint WM_PAINT = 0x000F;
-        public const uint WM_CLOSE = 0x0010;
-        public const uint WM_SETFOCUS = 0x0007;
-        public const uint WM_KILLFOCUS = 0x0008;
-        public const int WM_SETTINGCHANGE = 0x001A;
-        public const int WM_DEVICECHANGE = 0x0219;
-        public const int WM_INITMENUPOPUP = 0x0117;
-        public const int WM_NCHITTEST = 0x0084;
-        public const int WM_DPICHANGED = 0x02E0;
-        public const int WM_GETMINMAXINFO = 0x24;
-        public const int WM_ACTIVATE = 0x0006;
-        public const int WM_KEYDOWN = 0x0100;
-        public const int WM_MOUSEMOVE = 0x0200;
-        public const int WM_LBUTTONDOWN = 0x0201;
-        public const int WM_LBUTTONUP = 0x0202;
-        public const int WM_MBUTTONDOWN = 0x0207;
-        public const int WM_MBUTTONUP = 0x0208;
-        public const int WM_RBUTTONDOWN = 0x0204;
-        public const int WM_RBUTTONUP = 0x0205;
-        public const int WM_MOUSEHOVER = 0x02A1;
-        public const int WM_MOUSELEAVE = 0x02A3;
-        public const int WM_DROPFILES = 0x0233;
-        public const int WM_SETCURSOR = 0x0020;
-        public const int WM_TIMER = 0x0113;
-        public const int WM_QUIT = 0x0012;
-        public const int WM_SETICON = 0x80;
-        public const int WM_USER = 0x0400;
-        public const int WM_COMMAND = 0x0111;
-        public const int WM_MENUDRAG = 0x123;
-        public const int WM_MOVING = 0x0216;
-        public const int WM_MOVE = 0x0003;
-        public const int WM_SIZING = 0x0214;
-        public const int WM_EXITSIZEMOVE = 0x0232;
-        public const int WM_ENTERSIZEMOVE = 0x0231;
+        WM_CHAR = 0x0102,
+        WM_NCCREATE = 0x0081,
+        WM_NCDESTROY = 0x0082,
+        WM_CREATE = 0x0001,
+        WM_DESTROY = 0x0002,
+        WM_SIZE = 0x0005,
+        WM_PAINT = 0x000F,
+        WM_CLOSE = 0x0010,
+        WM_SETFOCUS = 0x0007,
+        WM_KILLFOCUS = 0x0008,
+        WM_SETTINGCHANGE = 0x001A,
+        WM_DEVICECHANGE = 0x0219,
+        WM_INITMENUPOPUP = 0x0117,
+        WM_NCHITTEST = 0x0084,
+        WM_DPICHANGED = 0x02E0,
+        WM_GETMINMAXINFO = 0x24,
+        WM_ACTIVATE = 0x0006,
+        WM_KEYDOWN = 0x0100,
+        WM_MOUSEMOVE = 0x0200,
+        WM_LBUTTONDOWN = 0x0201,
+        WM_LBUTTONUP = 0x0202,
+        WM_MBUTTONDOWN = 0x0207,
+        WM_MBUTTONUP = 0x0208,
+        WM_RBUTTONDOWN = 0x0204,
+        WM_RBUTTONUP = 0x0205,
+        WM_MOUSEHOVER = 0x02A1,
+        WM_MOUSELEAVE = 0x02A3,
+        WM_DROPFILES = 0x0233,
+        WM_SETCURSOR = 0x0020,
+        WM_TIMER = 0x0113,
+        WM_QUIT = 0x0012,
+        WM_SETICON = 0x80,
+        WM_USER = 0x0400,
+        WM_COMMAND = 0x0111,
+        WM_MENUDRAG = 0x123,
+        WM_MOVING = 0x0216,
+        WM_MOVE = 0x0003,
+        WM_SIZING = 0x0214,
+        WM_EXITSIZEMOVE = 0x0232,
+        WM_ENTERSIZEMOVE = 0x0231,
     }
 
     public enum ShowWindowCommand : int
@@ -116,6 +117,7 @@ namespace FenUISharp.Native
 
     public static class HitTest
     {
+        public const int HTNOWHERE = 0;
         public const int HTLEFT = 10;
         public const int HTRIGHT = 11;
         public const int HTTOP = 12;
@@ -125,10 +127,97 @@ namespace FenUISharp.Native
         public const int HTBOTTOMLEFT = 16;
         public const int HTBOTTOMRIGHT = 17;
         public const int HTCLIENT = 1;
+        public const int HTTRANSPARENT = -1;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BITMAPINFOHEADER
+    {
+        public uint biSize;
+        public int biWidth;
+        public int biHeight;
+        public ushort biPlanes;
+        public ushort biBitCount;
+        public uint biCompression;
+        public uint biSizeImage;
+        public int biXPelsPerMeter;
+        public int biYPelsPerMeter;
+        public uint biClrUsed;
+        public uint biClrImportant;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RGBQUAD
+    {
+        public byte rgbBlue;
+        public byte rgbGreen;
+        public byte rgbRed;
+        public byte rgbReserved;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BITMAPINFO
+    {
+        public BITMAPINFOHEADER bmiHeader;
+        public RGBQUAD bmiColors; // only one here, we don’t need a full array for 32bpp
+    }
+
+    public static class CombineModes
+    {
+        public const int RGN_AND = 1;
+        public const int RGN_OR = 2;
+        public const int RGN_XOR = 3;
+        public const int RGN_DIFF = 4;
+        public const int RGN_COPY = 5;
+    }
+
+    public static class PolyFillMode
+    {
+        public const int ALTERNATE = 1; // even-odd
+        public const int WINDING = 2;
     }
 
     internal static class Win32APIs
     {
+        [DllImport("gdi32.dll")]
+        internal static extern IntPtr CreateRectRgn(int left, int top, int right, int bottom);
+
+        [DllImport("gdi32.dll")]
+        internal static extern IntPtr CreatePolygonRgn(POINT[] pptl, int cPoints, int fnPolyFillMode);
+
+        [DllImport("gdi32.dll")]
+        internal static extern int CombineRgn(IntPtr hrgnDest, IntPtr hrgnSrc1, IntPtr hrgnSrc2, int fnCombineMode);
+
+        [DllImport("user32.dll")]
+        internal static extern int SetWindowRgn(IntPtr hWnd, IntPtr hRgn, bool bRedraw);
+
+        [DllImport("gdi32.dll", SetLastError = true)]
+        internal static extern IntPtr CreateDIBSection(
+            IntPtr hdc,
+            [In] ref BITMAPINFO pbmi,
+            uint iUsage,
+            out IntPtr ppvBits,
+            IntPtr hSection,
+            uint dwOffset);
+
+        [DllImport("gdi32.dll")]
+        internal static extern IntPtr SelectObject(IntPtr hdc, IntPtr hgdiobj);
+
+        [DllImport("gdi32.dll")]
+        internal static extern bool DeleteObject(IntPtr hObject);
+
+        [DllImport("gdi32.dll")]
+        internal static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+
+        [DllImport("gdi32.dll")]
+        internal static extern bool DeleteDC(IntPtr hdc);
+
+        [DllImport("user32.dll")]
+        internal static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        internal static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
         [DllImport("user32.dll")]
         internal static extern uint GetDpiForWindow(IntPtr hWnd);
 
@@ -286,6 +375,9 @@ namespace FenUISharp.Native
         internal static extern bool GetMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
 
         [DllImport("user32.dll")]
+        internal static extern bool PeekMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax, uint wRemoveMsg);
+
+        [DllImport("user32.dll")]
         internal static extern bool TranslateMessage([In] ref MSG lpMsg);
 
         [DllImport("user32.dll")]
@@ -303,7 +395,7 @@ namespace FenUISharp.Native
 
         [DllImport("user32.dll")]
         internal static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
-        
+
         [DllImport("user32.dll")]
         internal static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
 
@@ -353,7 +445,7 @@ namespace FenUISharp.Native
         }
     }
 
-    
+
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
     public struct DEVMODE
     {

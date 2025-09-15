@@ -15,6 +15,7 @@ This basic guide will walk you through the process of setting up a project with 
 2. Create a 'lib' folder inside your project root and drop in your `fenUI.dll` and `.pdb`
 3. Several things have to be changed in your `.csproj` file
 - Change your target framework to `<TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>`
+- Limit the runtime identifier to `<RuntimeIdentifier>win-x64</RuntimeIdentifier>`
 - Add those package references inside your `<ItemGroup>`
 ```
     <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />

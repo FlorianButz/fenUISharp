@@ -29,7 +29,10 @@ namespace FenUISharpCrashHandler
             FenUI.EnableDebugFunctions();
             FenUI.SetupAppModel("fenUISharp.crashhandler");
 
-            FNativeWindow nativeWindow = new FNativeWindow("FenUI Crash Handler", "fenUICrashHandler", size: new(400 + 100, 200 + 100));
+            FNativeWindow nativeWindow = new FNativeWindow("FenUI Crash Handler", "fenUICrashHandler", size: new(500, 300));
+            nativeWindow.Shape.MinSize = new(500, 300);
+            nativeWindow.Shape.MaxSize = new(1000, 300);
+            nativeWindow.Properties.AllowMaximize = false;
 
             string iconPath = Resources.ExtractResourceToTempFile<FenUI>($"{FenUI.ResourceLibName}.icons.fenui-logo-error.ico");
             nativeWindow.Properties.SetWindowIcon(iconPath);
@@ -161,8 +164,6 @@ namespace FenUISharpCrashHandler
         }
 
         void OpenCrashFolder()
-        {
-            Process.Start("explorer.exe", Program.logLocation);
-        }
+            => Process.Start("notepad.exe", Program.logLocation);
     }
 }

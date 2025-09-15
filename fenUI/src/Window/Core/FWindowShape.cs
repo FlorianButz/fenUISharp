@@ -1,3 +1,4 @@
+using FenUISharp.Logging;
 using FenUISharp.Mathematics;
 using FenUISharp.Native;
 using SkiaSharp;
@@ -77,6 +78,9 @@ namespace FenUISharp
         /// Returns the index of the monitor which the window is on
         /// </summary>
         public int CurrentMonitorIndex { get => CurrentMonitor(); }
+
+        private Dictionary<object, SKRect> WindowRegion = new();
+        private bool _windowRegionsDirty;
 
         public FWindowShape(FWindow window)
         {
@@ -162,6 +166,94 @@ namespace FenUISharp
             // Get DPI from handle
             var dpi = Win32APIs.GetDpiForWindow(Window.hWnd);
             return dpi / 96.0f; // 96 DPI is 100% scaling
+        }
+
+        /// <summary>
+        /// Specifies a new cropped window region. Whole window is default. Values should be in client coordinate space
+        /// </summary>
+        /// <param name="owner">The caller of this method</param>
+        /// <param name="area">The area the window should be cropped to</param>
+        public void AddOrUpdateWindowRegion(object owner, SKRect area)
+        {
+            if (WindowRegion.ContainsKey(owner))
+            {
+                SKRect oldRect = WindowRegion[owner];
+                if (oldRect.Left != area.Left ||
+                    oldRect.Right != area.Right ||
+                    oldRect.Height != area.Height ||
+                    oldRect.Width != area.Width)
+                    _windowRegionsDirty = true;
+
+                WindowRegion[owner] = area;
+            }
+            else
+            {
+                WindowRegion.Add(owner, area);
+                _windowRegionsDirty = true;
+            }
+
+        }
+
+        /// <summary>
+        /// Removes the added region which was bound to the owner object.
+        /// </summary>
+        /// <param name="owner">The key</param>
+        public void DissolveWindowRegion(object owner)
+        {
+            if (WindowRegion.ContainsKey(owner))
+            {
+                WindowRegion.Remove(owner);   
+                _windowRegionsDirty = true;
+            }
+        }
+
+        internal List<SKRect> GetWinRegion() => WindowRegion.Values.ToList();
+
+        int updateIndex = 0;
+        private void UpdateWindowRegions()
+        {
+            updateIndex++;
+            if (updateIndex <= 2) return;
+            updateIndex = 0;
+
+            if (WindowRegion.Count == 0)
+            {
+                Win32APIs.SetWindowRgn(Window.hWnd, IntPtr.Zero, true);
+                return;
+            }
+
+            FLogger.Log<FWindowShape>($"Region update. Regions count: {WindowRegion.Count}");
+
+            IntPtr finalRegion = IntPtr.Zero;
+            foreach (var obj in WindowRegion)
+            {
+                var rect = obj.Value;
+                IntPtr rgn = Win32APIs.CreateRectRgn((int)(rect.Left), (int)(rect.Top),
+                    (int)(rect.Left + rect.Width),
+                    (int)(rect.Top + rect.Height));
+
+                if (finalRegion == IntPtr.Zero)
+                    finalRegion = rgn; // take the first one
+                else
+                {
+                    Win32APIs.CombineRgn(finalRegion, finalRegion, rgn, CombineModes.RGN_OR);
+                    Win32APIs.DeleteObject(rgn);
+                }
+            }
+
+            if (finalRegion != IntPtr.Zero)
+                // DONT DeleteObject(finalRegion); OS owns it now.
+                Win32APIs.SetWindowRgn(Window.hWnd, finalRegion, true);
+            else
+                Win32APIs.SetWindowRgn(Window.hWnd, IntPtr.Zero, true);
+
+            _windowRegionsDirty = false;
+        }
+
+        internal void UpdateShape()
+        {
+            if (_windowRegionsDirty)
+                UpdateWindowRegions();
         }
 
         public void Dispose()

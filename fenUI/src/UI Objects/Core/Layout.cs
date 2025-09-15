@@ -6,7 +6,15 @@ namespace FenUISharp.Objects
 {
     public class Layout : IDisposable, IStateListener
     {
-        public WeakReference<UIObject> Owner { get; private set; }
+                private WeakReference<UIObject>? WeakOwner;
+        public UIObject? Owner
+        {
+            get
+            {
+                if (WeakOwner?.TryGetTarget(out var target) ?? false) return target;
+                return null; // Usually shouldn't happen but some edge cases may lead to it
+            }
+        }
 
         public State<Vector2> Alignment { get; init; }
         public State<Vector2> AlignmentAnchor { get; init; }
@@ -28,7 +36,7 @@ namespace FenUISharp.Objects
 
         public Layout(UIObject owner)
         {
-            this.Owner = new(owner);
+            this.WeakOwner = new(owner);
 
             MaxWidth = new(() => float.MaxValue, owner, this);
             MaxHeight = new(() => float.MaxValue, owner, this);
@@ -49,7 +57,7 @@ namespace FenUISharp.Objects
 
         public void ApplyLayoutToPositioning(in Vector2 size, out Vector2 offset, out Vector2 anchorCorrection)
         {
-            if (Owner.TryGetTarget(out var owner))
+            if (Owner != null)
             {
                 var anchor = AlignmentAnchor.CachedValue;
                 var align = Alignment.CachedValue;
@@ -63,8 +71,8 @@ namespace FenUISharp.Objects
 
                 Vector2 sizeOffset = new(clampedSize.x * anchor.x, clampedSize.y * anchor.y);
                 Vector2 relativeParentPos = new Vector2(
-                    (owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Shape.Bounds.Width ?? 0)) * align.x + absoluteMarginCorrection.x,
-                    (owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Shape.Bounds.Height ?? 0)) * align.y + absoluteMarginCorrection.y);
+                    (Owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Shape.Bounds.Width ?? 0)) * align.x + absoluteMarginCorrection.x,
+                    (Owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Shape.Bounds.Height ?? 0)) * align.y + absoluteMarginCorrection.y);
 
                 // A ghost is actually haunting this and I have no idea why it does what it does; edit: seems to be working now; edit 2: it did not work. DO NOT ADD THE LOCAL POSITION TO THIS THING!
                 // var returnPos = relativeParentPos - sizeOffset; // Basically not needed anymore, though I'll leave it here so I get reminded of the mistakes from my past
@@ -81,12 +89,12 @@ namespace FenUISharp.Objects
 
         public Vector2 ApplyLayoutToSize(Vector2 localSize)
         {
-            if (Owner.TryGetTarget(out var owner))
+            if (Owner != null)
             {
                 var clampedSize = ClampSize(localSize);
 
-                Vector2 stretchSize = new((owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Shape.Bounds.Width ?? 0)) - MarginHorizontal.CachedValue * 2,
-                    (owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Shape.Bounds.Height ?? 0)) - MarginVertical.CachedValue * 2);
+                Vector2 stretchSize = new((Owner.Parent?.Shape.LocalBounds.Width ?? (FContext.GetCurrentWindow()?.Shape.Bounds.Width ?? 0)) - MarginHorizontal.CachedValue * 2,
+                    (Owner.Parent?.Shape.LocalBounds.Height ?? (FContext.GetCurrentWindow()?.Shape.Bounds.Height ?? 0)) - MarginVertical.CachedValue * 2);
 
                 var absoluteCorrection = new Vector2(AbsoluteMarginHorizontal.CachedValue.x + AbsoluteMarginHorizontal.CachedValue.y, AbsoluteMarginVertical.CachedValue.x + AbsoluteMarginVertical.CachedValue.y);
 
@@ -97,27 +105,15 @@ namespace FenUISharp.Objects
         }
 
         public void RecursivelyUpdateLayout()
-        {
-            if (Owner.TryGetTarget(out var owner))
-                owner.RecursiveInvalidate(UIObject.Invalidation.LayoutDirty);
-        }
-
-
+            => Owner?.RecursiveInvalidate(UIObject.Invalidation.LayoutDirty);
 
         public Vector2 ClampSize(in Vector2 size)
-        {
-            return Vector2.Clamp(size, new(MinWidth.CachedValue, MinHeight.CachedValue), new(MaxWidth.CachedValue, MaxHeight.CachedValue));
-        }
+            => Vector2.Clamp(size, new(MinWidth.CachedValue, MinHeight.CachedValue), new(MaxWidth.CachedValue, MaxHeight.CachedValue));
 
         public void OnInternalStateChanged<T>(T value)
-        {
-            if (Owner.TryGetTarget(out var owner))
-                owner.Invalidate(UIObject.Invalidation.LayoutDirty);
-        }
+            => Owner?.Invalidate(UIObject.Invalidation.LayoutDirty);
 
         public void Dispose()
-        {
-            Owner = null;
-        }
+            => WeakOwner = null;
     }
 }

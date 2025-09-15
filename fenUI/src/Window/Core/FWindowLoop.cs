@@ -10,12 +10,13 @@ namespace FenUISharp
         private WeakReference<FWindow> window { get; set; }
         public FWindow Window { get => window.TryGetTarget(out var target) ? target : throw new Exception("Window not set."); }
 
-        public bool PauseUpdateLoopWhenLoseFocus { get; set; } = true;
-        public bool PauseUpdateLoopWhenHidden { get; private set; } = true;
+        public bool PauseUpdateLoopWhenLoseFocus { get; set; } = false;
+        public bool PauseUpdateLoopWhenHidden { get; set; } = true;
 
         private bool _delayedFocus = true;
 
-        public Func<bool>? _isRunning { get; set; }
+        public Func<bool>? _logicIsRunning { get; set; }
+        public Func<bool>? _windowIsRunning { get; set; }
         private Thread? LogicThread { get; set; }
 
         public FWindowLoop(FWindow window)
@@ -25,10 +26,12 @@ namespace FenUISharp
 
         public void Begin(Action? setupLogic)
         {
+            Thread.CurrentThread.Name = "Window Thread";
+
             // Creating a new thread for the logic loop
             // This includes logic updates and rendering
             LogicThread = new Thread(() =>
-            {                
+            {
                 setupLogic?.Invoke();
                 SetupLogic();
 
@@ -42,16 +45,22 @@ namespace FenUISharp
             LogicThread.Start();
 
             // Setting up the Windows message loop for the window
-
             MSG msg;
-            while (_isRunning?.Invoke() ?? false)
+            while (_windowIsRunning?.Invoke() ?? false) // Loop should only run as long as window is alive
             {
-                while (Win32APIs.GetMessage(out msg, IntPtr.Zero, 0, 0))
+                // Dispatch queued events
+                Window?.WindowDispatcher?.UpdateQueue();
+
+                // Check if someone messaged me
+                while (Win32APIs.PeekMessage(out msg, IntPtr.Zero, 0, 0, 1))
                 {
+                    // Translate and send messages
                     Win32APIs.TranslateMessage(ref msg);
                     Win32APIs.DispatchMessage(ref msg);
-                    Thread.Sleep(1); // Prevent too high cpu usage
                 }
+
+                // Add dynamic sleep
+                Thread.Sleep((Window?.Properties?.IsWindowFocused ?? false) ? 2 : 15); // Prevent too high cpu usage
             }
         }
 
@@ -70,7 +79,7 @@ namespace FenUISharp
             double nextFrameTime = 0;
             double previousFrameTime = 0;
 
-            while (_isRunning?.Invoke() ?? false)
+            while (_logicIsRunning?.Invoke() ?? false)
             {
                 // Getting the current time and calculating the time until the next frame
                 double currentTime = stopwatch.Elapsed.TotalMilliseconds;
@@ -80,14 +89,14 @@ namespace FenUISharp
                 {
                     // Make sure to update delayed focus
                     _delayedFocus = Window.Properties.IsWindowFocused;
-                    
+
                     // Make sure delta time doesn't go too crazy when updates are resumed
                     previousFrameTime = currentTime;
 
                     WindowUpdate(true);
 
                     // Exit out of the loop if the flag got changed
-                    if (!_isRunning.Invoke()) return;
+                    if (!_logicIsRunning.Invoke()) return;
 
                     // Sleep longer if unfocused or minimized
                     Thread.Sleep(!Window.Properties.IsWindowVisible ? 300 : 100); continue;
@@ -103,7 +112,7 @@ namespace FenUISharp
                     WindowUpdate();
 
                     // Exit out of the loop if the flag got changed
-                    if (!_isRunning.Invoke()) return;
+                    if (!_logicIsRunning.Invoke()) return;
 
                     if (Window.Surface.IsNextFrameRendering())
                     {
@@ -123,7 +132,7 @@ namespace FenUISharp
                     nextFrameTime = currentTime + frameInterval;
 
                     // Setting the delayed focus variable
-                    Window.LogicDispatcher.Invoke(() => _delayedFocus = Window.Properties.IsWindowFocused);
+                    _delayedFocus = Window.Properties.IsWindowFocused;
                 }
 
                 // Sleep to avoid too high CPU usage
@@ -140,8 +149,13 @@ namespace FenUISharp
             // Add delta time to current time
             Window.Time.Time += Window.Time.DeltaTime;
 
+            Window.CallUpdate();
+            Window.Shape.UpdateShape();
+
             // Execute queued logic events
             Window.LogicDispatcher.UpdateQueue(); // This MUST be executed as first in update
+
+            if (!(_logicIsRunning?.Invoke() ?? true)) return;
 
             // Call the pre update iteration, only if not paused
             if (!isPaused)
@@ -166,6 +180,8 @@ namespace FenUISharp
 
                 // Late update iteration, only if not paused
                 Window.Surface.RootViewPane?.OnLateUpdate(); // Second update iteration
+
+                Window.Surface.RootViewPane?.OnEndFrame(); // End frame
             }
         }
 

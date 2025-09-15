@@ -33,7 +33,7 @@ namespace FenUISharp.Objects
 
             LocalZIndex = new(() => 0, owner, this);
 
-            if (activeInstances == 0)
+            if (activeInstances == 0 && FContext.IsValidContext())
                 FContext.GetCurrentWindow().Callbacks.OnPreUpdate += CacheZOrderedListOfEverything;
 
             activeInstances++;
@@ -142,7 +142,7 @@ namespace FenUISharp.Objects
         public void Dispose()
         {
             activeInstances--;
-            if (activeInstances <= 0)
+            if (activeInstances <= 0 && FContext.IsValidContext())
                 FContext.GetCurrentWindow().Callbacks.OnPreUpdate -= CacheZOrderedListOfEverything;
         }
 
