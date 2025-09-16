@@ -115,6 +115,9 @@ namespace FenUISharp
 
         private static void UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
+            // Release global hooks first
+            WindowFeatures.Uninitialize();
+
             var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "fenUICrashlogs");
             var crashlogPath = Path.Combine(path, $"{appModelId}-{DateTime.Now.ToLongTimeString().Replace(':', '-')}-crash-log.txt");
 
@@ -142,7 +145,6 @@ namespace FenUISharp
             }
 
             activeInstances.ForEach(x => x.Dispose());
-            WindowFeatures.Uninitialize();
         }
 
         public static void Shutdown()

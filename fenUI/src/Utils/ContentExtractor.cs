@@ -18,8 +18,6 @@ namespace FenUISharp
         {
             assembly ??= Assembly.GetCallingAssembly();
 
-            assembly.GetManifestResourceNames().ToList().ForEach(x => FLogger.Log(x));
-
             var resourceName = ResolveResourceName(assembly, shortOrFullResourceName);
             if (resourceName == null)
                 throw new ArgumentException($"Resource \"{shortOrFullResourceName}\" not found in {assembly.FullName}.");

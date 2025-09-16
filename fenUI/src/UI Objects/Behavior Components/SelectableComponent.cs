@@ -32,7 +32,6 @@ namespace FenUISharp.Behavior
         public SelectableComponent(UIObject owner, InteractiveSurface surface) : base(owner)
         {
             this.Surface = surface;
-
             if (selectableComponents == null) selectableComponents = new();
 
             if (selectableComponents.Count <= 0)
@@ -92,7 +91,7 @@ namespace FenUISharp.Behavior
             {
                 currentlySelected.IsSelected = false;
                 currentlySelected.OnSelectionLost?.Invoke();
-                currentlySelected.Owner.Invalidate(UIObject.Invalidation.SurfaceDirty);
+                currentlySelected.Owner?.Invalidate(UIObject.Invalidation.SurfaceDirty);
 
                 FContext.GetKeyboardInputManager().UnregisterKeybind(currentlySelected.tabKeybind);
                 FContext.GetKeyboardInputManager().UnregisterKeybind(currentlySelected.reverseTabKeybind);
@@ -104,7 +103,7 @@ namespace FenUISharp.Behavior
 
             currentlySelected.IsSelected = true;
             currentlySelected.OnSelectionGained?.Invoke();
-            currentlySelected.Owner.Invalidate(UIObject.Invalidation.SurfaceDirty);
+            currentlySelected.Owner?.Invalidate(UIObject.Invalidation.SurfaceDirty);
             FContext.GetKeyboardInputManager().RegisterKeybind(currentlySelected.tabKeybind);
             FContext.GetKeyboardInputManager().RegisterKeybind(currentlySelected.reverseTabKeybind);
 
@@ -168,7 +167,7 @@ namespace FenUISharp.Behavior
             if (!renderSelection) return;
             if (!IsSelected) return;
 
-            var bounds = Owner.Shape.LocalBounds;
+            var bounds = Owner?.Shape.LocalBounds ?? new SKRect(0, 0, 0, 0);
             bounds.Inflate(3, 3);
             using var path = SKSquircle.CreateSquircle(bounds, 10);
 

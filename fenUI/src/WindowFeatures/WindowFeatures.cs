@@ -4,15 +4,15 @@ namespace FenUISharp.WinFeatures {
 
         private static bool _hasBeenInitialized;
 
-        private static DesktopCapture _desktopCapture;
-        private static WindowsMediaControls _mediaControls;
-        private static GlobalHooks _globalHooks;
-        private static ToastMessageSender _toastMessageSender;
+        private static DesktopCapture? _desktopCapture;
+        private static WindowsMediaControls? _mediaControls;
+        private static GlobalHooks? _globalHooks;
+        private static ToastMessageSender? _toastMessageSender;
 
-        public static DesktopCapture DesktopCapture { get { TryInitialize(); return _desktopCapture; } }
-        public static WindowsMediaControls MediaControls { get { TryInitialize(); return _mediaControls; } }
-        public static GlobalHooks GlobalHooks { get { TryInitialize(); return _globalHooks; } }
-        public static ToastMessageSender ToastMessageSender { get { TryInitialize(); return _toastMessageSender; } }
+        public static DesktopCapture DesktopCapture { get { TryInitialize(); return _desktopCapture ?? throw new NullReferenceException(); } }
+        public static WindowsMediaControls MediaControls { get { TryInitialize(); return _mediaControls ?? throw new NullReferenceException(); } }
+        public static GlobalHooks GlobalHooks { get { TryInitialize(); return _globalHooks ?? throw new NullReferenceException(); } }
+        public static ToastMessageSender ToastMessageSender { get { TryInitialize(); return _toastMessageSender ?? throw new NullReferenceException(); } }
 
         public static bool TryInitialize(bool disableWinFeatures = false){
             if(_hasBeenInitialized) return false;
@@ -29,7 +29,7 @@ namespace FenUISharp.WinFeatures {
                 _mediaControls = new WindowsMediaControls();
                 _toastMessageSender = new ToastMessageSender();
             }
-            catch (Exception e) { return false; }
+            catch (Exception) { return false; }
 
             return true;
         }
@@ -37,7 +37,7 @@ namespace FenUISharp.WinFeatures {
         public static void Uninitialize(){
             if(!_hasBeenInitialized) return;
 
-            _globalHooks.Dispose();
+            _globalHooks?.Dispose();
         }
     }
 }

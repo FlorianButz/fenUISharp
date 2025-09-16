@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using FenUISharp.Mathematics;
 using FenUISharp.Native;
@@ -36,45 +37,43 @@ namespace FenUISharp.WinFeatures
 
         #endregion
 
+        AutoResetEvent signal = new AutoResetEvent(false);
+        ConcurrentQueue<InputEvent> queue = new ConcurrentQueue<InputEvent>();
+
+        bool[] keyFlags = new bool[256];
+
         public GlobalHooks()
         {
-            instance = this;
-        }
+            if (instance == null) instance = this;
+            else throw new InvalidOperationException("You can not create multiple instances of the GlobalHooks class.");
 
-        public void Dispose()
-        {
-            UnregisterHooks();
-            instance = null;
-        }
-
-        public void RegisterHooks()
-        {
-            IntPtr moduleHandle = GetModuleHandle(null);
-
-            _keyboardHookID = SetWindowsHookEx((int)WH_KEYBOARD_LL, _keyboardProc, moduleHandle, 0);
-            _mouseHookID = SetWindowsHookEx((int)WH_MOUSE_LL, _mouseProc, moduleHandle, 0);
-        }
-
-        public void UnregisterHooks()
-        {
-            if (_keyboardHookID != IntPtr.Zero)
+            Thread dispatchThread = new Thread(() =>
             {
-                UnhookWindowsHookEx(_keyboardHookID);
-                _keyboardHookID = IntPtr.Zero;
-            }
-
-            if (_mouseHookID != IntPtr.Zero)
-            {
-                UnhookWindowsHookEx(_mouseHookID);
-                _mouseHookID = IntPtr.Zero;
-            }
+                while (instance != null)
+                {
+                    signal.WaitOne();
+                    HandleConcurrentQueue();
+                }
+            });
+            dispatchThread.IsBackground = true;
+            dispatchThread.Start();
         }
 
-        private static IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        private void HandleConcurrentQueue()
         {
-            if (instance == null) throw new InvalidOperationException("Mouse Hook Callback was called with no active instance.");
+            while (queue.TryDequeue(out var evt))
+                HandleEvent(evt);
+        }
 
-            if (nCode >= 0)
+        private void HandleEvent(InputEvent evt)
+        {
+            int nCode = evt.nCode;
+            IntPtr wParam = evt.wParam;
+            IntPtr lParam = evt.lParam;
+
+            if (nCode < 0) return;
+
+            if (evt.type == 1)
             {
                 MSLLHOOKSTRUCT mouseInfo = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
 
@@ -83,160 +82,138 @@ namespace FenUISharp.WinFeatures
                 int mouseY = mouseInfo.pt.y;
 
                 // Mouse wheel scrolling
-                if (wParam == (IntPtr)WM_MOUSEWHEEL)
+                if (wParam == (IntPtr)GLOBALHOOKTYPE.WM_MOUSEWHEEL)
                 {
                     short scrollDelta = (short)((mouseInfo.mouseData >> 16) & 0xFFFF);
-                    instance.OnMouseScroll?.Invoke(scrollDelta);
+                    OnMouseScroll?.Invoke(scrollDelta);
                 }
 
+                // Mouse move callbacks
                 if (wParam == (IntPtr)WindowMessages.WM_MOUSEMOVE)
                 {
                     mousePosition.x = mouseX;
                     mousePosition.y = mouseY;
 
-                    instance.OnMouseMove?.Invoke(new Vector2(mouseX, mouseY));
-                    instance.OnMouseMoveDelta?.Invoke(new Vector2(mouseX - lastMousePosition.x, mouseY - lastMousePosition.y));
+                    OnMouseMove?.Invoke(new Vector2(mouseX, mouseY));
+                    OnMouseMoveDelta?.Invoke(new Vector2(mouseX - lastMousePosition.x, mouseY - lastMousePosition.y));
 
                     lastMousePosition.x = mouseX;
                     lastMousePosition.y = mouseY;
                 }
 
+                // Mouse button events
                 switch ((MouseMessages)wParam)
                 {
                     case MouseMessages.WM_LBUTTONDOWN:
-                        instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Down));
+                        OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Down));
                         MouseDown = true;
                         break;
                     case MouseMessages.WM_LBUTTONUP:
-                        instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Up));
+                        OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Up));
                         MouseDown = false;
                         break;
                     case MouseMessages.WM_RBUTTONDOWN:
-                        instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Right, MouseInputState.Down));
+                        OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Right, MouseInputState.Down));
                         break;
                     case MouseMessages.WM_RBUTTONUP:
-                        instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Right, MouseInputState.Up));
+                        OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Right, MouseInputState.Up));
                         break;
                     case MouseMessages.WM_MBUTTONDOWN:
-                        instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Middle, MouseInputState.Down));
+                        OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Middle, MouseInputState.Down));
                         break;
                     case MouseMessages.WM_MBUTTONUP:
-                        instance.OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Middle, MouseInputState.Up));
+                        OnMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Middle, MouseInputState.Up));
                         break;
                 }
             }
+            else if (evt.type == 2)
+            {
+                // Extracting the input info from the lParam
+                KBDLLHOOKSTRUCT keyInfo = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
 
-            return CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
+                // Check if key up or key down event
+
+                if (wParam == (IntPtr)GLOBALHOOKTYPE.WM_KEYDOWN)
+                {
+                    if (!keyFlags[keyInfo.vkCode])
+                    {
+                        keyFlags[keyInfo.vkCode] = true;
+                        OnKeyPressed?.Invoke(keyInfo.vkCode);
+                    }
+
+                    OnKeyTyped?.Invoke(keyInfo.vkCode);
+                }
+                else if (wParam == (IntPtr)GLOBALHOOKTYPE.WM_KEYUP)
+                {
+                    OnKeyReleased?.Invoke(keyInfo.vkCode);
+                    keyFlags[keyInfo.vkCode] = false;
+                }
+            }
         }
 
-        private static List<int> _pressedKeys = new List<int>(); // Important for checking if a key was already pressed without having released it prior. (Windows key behavior filter)
+        private static IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            if (instance == null)
+                return Win32APIs.CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
+
+            instance.queue.Enqueue(new InputEvent() { type = 1, lParam = lParam, wParam = wParam, nCode = nCode });
+            instance.signal.Set();
+
+            return Win32APIs.CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
+        }
 
         private static IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
-            if (instance == null) throw new InvalidOperationException("Keyboard Hook Callback was called with no active instance.");
+            if (instance == null)
+                return Win32APIs.CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
 
-            if (nCode >= 0)
-            {
-                KBDLLHOOKSTRUCT keyInfo = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+            instance.queue.Enqueue(new InputEvent() { type = 2, lParam = lParam, wParam = wParam, nCode = nCode });
+            instance.signal.Set();
 
-                if (wParam == (IntPtr)WM_KEYDOWN)
-                {
-                    if (!_pressedKeys.Contains(keyInfo.vkCode))
-                    {
-                        _pressedKeys.Add(keyInfo.vkCode);
-                        instance.OnKeyPressed?.Invoke(keyInfo.vkCode);
-                    }
-
-                    instance.OnKeyTyped?.Invoke(keyInfo.vkCode);
-                }
-                else if (wParam == (IntPtr)WM_KEYUP)
-                {
-                    instance.OnKeyReleased?.Invoke(keyInfo.vkCode);
-
-                    if (_pressedKeys.Contains(keyInfo.vkCode))
-                        _pressedKeys.Remove(keyInfo.vkCode);
-                }
-            }
-
-            return CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
+            return Win32APIs.CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
         }
 
+        public void RegisterHooks()
+        {
+            IntPtr moduleHandle = Win32APIs.GetModuleHandle(null);
+
+            _keyboardHookID = Win32APIs.SetWindowsHookEx((int)GLOBALHOOKTYPE.WH_KEYBOARD_LL, _keyboardProc, moduleHandle, 0);
+            _mouseHookID = Win32APIs.SetWindowsHookEx((int)GLOBALHOOKTYPE.WH_MOUSE_LL, _mouseProc, moduleHandle, 0);
+        }
+
+        public void UnregisterHooks()
+        {
+            if (_keyboardHookID != IntPtr.Zero)
+            {
+                Win32APIs.UnhookWindowsHookEx(_keyboardHookID);
+                _keyboardHookID = IntPtr.Zero;
+            }
+
+            if (_mouseHookID != IntPtr.Zero)
+            {
+                Win32APIs.UnhookWindowsHookEx(_mouseHookID);
+                _mouseHookID = IntPtr.Zero;
+            }
+        }
+
+        public void Dispose()
+        {
+            UnregisterHooks();
+            instance = null;
+        }
+
+        // TODO: ConsoleKey is very limited. Use GetKeyNameText or MapVirtualKey in the future
         public static string GetKeyName(int vkCode)
         {
             return Enum.IsDefined(typeof(ConsoleKey), vkCode) ? ((ConsoleKey)vkCode).ToString() : $"VK_{vkCode}";
         }
 
-        const int WH_MOUSE_LL = 14;
-        const int WH_KEYBOARD_LL = 13;
-        const int WM_MOUSEWHEEL = 0x020A;
-        const int WM_KEYDOWN = 0x0100;
-        const int WM_KEYUP = 0x0101;
-
-        private enum MouseMessages
+        internal struct InputEvent
         {
-            WM_LBUTTONDOWN = 0x0201,
-            WM_LBUTTONUP = 0x0202,
-            WM_RBUTTONDOWN = 0x0204,
-            WM_RBUTTONUP = 0x0205,
-            WM_MBUTTONDOWN = 0x0207,
-            WM_MBUTTONUP = 0x0208,
+            public int type;
+            public int nCode;
+            public IntPtr wParam;
+            public IntPtr lParam;
         }
-
-        public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
-        public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct MSLLHOOKSTRUCT
-        {
-            public POINT pt;
-            public uint mouseData;
-            public uint flags;
-            public uint time;
-            public IntPtr dwExtraInfo;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct KBDLLHOOKSTRUCT
-        {
-            public int vkCode;
-            public int scanCode;
-            public int flags;
-            public int time;
-            public IntPtr dwExtraInfo;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct POINT
-        {
-            public int x;
-            public int y;
-        }
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern IntPtr GetModuleHandle(string? lpModuleName);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern IntPtr SetWindowsHookEx(
-            int idHook,
-            LowLevelMouseProc lpfn,
-            IntPtr hMod,
-            uint dwThreadId);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern IntPtr SetWindowsHookEx(
-            int idHook,
-            LowLevelKeyboardProc lpfn,
-            IntPtr hMod,
-            uint dwThreadId);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern IntPtr CallNextHookEx(
-            IntPtr hhk,
-            int nCode,
-            IntPtr wParam,
-            IntPtr lParam);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
     }
 }

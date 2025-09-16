@@ -44,6 +44,15 @@ namespace FenUISharp.Native
         public const int WS_BORDER = 0x0080000;
     }
 
+    internal static class GLOBALHOOKTYPE
+    {
+        public const int WH_MOUSE_LL = 14;
+        public const int WH_KEYBOARD_LL = 13;
+        public const int WM_MOUSEWHEEL = 0x020A;
+        public const int WM_KEYDOWN = 0x0100;
+        public const int WM_KEYUP = 0x0101;
+    }
+
     internal static class DWMWINDOWATTRIBUTE
     {
         public const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
@@ -177,8 +186,67 @@ namespace FenUISharp.Native
         public const int WINDING = 2;
     }
 
+    public enum MouseMessages
+    {
+        WM_LBUTTONDOWN = 0x0201,
+        WM_LBUTTONUP = 0x0202,
+        WM_RBUTTONDOWN = 0x0204,
+        WM_RBUTTONUP = 0x0205,
+        WM_MBUTTONDOWN = 0x0207,
+        WM_MBUTTONUP = 0x0208,
+    }
+
+
+    public delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+    public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MSLLHOOKSTRUCT
+    {
+        public POINT pt;
+        public uint mouseData;
+        public uint flags;
+        public uint time;
+        public IntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct KBDLLHOOKSTRUCT
+    {
+        public int vkCode;
+        public int scanCode;
+        public int flags;
+        public int time;
+        public IntPtr dwExtraInfo;
+    }
+
     internal static class Win32APIs
     {
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        internal static extern IntPtr SetWindowsHookEx(
+            int idHook,
+            LowLevelMouseProc lpfn,
+            IntPtr hMod,
+            uint dwThreadId);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        internal static extern IntPtr SetWindowsHookEx(
+            int idHook,
+            LowLevelKeyboardProc lpfn,
+            IntPtr hMod,
+            uint dwThreadId);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        internal static extern IntPtr CallNextHookEx(
+            IntPtr hhk,
+            int nCode,
+            IntPtr wParam,
+            IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        internal static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
         [DllImport("gdi32.dll")]
         internal static extern IntPtr CreateRectRgn(int left, int top, int right, int bottom);
 
