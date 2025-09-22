@@ -10,7 +10,15 @@ namespace FenUISharp.AnimatedVectors
         public SKColor Fill { get; init; }
         public float StrokeWidth { get; init; }
 
-        public float ApproximateLength(float precision = 1f)
+        public void Dispose()
+        {
+            SKPath.Dispose();
+        }
+    }
+
+    public static class SKPathExtensions
+    {
+        public static float ApproximateLength(this SKPath SKPath, float precision = 1f)
         {
             var measure = new SKPathMeasure(SKPath, false);
             float length = 0;
@@ -21,11 +29,6 @@ namespace FenUISharp.AnimatedVectors
             } while (measure.NextContour());
 
             return length;
-        }
-
-        public void Dispose()
-        {
-            SKPath.Dispose();
         }
     }
 }

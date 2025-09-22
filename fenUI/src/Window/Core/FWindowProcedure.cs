@@ -20,9 +20,25 @@ namespace FenUISharp
         public IntPtr WindowsProcedure(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
         {
             // Do not update window queue here. Messages are not sent consistently
-
             switch (msg)
             {
+                // When mouse moves
+                case (int)WindowMessages.WM_MOUSEMOVE:
+                    int x = (short)lParam.ToInt32();
+                    int y = lParam.ToInt32() >> 16;
+
+                    Window.ClientMousePosition = new(x, y);
+                    Window.Callbacks.OnMouseMove?.Invoke(Window.ClientMousePosition);
+                    return IntPtr.Zero;
+
+                // When mouse scrolls
+                case (int)WindowMessages.WM_MOUSEWHEEL:
+                    long wparamLong = wParam.ToInt64();
+                    int delta = (short)((wparamLong >> 16) & 0xFFFF); // GET_WHEEL_DELTA_WPARAM
+
+                    Window.Callbacks.OnMouseScroll?.Invoke(delta);
+                    return IntPtr.Zero;
+
                 // When a char is typed and the window is focused
                 case (int)WindowMessages.WM_CHAR: // Keyboard input
                     Window.LogicDispatcher.Invoke(() => Window.Callbacks.OnKeyboardInputTextReceived?.Invoke((char)wParam));
@@ -144,22 +160,44 @@ namespace FenUISharp
                 case (int)WindowMessages.WM_KEYDOWN:
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_LBUTTONDOWN:
+                    // Capture the cursor events
+                    Win32APIs.SetCapture(Window.hWnd);
+
                     Window.LogicDispatcher.Invoke(() => Window.Callbacks.ClientMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Down)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_RBUTTONDOWN:
+                    // Capture the cursor events
+                    Win32APIs.SetCapture(Window.hWnd);
+
                     Window.LogicDispatcher.Invoke(() => Window.Callbacks.ClientMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Right, MouseInputState.Down)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_MBUTTONDOWN:
+                    // Capture the cursor events
+                    Win32APIs.SetCapture(Window.hWnd);
+
                     Window.LogicDispatcher.Invoke(() => Window.Callbacks.ClientMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Middle, MouseInputState.Down)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_LBUTTONUP:
+                    // Release the captured cursor
+                    Win32APIs.ReleaseCapture(Window.hWnd);
+
                     Window.LogicDispatcher.Invoke(() => Window.Callbacks.ClientMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Up)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_RBUTTONUP:
+                    // Release the captured cursor
+                    Win32APIs.ReleaseCapture(Window.hWnd);
+                
                     Window.LogicDispatcher.Invoke(() => Window.Callbacks.ClientMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Right, MouseInputState.Up)));
                     return IntPtr.Zero;
                 case (int)WindowMessages.WM_MBUTTONUP:
+                    // Release the captured cursor
+                    Win32APIs.ReleaseCapture(Window.hWnd);
+                
                     Window.LogicDispatcher.Invoke(() => Window.Callbacks.ClientMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Middle, MouseInputState.Up)));
+                    return IntPtr.Zero;
+
+                case (int)WindowMessages.WM_MOUSELEAVE:
+                    Window.Callbacks.OnMouseLeft?.Invoke();
                     return IntPtr.Zero;
 
                 // Set cursor message, returns the wanted cursor

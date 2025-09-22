@@ -42,6 +42,8 @@ namespace FenUISharp.WinFeatures
 
         bool[] keyFlags = new bool[256];
 
+        private bool _isRegistered = false;
+
         public GlobalHooks()
         {
             if (instance == null) instance = this;
@@ -175,14 +177,25 @@ namespace FenUISharp.WinFeatures
 
         public void RegisterHooks()
         {
+            if (_isRegistered) return;
+            _isRegistered = true;
+
             IntPtr moduleHandle = Win32APIs.GetModuleHandle(null);
 
             _keyboardHookID = Win32APIs.SetWindowsHookEx((int)GLOBALHOOKTYPE.WH_KEYBOARD_LL, _keyboardProc, moduleHandle, 0);
             _mouseHookID = Win32APIs.SetWindowsHookEx((int)GLOBALHOOKTYPE.WH_MOUSE_LL, _mouseProc, moduleHandle, 0);
+
+            AppDomain.CurrentDomain.ProcessExit += UnregHooksExit;
         }
+
+        private void UnregHooksExit(object? sender, EventArgs e)
+            => UnregisterHooks();
 
         public void UnregisterHooks()
         {
+            if (!_isRegistered) return;
+            _isRegistered = false;
+            
             if (_keyboardHookID != IntPtr.Zero)
             {
                 Win32APIs.UnhookWindowsHookEx(_keyboardHookID);
@@ -194,6 +207,8 @@ namespace FenUISharp.WinFeatures
                 Win32APIs.UnhookWindowsHookEx(_mouseHookID);
                 _mouseHookID = IntPtr.Zero;
             }
+
+            AppDomain.CurrentDomain.ProcessExit -= UnregHooksExit;
         }
 
         public void Dispose()

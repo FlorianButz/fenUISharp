@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using FenUISharp.Logging;
 using FenUISharp.Mathematics;
 using FenUISharp.Native;
@@ -79,6 +80,16 @@ namespace FenUISharp
         /// </summary>
         public int CurrentMonitorIndex { get => CurrentMonitor(); }
 
+        /// <summary>
+        /// Returns the internal Windows identification name of the current monitor
+        /// </summary>
+        public string CurrentMonitorName { get => CurrentMonitorNameString(); }
+
+        /// <summary>
+        /// Get the handle of the current monitor
+        /// </summary>
+        public nint CurrentMonitorHandle => Win32APIs.MonitorFromWindow(Window.hWnd, 0x00000002 /* MONITOR_DEFAULTTONEAREST */);
+
         private Dictionary<object, SKRect> WindowRegion = new();
         private bool _windowRegionsDirty;
 
@@ -159,6 +170,20 @@ namespace FenUISharp
 
             // Finding the index of the monitor which the point is inside
             return monitors.IndexOf(hMonitor);
+        }
+
+        private string CurrentMonitorNameString()
+        {
+            // Finding the monitor from the point
+            IntPtr hMonitor = Win32APIs.MonitorFromWindow(Window.hWnd, 0x00000002 /* MONITOR_DEFAULTTONEAREST */);
+
+            MONITORINFOEX info = new MONITORINFOEX();
+            info.cbSize = Marshal.SizeOf(info);
+            Win32APIs.GetMonitorInfo(hMonitor, ref info);
+            string deviceName = info.szDevice;
+
+            // Returning monitor name
+            return deviceName;
         }
 
         private float GetDpiScale()

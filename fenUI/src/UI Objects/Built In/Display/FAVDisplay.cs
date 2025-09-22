@@ -139,9 +139,8 @@ namespace FenUISharp.AnimatedVectors
 
                 if (pathOverride.StrokeTrace != 1f)
                 {
-                    float totalLength = path.ApproximateLength();
+                    float totalLength = displayedPath.ApproximateLength();
                     float visibleLength = totalLength * pathOverride.StrokeTrace;
-
                     paint.PathEffect = SKPathEffect.CreateDash(new float[] { visibleLength, totalLength }, 0);
                 }
 

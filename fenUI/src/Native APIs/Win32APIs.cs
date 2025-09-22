@@ -104,6 +104,7 @@ namespace FenUISharp.Native
         WM_SIZING = 0x0214,
         WM_EXITSIZEMOVE = 0x0232,
         WM_ENTERSIZEMOVE = 0x0231,
+        WM_MOUSEWHEEL = 0x020A,
     }
 
     public enum ShowWindowCommand : int
@@ -247,6 +248,9 @@ namespace FenUISharp.Native
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         internal static extern bool UnhookWindowsHookEx(IntPtr hhk);
 
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        internal static extern bool SetWindowDisplayAffinity(IntPtr hwnd, double dwAffinity);
+
         [DllImport("gdi32.dll")]
         internal static extern IntPtr CreateRectRgn(int left, int top, int right, int bottom);
 
@@ -285,6 +289,12 @@ namespace FenUISharp.Native
 
         [DllImport("user32.dll")]
         internal static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("user32.dll")]
+        internal static extern IntPtr SetCapture(IntPtr hWnd);
+        
+        [DllImport("user32.dll")]
+        internal static extern IntPtr ReleaseCapture(IntPtr hWnd);
 
         [DllImport("user32.dll")]
         internal static extern uint GetDpiForWindow(IntPtr hWnd);

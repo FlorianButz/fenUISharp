@@ -268,12 +268,9 @@ namespace FenUISharp
 
         void IDataObject.GetData(ref FORMATETC format, out STGMEDIUM medium)
         {
-            // Call your actual logic and map the HRESULT to exception
             int hr = GetData(ref format, out medium);
             if (hr != 0)
-            {
                 Marshal.ThrowExceptionForHR(hr);
-            }
         }
 
         void IDataObject.GetDataHere(ref FORMATETC format, ref STGMEDIUM medium)
@@ -299,7 +296,7 @@ namespace FenUISharp
                 return new FormatEtcEnumerator(formats);
             }
 
-            return null;
+            return null!;
         }
     }
 

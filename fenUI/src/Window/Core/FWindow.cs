@@ -40,19 +40,22 @@ namespace FenUISharp
         public KeyboardInputManager? WindowKeyboardInput { get; private set; }
         public ThemeManager WindowThemeManager { get; private set; }
 
-        public Vector2 ClientMousePosition
-        {
-            get
-            {
-                POINT cursorPoint = new() { x = (int)GlobalHooks.MousePosition.x, y = (int)GlobalHooks.MousePosition.y };
-                Win32APIs.ScreenToClient(hWnd, ref cursorPoint);
-                return new Vector2(cursorPoint.x, cursorPoint.y);
-            }
-        }
+        // public Vector2 ClientMousePosition
+        // {
+        //     get
+        //     {
+        //         POINT cursorPoint = new() { x = (int)GlobalHooks.MousePosition.x, y = (int)GlobalHooks.MousePosition.y };
+        //         Win32APIs.ScreenToClient(hWnd, ref cursorPoint);
+        //         return new Vector2(cursorPoint.x, cursorPoint.y);
+        //     }
+        // }
+
+        public Vector2 ClientMousePosition { get; internal set; }
 
         public SkiaDirectCompositionContext? SkiaDirectCompositionContext { get; set; }
         public bool DebugDisplayAreaCache { get; internal set; }
         public bool DebugDisplayBounds { get; internal set; }
+        public bool DebugDisplayObjectIDs { get; internal set; }
 
         public MultiAccess<Cursor> ActiveCursor = new MultiAccess<Cursor>(Cursor.ARROW);
 
@@ -70,6 +73,11 @@ namespace FenUISharp
 
             // Set active instance and current FContext window
             FenUI.activeInstances.Add(this);
+
+            // Creating dispatchers
+            FLogger.Log<FWindow>($"Creating dispatchers");
+            LogicDispatcher = new Dispatcher();
+            WindowDispatcher = new Dispatcher();
 
             // Register window class
             FLogger.Log<FWindow>($"Registering class...");
@@ -100,11 +108,6 @@ namespace FenUISharp
 
             Callbacks.OnWindowEndMove += (x) => SetTargetRefreshrateToMonitorRefreshrate();
             Properties.UseSystemDarkMode = true; // Default to true, can be changed later
-
-            // Creating dispatchers
-            FLogger.Log<FWindow>($"Creating dispatchers");
-            LogicDispatcher = new Dispatcher();
-            WindowDispatcher = new Dispatcher();
 
             WindowThemeManager = new(Resources.GetTheme("default-dark"));
 

@@ -2,6 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
+using FenUISharp.Mathematics;
 using FenUISharp.Native;
 
 // TODO: FIX NOT ALL DRAG DESTINATIONS NOT WORKING
@@ -118,6 +119,8 @@ namespace FenUISharp
         public Action? dragLeave { get; set; }
         public Action<FDropData?>? dragDrop { get; set; }
 
+        public Vector2 LastMouseDragPosition { get; private set; }
+
         internal FDropData? lastDropData;
 
         public MultiAccess<DROPEFFECT> dropEffect { get; set; } = new MultiAccess<DROPEFFECT>(DROPEFFECT.None);
@@ -130,6 +133,10 @@ namespace FenUISharp
 
             lastDropData = HandleDropAction(pDataObj);
             IsDragDropActionInProgress = true;
+
+            Win32APIs.ScreenToClient(Window.hWnd, ref pt);
+            LastMouseDragPosition = new(pt.x, pt.y);
+
             dragEnter?.Invoke(lastDropData);
         }
 
@@ -138,6 +145,10 @@ namespace FenUISharp
             pdwEffect = (uint)dropEffect.Value;
 
             IsDragDropActionInProgress = true;
+
+            Win32APIs.ScreenToClient(Window.hWnd, ref pt);
+            LastMouseDragPosition = new(pt.x, pt.y);
+
             dragOver?.Invoke(lastDropData);
         }
 
@@ -150,6 +161,10 @@ namespace FenUISharp
         public void Drop([In] IntPtr pDataObj, [In] uint grfKeyState, [In] POINT pt, [In, Out] ref uint pdwEffect)
         {
             lastDropData = HandleDropAction(pDataObj);
+
+            Win32APIs.ScreenToClient(Window.hWnd, ref pt);
+            LastMouseDragPosition = new(pt.x, pt.y);
+
             dragDrop?.Invoke(lastDropData);
         }
 

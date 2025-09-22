@@ -1,10 +1,11 @@
 using FenUISharp.Mathematics;
 using FenUISharp.Native;
+using FenUISharp.WinFeatures;
 using SkiaSharp;
 
 namespace FenUISharp
 {
-    public class FWindowCallbacks
+    public class FWindowCallbacks : IDisposable
     {
         private WeakReference<FWindow> window { get; set; }
         public FWindow Window { get => window.TryGetTarget(out var target) ? target : throw new Exception("Window not set."); }
@@ -16,6 +17,11 @@ namespace FenUISharp
 
         public Action<MouseInputCode>? ClientMouseAction { get; set; } // Mouse actions in the client area
         public Action<MouseInputCode>? TrayMouseAction { get; set; } // Mouse actions in the tray icon
+
+        public Action<float>? OnMouseScroll { get; set; }
+        public Action<Vector2>? OnMouseMove { get; set; } // Gives back the mouse position in the Vector2
+
+        public Action? OnMouseLeft { get; set; } // When the mouse leaves the client area
 
         public Action? OnBeginRender { get; set; } // Before the render call
         public Action? OnEndRender { get; set; } // After the render call
@@ -44,6 +50,24 @@ namespace FenUISharp
         public FWindowCallbacks(FWindow window)
         {
             this.window = new WeakReference<FWindow>(window);
+
+            Window.LogicDispatcher.Invoke(() =>
+            {
+                // Drag Drop actions block the WM_MOUSEMOVE window message
+                // This must be accounted for and fixed by manually invoking 
+                // the callback and setting the client mouse poition to the correct one
+                if (Window.DropTarget == null) throw new Exception("DropTarget does not exist");
+                Window.DropTarget.dragOver += (x) =>
+                {
+                    Window.ClientMousePosition = Window.DropTarget.LastMouseDragPosition;
+                    Window.Callbacks.OnMouseMove?.Invoke(Window.ClientMousePosition);
+                };
+            });
+        }
+
+        public void Dispose()
+        {
+            
         }
     }
 }

@@ -13,6 +13,11 @@ namespace FenUISharp.Objects
 {
     public abstract class UIObject : IDisposable, IStateListener
     {
+        public uint InstanceID { get; init; }
+        
+        // Globally static across all windows
+        private static uint _lastInstanceID = 0;
+
         public Transform Transform { get; private set; }
         public Layout Layout { get; private set; }
         public Shape Shape { get; private set; }
@@ -79,6 +84,8 @@ namespace FenUISharp.Objects
         {
             if (!FContext.IsValidContext()) throw new Exception("Invalid FenUISharp window context.");
             FContext.GetCurrentWindow().WindowThemeManager.ThemeChanged += OnThemeChanged;
+
+            InstanceID = _lastInstanceID++;
 
             RenderMaterial = new(FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.DefaultMaterial, this, this);
 
@@ -526,7 +533,7 @@ namespace FenUISharp.Objects
             if (save != null) canvas?.RestoreToCount(save.Value);
         }
 
-        public void DispatchBehaviorEvent(BehaviorEventType type, object? data = null)
+        internal void DispatchBehaviorEvent(BehaviorEventType type, object? data = null)
         {
             if (IsDisposed) return;
             
@@ -600,6 +607,11 @@ namespace FenUISharp.Objects
 
             Invalidate(Invalidation.All); // Make sure to invalidate all when quality or padding is updated. This stuff can break easily if not updated
             // CheckIfSurfaceCanBeDisposed();
+        }
+
+        public override string ToString()
+        {
+            return $"[{InstanceID}] {GetType().FullName}";
         }
     }
 }

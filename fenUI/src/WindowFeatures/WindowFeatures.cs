@@ -36,7 +36,6 @@ namespace FenUISharp.WinFeatures {
 
         public static void Uninitialize(){
             if(!_hasBeenInitialized) return;
-
             _globalHooks?.Dispose();
         }
     }

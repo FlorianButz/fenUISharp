@@ -24,11 +24,14 @@ namespace FenUISharp.Behavior
             this.DropType = dType;
             this.DropEffect = dEffect;
 
+            // if (FContext.GetCurrentWindow() == null || FContext.GetCurrentWindow().DropTarget == null) return;
+
             FContext.GetCurrentWindow().DropTarget.dragDrop += DragDrop;
             FContext.GetCurrentWindow().DropTarget.dragEnter += DragEnter;
             FContext.GetCurrentWindow().DropTarget.dragLeave += DragLeave;
+            FContext.GetCurrentWindow().DropTarget.dragOver += DragOver;
 
-            if (Owner == null) return;
+            if (Owner == null) throw new InvalidOperationException("Owner can't be null");
             Owner.InteractiveSurface.EnableMouseActions.SetStaticState(true, 25);
             Owner.InteractiveSurface.OnMouseEnter += MouseEnter;
             Owner.InteractiveSurface.OnMouseExit += MouseExit;
@@ -73,6 +76,14 @@ namespace FenUISharp.Behavior
 
             _windowHasCompatibleActiveDragAction = false;
             _isCurrentlyInDragAction = false;
+        }
+
+        private void DragOver(FDropData? data)
+        {
+            if (data == null) return;
+            if (!IsSameType(data.dropType)) return;
+
+            _windowHasCompatibleActiveDragAction = true;
         }
 
         private void DragLeave()

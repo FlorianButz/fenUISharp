@@ -189,6 +189,11 @@ namespace FenUISharp
                     activeInstances.ForEach(x => x.DebugDisplayBounds = !x.DebugDisplayBounds);
                     activeInstances.ForEach(x => x.FullRedraw());
                 }
+                else if (x == 0x75)
+                { // F6
+                    activeInstances.ForEach(x => x.DebugDisplayObjectIDs = !x.DebugDisplayObjectIDs);
+                    activeInstances.ForEach(x => x.FullRedraw());
+                }
             };
         }
 

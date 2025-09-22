@@ -323,14 +323,14 @@ namespace FenUISharp
 
                 var barriers = new ResourceBarrier[]
                 {
-            ResourceBarrier.BarrierTransition(
-                persistentRenderTarget,
-                ResourceStates.RenderTarget,
-                ResourceStates.CopySource),
-            ResourceBarrier.BarrierTransition(
-                context.backBuffer,
-                ResourceStates.RenderTarget, // This is the state it comes in as
-                ResourceStates.CopyDest)
+                    ResourceBarrier.BarrierTransition(
+                        persistentRenderTarget,
+                        ResourceStates.RenderTarget,
+                        ResourceStates.CopySource),
+                    ResourceBarrier.BarrierTransition(
+                        context.backBuffer,
+                        ResourceStates.RenderTarget, // This is the state it comes in as
+                        ResourceStates.CopyDest)
                 };
 
                 context.commandList.ResourceBarrier(barriers);

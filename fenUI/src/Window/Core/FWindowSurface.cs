@@ -69,8 +69,6 @@ namespace FenUISharp
                 // Draw all ui objects
                 RootViewPane?.DrawToSurface(canvas);
 
-                // Console.Write("draw");
-
                 // If bounds debug flag is set
                 if (Window.DebugDisplayBounds)
                 {
@@ -112,6 +110,24 @@ namespace FenUISharp
                     }
                 }
 
+                if (Window.DebugDisplayObjectIDs)
+                {
+                    // Loop over all objects
+                    foreach (var component in GetAllUIObjects())
+                    {
+                        // Check if component is being rendered this frame
+                        if (component.RenderThisFrame())
+                        {
+                            using var debugPaint = new SKPaint() { Color = SKColors.Magenta };
+
+                            canvas.DrawText("ID: " + component.InstanceID,
+                                new SKPoint(component.Shape.GlobalBounds.Left, component.Shape.GlobalBounds.Top),
+                                SKTextAlign.Left, new SKFont(SKTypeface.Default, 10),
+                                debugPaint);
+                        }
+                    }
+                }
+
                 // Restore canvas to initial no-clipping state
                 canvas.RestoreToCount(notClipped);
 
@@ -148,6 +164,13 @@ namespace FenUISharp
 
             // Check if any active and visible object wants to be redrawn
             var doesAnyObjectRequireRedraw = GetAllUIObjects().Any(x => x.WindowRedrawThisObject && x.Enabled.CachedValue && x.Visible.CachedValue);
+
+            // Debug
+            // GetAllUIObjects().Where(x => x.WindowRedrawThisObject && x.Enabled.CachedValue && x.Visible.CachedValue).ToList().ForEach(x => Console.WriteLine(x));
+            // Console.WriteLine("+===+");
+            // Console.WriteLine(Window._isDirty);
+            // Console.WriteLine(Window._fullRedraw);
+            // Console.WriteLine("+===+");
 
             // Check for other flags and return true if any of them is true
             return doesAnyObjectRequireRedraw || Window.DebugDisplayAreaCache || Window._isDirty || Window._fullRedraw;
@@ -227,10 +250,10 @@ namespace FenUISharp
 
                     // Add to clip path
                     clipPath.AddRect(lastbounds);
-
-                    // Reset redraw flag
-                    component.WindowRedrawThisObject = false;
                 }
+
+                // Reset redraw flag
+                component.WindowRedrawThisObject = false;
             }
 
             // Setting last path to null

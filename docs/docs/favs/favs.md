@@ -123,16 +123,16 @@ The `Keyframe` block has following attributes:
 ### Animatable Attributes
 
 Following blocks can be placed inside of a `Keyframe`:
-- `<translate-x value="0">`: Translation on x-axis
-- `<translate-y value="0">`: Translation on y-axis
-- `<scale-x value="0">`: Scale on x-axis
-- `<scale-y value="0">`: Scale on y-axis
-- `<anchor-x value="0.5">`: Anchor on x-axis (0.5 is middle)
-- `<anchor-y value="0.5">`: Anchor on y-axis (0.5 is middle)
-- `<rotate value="0">`: Rotation around z-axis
-- `<opacity value="1">`: Opacity of the path
-- `<blur-radius value="0">`: Amount of blurring
-- `<stroke-trace value="1">`: Will animate the stroke to appear along the path
+- `<translate-x value="0" />`: Translation on x-axis
+- `<translate-y value="0" />`: Translation on y-axis
+- `<scale-x value="0" />`: Scale on x-axis
+- `<scale-y value="0" />`: Scale on y-axis
+- `<anchor-x value="0.5" />`: Anchor on x-axis (0.5 is middle)
+- `<anchor-y value="0.5" />`: Anchor on y-axis (0.5 is middle)
+- `<rotate value="0" />`: Rotation around z-axis
+- `<opacity value="1" />`: Opacity of the path
+- `<blur-radius value="0" />`: Amount of blurring
+- `<stroke-trace value="1" />`: Will animate the stroke to appear along the path
 
 ## Animation Naming
 

@@ -6,7 +6,7 @@ namespace FenUISharp.Objects
 {
     public class ModelViewPane : UIObject
     {
-        private List<UIObject>? _modelItems;
+        internal List<UIObject>? _modelItems;
 
         private View? _model;
         public View? ViewModel { get => _model; set { SetViewAnimated(value); } }
@@ -30,8 +30,8 @@ namespace FenUISharp.Objects
 
             OnAnimationValueUpdated += (x) =>
             {
-                Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(x, 0, 1, 1, 0.95f));
                 // Transform.LocalPosition.SetStaticState(new(0, x * (_viewTransitionComponent.Inverse ? -15 : 15)));
+                Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(x, 0, 1, 1, 0.95f));
                 ImageEffects.Opacity.SetStaticState(1 - x);
             };
         }
@@ -76,10 +76,11 @@ namespace FenUISharp.Objects
         protected void UpdateView()
         {
             if (_model == null) return;
-
             _model.PaneRoot = this;
+
             _modelItems = _model.Create();
             _modelItems.ForEach(x => { if (x.Parent == null || x.Parent is ModelViewPane) x.SetParent(this); });
+
             _model.OnViewShown();
 
             Layout.RecursivelyUpdateLayout();
@@ -98,6 +99,7 @@ namespace FenUISharp.Objects
 
             _model.OnViewDestroyed();
             _modelItems?.ForEach(x => x.Dispose());
+            _modelItems?.Clear();
         }
 
         public override void Dispose()

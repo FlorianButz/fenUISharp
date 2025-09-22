@@ -35,12 +35,16 @@ namespace FenUISharp
 
         public bool ExcludeFromAeroPeek { set { int val = value ? 1 : 0; Win32APIs.DwmSetWindowAttribute(Window.hWnd, 12 /* DWMWA_EXCLUDED_FROM_PEEK */, ref val, sizeof(int)); } }
 
+        public bool TransparentIgnoreClientInteractions { set => UpdateTransparentIgnoreClientInteractions(value); }
+
         public bool VisibleInTaskbar { get => _taskbarIconVisible; set { HideTaskbarIcon(value); } }
         internal IntPtr _hiddenOwnerWindowHandle = IntPtr.Zero;
         private bool _taskbarIconVisible;
 
         public bool UseSystemDarkMode { set { _sysDarkMode = value; UpdateSysDarkmode(); } get => _sysDarkMode; }
         private bool _sysDarkMode = false;
+
+        public bool ExcludeFromDesktopDuplication { set { UpdateExcludeFromDesktopDuplication(value); } }
 
         public bool IsWindowFocused { get => _isFocused; }
         internal bool _isFocused = false;
@@ -134,6 +138,9 @@ namespace FenUISharp
                 Win32APIs.AllowDarkModeForWindow(Window.hWnd, true);
         }
 
+        internal void UpdateExcludeFromDesktopDuplication(bool exclude)
+            => Win32APIs.SetWindowDisplayAffinity(Window.hWnd, exclude ? /* WDA_EXCLUDEFROMCAPTURE */ 0x00000011 : 0x00000000);
+
         internal void UpdateMica(bool useMica, MicaBackdropType backdropType = MicaBackdropType.MainWindow)
         {
             _useMica = useMica;
@@ -160,6 +167,19 @@ namespace FenUISharp
             // };
 
             // Win32APIs.DwmExtendFrameIntoClientArea(hWnd, ref margins);
+        }
+
+        internal void UpdateTransparentIgnoreClientInteractions(bool isSet)
+        {
+            int styl = Win32APIs.GetWindowLong(Window.hWnd, (int)WindowLongs.GWL_EXSTYLE);
+
+            if (isSet)
+                styl |= (WindowStyles.WS_EX_LAYERED);
+            else
+                styl &= ~(WindowStyles.WS_EX_LAYERED);
+
+            Win32APIs.SetWindowLong(Window.hWnd, (int)WindowLongs.GWL_EXSTYLE, styl);
+            Window.Shape.Position = Window.Shape.Position;
         }
 
         public void CreateTrayIcon(string iconPath, string tooltip)

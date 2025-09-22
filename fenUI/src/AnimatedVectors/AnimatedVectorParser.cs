@@ -18,8 +18,6 @@ namespace FenUISharp.AnimatedVectors
             return ParseFAV(reader.ReadToEnd());
         }
 
-        // For animations: FAVs always order the paths. Path ID might not be the line order from the SVG
-
         public static AnimatedVector ParseFAV(string rawFavXML)
         {
             XDocument doc = XDocument.Parse(rawFavXML);
