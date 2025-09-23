@@ -167,7 +167,9 @@ namespace FenUISharp.Objects
         {
             base.LateUpdate();
 
-            GlobalBounds = FContext.GetCurrentWindow().Shape.Bounds;
+            // IMPORTANT: Reset window to 0, 0 pos as it has to be in client coordinates
+            GlobalBounds = new SKRect(0, 0, FContext.GetCurrentWindow().Shape.Bounds.Width, FContext.GetCurrentWindow().Shape.Bounds.Height);
+            
             Transform.LocalPosition.SetStaticState(GetPanelPosition(Transform.GlobalToLocal(GlobalTargetPoint.CachedValue), Transform.GlobalToLocal(GlobalBounds), DistanceToTarget));
 
             // Calc
@@ -246,7 +248,7 @@ namespace FenUISharp.Objects
                 offset.y = Shape.SurfaceDrawRect.Height / 2 + distanceToTarget;
             }
             // Bottom edge
-            if ((point.y + Shape.LocalBounds.Height / 2 + pad) > bounds.Right)
+            if ((point.y + Shape.LocalBounds.Height / 2 + pad) > bounds.Bottom)
             {
                 offset.y = -Shape.SurfaceDrawRect.Height / 2 - distanceToTarget;
             }

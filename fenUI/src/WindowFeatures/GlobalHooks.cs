@@ -40,7 +40,7 @@ namespace FenUISharp.WinFeatures
         AutoResetEvent signal = new AutoResetEvent(false);
         ConcurrentQueue<InputEvent> queue = new ConcurrentQueue<InputEvent>();
 
-        bool[] keyFlags = new bool[256];
+        bool[] keyFlags = new bool[1024];
 
         private bool _isRegistered = false;
 

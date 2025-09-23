@@ -21,6 +21,11 @@ namespace FenUISharp
         [ThreadStatic]
         private static ModelViewPane? RootViewPane;
 
+        [ThreadStatic]
+        internal static DateTime frameStartTime;
+
+        public static double CurrentFrameTimeMillis { get => (DateTime.Now - frameStartTime).TotalMilliseconds; }
+
         public static FWindow GetCurrentWindow() => CurrentWindow ?? throw new Exception("GetCurrentWindow() cannot be called in an invalid FenUI context");
         public static Dispatcher GetCurrentDispatcher() => CurrentDispatcher ?? throw new Exception("GetCurrentDispatcher() cannot be called in an invalid FenUI context");
         public static ModelViewPane? GetRootViewPane() => RootViewPane;

@@ -446,6 +446,13 @@ namespace FenUISharp.Objects
             if (IsDisposed) return;
             if (canvas == null) return;
 
+            // Cap frame time
+            if (FContext.GetCurrentWindow().Loop.CapFrameTime && FContext.CurrentFrameTimeMillis > FContext.GetCurrentWindow().Loop.MaxFrameTime)
+            {
+                FContext.GetCurrentDispatcher().Invoke(() => Invalidate(Invalidation.SurfaceDirty));
+                return;
+            }
+
             DispatchBehaviorEvent(BehaviorEventType.BeforeRender, canvas);
 
             Render(canvas);
@@ -514,7 +521,7 @@ namespace FenUISharp.Objects
             canvas?.Concat(Transform.DrawMatrix);
 
             if (LocalVisible.CachedValue && canvas != null)
-            {
+            {                
                 using var paint = GetDrawPaint();
                 ObjectSurface.DrawFullChainToTarget(canvas, Shape.SurfaceDrawRect, paint, PostProcessChain);
             }

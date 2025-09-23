@@ -143,8 +143,9 @@ namespace FenUISharp
                     paint.StrokeWidth = 2;
                     foreach (var area in Window.Shape.GetWinRegion())
                     {
-                        area.Inflate(-2, -2);
-                        canvas.DrawRect(area, paint);
+                        var a = area.Invoke();
+                        a.Inflate(-2, -2);
+                        canvas.DrawRect(a, paint);
                     }
                 }
 

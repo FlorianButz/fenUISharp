@@ -42,13 +42,13 @@ namespace FenUISharp
                 // When a char is typed and the window is focused
                 case (int)WindowMessages.WM_CHAR: // Keyboard input
                     Window.LogicDispatcher.Invoke(() => Window.Callbacks.OnKeyboardInputTextReceived?.Invoke((char)wParam));
-                    break;
+                    return IntPtr.Zero;
 
                 // When a device is changed. I don't know what this does
                 case (int)WindowMessages.WM_DEVICECHANGE:
                     FLogger.Log<FWindowProcedure>($"WM_DEVICECHANGE: Device change for window {Window.hWnd}");
                     Window.LogicDispatcher.Invoke(() => Window.Callbacks.OnDevicesChanged?.Invoke());
-                    break;
+                    return IntPtr.Zero;
 
                 // When the window is resized and needs min/max size info
                 case (int)WindowMessages.WM_GETMINMAXINFO:
@@ -60,7 +60,7 @@ namespace FenUISharp
 
                     // Put structure into lParam as pointer
                     Marshal.StructureToPtr(minMaxInfo, lParam, true);
-                    break;
+                    return IntPtr.Zero;
 
                 // Mouse callbacks when tray icon was clicked
                 case (int)WindowMessages.WM_USER + 1:
@@ -80,7 +80,7 @@ namespace FenUISharp
                 case (int)WindowMessages.WM_SETTINGCHANGE:
                     FLogger.Log<FWindowProcedure>($"WM_INITMENUPOPUP/WM_SETTINGCHANGE: Window {Window.hWnd}");
                     Window.Properties.UpdateSysDarkmode();
-                    break;
+                    return IntPtr.Zero;
 
                 // When the window is in a resize action
                 case (int)WindowMessages.WM_SIZING:
@@ -134,7 +134,7 @@ namespace FenUISharp
 
                     _isSizeMoving = false;
                     _isSizing = false;
-                    break;
+                    return IntPtr.Zero;
 
                 // When the focus of the window is killed
                 case (int)WindowMessages.WM_KILLFOCUS:

@@ -90,7 +90,7 @@ namespace FenUISharp
         /// </summary>
         public nint CurrentMonitorHandle => Win32APIs.MonitorFromWindow(Window.hWnd, 0x00000002 /* MONITOR_DEFAULTTONEAREST */);
 
-        private Dictionary<object, SKRect> WindowRegion = new();
+        private Dictionary<object, Func<SKRect>> WindowRegion = new();
         private bool _windowRegionsDirty;
 
         public FWindowShape(FWindow window)
@@ -197,16 +197,18 @@ namespace FenUISharp
         /// Specifies a new cropped window region. Whole window is default. Values should be in client coordinate space
         /// </summary>
         /// <param name="owner">The caller of this method</param>
-        /// <param name="area">The area the window should be cropped to</param>
-        public void AddOrUpdateWindowRegion(object owner, SKRect area)
+        /// <param name="area">The area the window should be cropped to. This is only invoked after setting or when calling RebuildWindowArea(). It is not updated continously!</param>
+        public void AddOrUpdateWindowRegion(object owner, Func<SKRect> area)
         {
             if (WindowRegion.ContainsKey(owner))
             {
-                SKRect oldRect = WindowRegion[owner];
-                if (oldRect.Left != area.Left ||
-                    oldRect.Right != area.Right ||
-                    oldRect.Height != area.Height ||
-                    oldRect.Width != area.Width)
+                var a = area.Invoke();
+
+                SKRect oldRect = WindowRegion[owner].Invoke();
+                if (DifferentSize(oldRect.Left, a.Left) ||
+                    DifferentSize(oldRect.Right, a.Right) ||
+                    DifferentSize(oldRect.Top, a.Top) ||
+                    DifferentSize(oldRect.Bottom, a.Bottom))
                     _windowRegionsDirty = true;
 
                 WindowRegion[owner] = area;
@@ -216,8 +218,9 @@ namespace FenUISharp
                 WindowRegion.Add(owner, area);
                 _windowRegionsDirty = true;
             }
-
         }
+
+        bool DifferentSize(float a, float b) => Math.Abs(a - b) > 0.5f;
 
         /// <summary>
         /// Removes the added region which was bound to the owner object.
@@ -227,38 +230,34 @@ namespace FenUISharp
         {
             if (WindowRegion.ContainsKey(owner))
             {
-                WindowRegion.Remove(owner);   
+                WindowRegion.Remove(owner);
                 _windowRegionsDirty = true;
             }
         }
 
-        internal List<SKRect> GetWinRegion() => WindowRegion.Values.ToList();
+        internal List<Func<SKRect>> GetWinRegion() => WindowRegion.Values.ToList();
 
-        int updateIndex = 0;
         private void UpdateWindowRegions()
         {
-            updateIndex++;
-            if (updateIndex <= 2) return;
-            updateIndex = 0;
-
             if (WindowRegion.Count == 0)
             {
                 Win32APIs.SetWindowRgn(Window.hWnd, IntPtr.Zero, true);
                 return;
             }
 
-            FLogger.Log<FWindowShape>($"Region update. Regions count: {WindowRegion.Count}");
+            FLogger.Log<FWindowShape>("Rebuild window regions");
 
             IntPtr finalRegion = IntPtr.Zero;
-            foreach (var obj in WindowRegion)
+            foreach (var obj in WindowRegion.ToList())
             {
-                var rect = obj.Value;
+                var rect = obj.Value.Invoke();
+
                 IntPtr rgn = Win32APIs.CreateRectRgn((int)(rect.Left), (int)(rect.Top),
                     (int)(rect.Left + rect.Width),
                     (int)(rect.Top + rect.Height));
 
                 if (finalRegion == IntPtr.Zero)
-                    finalRegion = rgn; // take the first one
+                    finalRegion = rgn; // Take the first one
                 else
                 {
                     Win32APIs.CombineRgn(finalRegion, finalRegion, rgn, CombineModes.RGN_OR);
@@ -274,6 +273,9 @@ namespace FenUISharp
 
             _windowRegionsDirty = false;
         }
+
+        public void RebuildWindowArea()
+            => _windowRegionsDirty = true;
 
         internal void UpdateShape()
         {

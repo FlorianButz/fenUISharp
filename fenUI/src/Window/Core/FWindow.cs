@@ -138,8 +138,8 @@ namespace FenUISharp
         {
             var Shape = new FWindowShape(this);
             var Procedure = new FWindowProcedure(this) { _isRunning = () => _isRunning };
-            var Loop = new FWindowLoop(this) { _logicIsRunning = () => _isRunning && !_disposingOrDisposed, _windowIsRunning = () => _isRunning };
             var Callbacks = new FWindowCallbacks(this);
+            var Loop = new FWindowLoop(this) { _logicIsRunning = () => _isRunning && !_disposingOrDisposed, _windowIsRunning = () => _isRunning };
             var Properties = new FWindowProperties(this);
             var Surface = new FWindowSurface(this);
 

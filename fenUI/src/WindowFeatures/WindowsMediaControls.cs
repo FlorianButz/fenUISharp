@@ -14,8 +14,6 @@ namespace FenUISharp.WinFeatures
 {
     public struct PlaybackInfo
     {
-        public bool isActiveSession;
-
         public bool? isShuffling;
         public GlobalSystemMediaTransportControlsSessionPlaybackStatus? playbackState;
         public MediaPlaybackAutoRepeatMode? repeatMode;
@@ -37,7 +35,6 @@ namespace FenUISharp.WinFeatures
 
         public PlaybackInfo(bool init)
         {
-            isActiveSession = false;
             isShuffling = false;
             playbackState = GlobalSystemMediaTransportControlsSessionPlaybackStatus.Stopped;
             repeatMode = MediaPlaybackAutoRepeatMode.None;
@@ -64,6 +61,20 @@ namespace FenUISharp.WinFeatures
         public static Action? onMediaUpdated { get; set; }
         public static Action? onThumbnailUpdated { get; set; }
         public static Action? onTimelineUpdated { get; set; }
+        public static Action? onSessionChanged { get; set; }
+
+        public static bool IsMediaActive()
+        {
+            if (globSessionManager?.GetCurrentSession() == null)
+                return false;
+
+            var playbackInfo = currentSession?.GetPlaybackInfo();
+            if (playbackInfo == null)
+                return false;
+
+            // return playbackInfo.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Opened;
+            return true;
+        }
 
         static bool continousPolling = true;
         public static bool ContinousPolling
@@ -113,6 +124,7 @@ namespace FenUISharp.WinFeatures
                     }
                 }
             });
+            thread.Name = "Media Transport Controls Poller";
             thread.IsBackground = true;
             thread.Start();
         }
@@ -133,6 +145,8 @@ namespace FenUISharp.WinFeatures
             {
                 globSessionManager.SessionsChanged += SessionChangedHandler;
             }
+
+            globSessionManager.SessionsChanged += (x, y) => onSessionChanged?.Invoke();
         }
 
         private static void SessionChangedHandler(GlobalSystemMediaTransportControlsSessionManager sender, SessionsChangedEventArgs args)
@@ -180,7 +194,6 @@ namespace FenUISharp.WinFeatures
                                                  cachedInfo.position != timelineProperties.Position.TotalSeconds;
                         cachedInfo.duration = duration.TotalSeconds;
                         cachedInfo.position = timelineProperties.Position.TotalSeconds;
-                        cachedInfo.isActiveSession = true;
 
                         if (isUpdatedTimeline && ContinousPolling)
                             onTimelineUpdated?.Invoke();

@@ -53,6 +53,9 @@ namespace FenUISharp
 
             // Trigger buffer invalidation
             FullRedraw();
+
+            // Trigger wndarea rebuild
+            Shape.RebuildWindowArea();
         }
     }
 }

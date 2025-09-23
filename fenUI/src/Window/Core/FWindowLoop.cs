@@ -13,6 +13,9 @@ namespace FenUISharp
         public bool PauseUpdateLoopWhenLoseFocus { get; set; } = false;
         public bool PauseUpdateLoopWhenHidden { get; set; } = true;
 
+        public bool CapFrameTime { get; set; } = false;
+        public float MaxFrameTime { get; set; } = 32;
+
         private bool _delayedFocus = true;
 
         public Func<bool>? _logicIsRunning { get; set; }
@@ -107,6 +110,8 @@ namespace FenUISharp
                     // Calculate delta time and set the previous frame time
                     Window.Time.DeltaTime = (float)(currentTime - previousFrameTime) / 1000.0f;
                     previousFrameTime = currentTime;
+
+                    FContext.frameStartTime = DateTime.Now;
 
                     // Calling the window update
                     WindowUpdate();

@@ -42,6 +42,9 @@ namespace FenUISharp
 
             AllowDebugOutput(false);
 
+            // Make sure that Windows isn't handling things it shouldn't handle
+            Win32APIs.SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT.PER_MONITOR_AWARE_V2);
+
             if (!flags.Contains("disable_crashhandler"))
             {
                 // Extract crash handler
@@ -84,9 +87,6 @@ namespace FenUISharp
 
             Resources.LoadDefault();
             WindowFeatures.TryInitialize(flags.Contains("disable_winfeatures")); // Initialize all window features
-
-            // Make sure that Windows isn't handling things it shouldn't handle
-            Win32APIs.SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT.PER_MONITOR_AWARE_V2);
         }
 
         public static void AllowDebugOutput(bool allow)
