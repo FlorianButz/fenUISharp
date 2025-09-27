@@ -70,6 +70,8 @@ namespace FenUISharp.Objects
         public State<float> CaretHeight { get; init; }
         public State<float> CaretBlinkSpeed { get; init; }
 
+        public State<int> MaxCharacters { get; init; }
+
         public Action<string>? OnTextChanged { get; set; }
         public Action<string>? OnEnter { get; set; }
 
@@ -88,7 +90,6 @@ namespace FenUISharp.Objects
         private const char ENTER = '\u000D';
 
         private const char SELALL = '\u0001'; // Ctrl + A
-        // private const char TAB = '\u0009'; // Tabulator
 
         private StringBuilder text = new();
 
@@ -111,23 +112,18 @@ namespace FenUISharp.Objects
             CaretHeight = new(() => 18, this, this);
             CaretColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary.AddMix(new(50, 50, 50)), this, this);
             TextSelectionColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary.MultiplyMix(new(180, 180, 180)), this, this);
+            MaxCharacters = new(() => 100, this, this);
 
             label.Padding.SetStaticState(0);
             label.Layout.StretchVertical.SetStaticState(true);
-            // label.Layout.AbsoluteMarginHorizontal.SetStaticState(TextPadding.HorizontalPadding);
-            // Label.Layout.AbsoluteMarginVertical.SetResponsiveState(() => TextPadding.VerticalPadding);
 
             new CursorComponent(this, Cursor.IBEAM);
 
             Transform.Size.SetStaticState(new Vector2(300, 30));
-            // Transform.Size.SetResponsiveState(() => new Vector2(300 + (TextPadding.Item1.x + TextPadding.Item1.y), 25 + (TextPadding.Item2.x + TextPadding.Item2.y)));
-
             InteractiveSurface.EnableMouseActions.SetStaticState(true);
             InteractiveSurface.OnMouseAction += OnMouseAction;
             InteractiveSurface.OnDrag += OnDrag;
             InteractiveSurface.OnDoubleMouseAction += OnDoubleMouseAction;
-            // InteractiveSurface.OnMouseEnter += () => { };
-            // InteractiveSurface.OnMouseExit += () => { isSelected = false;  };
 
             FContext.GetKeyboardInputManager().OnTextTyped += OnKeyTyped;
             FContext.GetKeyboardInputManager().OnKeyTyped += OnKeyPressed;
@@ -254,8 +250,6 @@ namespace FenUISharp.Objects
         {
             if (code.button == 0 && code.state == 0) // Left mouse down
             {
-                // isSelected = true;
-
                 CaretIndex = MousePosToCaretIndex(FContext.GetCurrentWindow().ClientMousePosition);
                 _lastTypedTimer = _typedTimerResetLength;
 
@@ -368,6 +362,8 @@ namespace FenUISharp.Objects
                     if (c < 32) break; // Non-printable control key that wasn't handled above
 
                     RemoveSelectedText();
+
+                    if (_Text.Length >= MaxCharacters.CachedValue) return;
 
                     text.Insert(CaretIndex, c);
                     CaretIndex++;
@@ -502,6 +498,8 @@ namespace FenUISharp.Objects
             }
 
             lastValidInput = _Text;
+            if (text.Length > MaxCharacters.CachedValue)
+                text = new(text.ToString().Substring(0, MaxCharacters.CachedValue));
 
             var lastSelection = _selectionIndex;
             CaretIndex = _caretIndex; // Make sure to trigger setter

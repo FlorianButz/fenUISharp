@@ -8,9 +8,12 @@ namespace FenUISharp.Objects
 {
     public class FPopupPanel : FPanel, IStateListener
     {
+        public bool HasTail { get; set; } = true;
         public float TailHeight { get; set; } = 10;
         public float TailWidth { get; set; } = 7.5f;
         public float TailCornerRadius { get; set; } = 3.5f;
+
+        private bool ScaleAnimationFromZero { get; set; } = true;
 
         public int DistanceToTarget { get; set; } = 15;
 
@@ -25,9 +28,12 @@ namespace FenUISharp.Objects
 
         private KeyBind closeKeybind;
 
-        public FPopupPanel(Func<Vector2> size, bool addLayout = true) : base(() => new(0, 0), size)
+        public FPopupPanel(Func<Vector2> size, bool addLayout = true, bool hasTail = true, bool scaleAnimationFromZero = true) : base(() => new(0, 0), size)
         {
             GlobalTargetPoint = new(() => new(0, 0), this, this);
+
+            HasTail = hasTail;
+            ScaleAnimationFromZero = scaleAnimationFromZero;
 
             closeKeybind = new() { VKCode = 0x1B, OnKeybindExecuted = () => { if (AllowEscapeClosing) Close(); } };
             FContext.GetKeyboardInputManager().RegisterKeybind(closeKeybind);
@@ -45,7 +51,7 @@ namespace FenUISharp.Objects
             _inAnimation = new(this, Easing.EaseOutLessElastic, Easing.EaseInCubic);
             _inAnimation.OnValueUpdate += (x) =>
             {
-                Transform.Scale.SetStaticState(Vector2.One * x);
+                Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(x, 0f, 1f, ScaleAnimationFromZero ? 0f : 0.6f, 1f));
             };
             _inAnimation.OnComplete += () => OnCompleteAnim();
 
@@ -167,7 +173,7 @@ namespace FenUISharp.Objects
         {
             base.LateUpdate();
 
-            // IMPORTANT: Reset window to 0, 0 pos as it has to be in client coordinates
+            // IMPORTANT: Reset (this instance of the) rect of the window to 0, 0 pos as it has to be in client coordinates
             GlobalBounds = new SKRect(0, 0, FContext.GetCurrentWindow().Shape.Bounds.Width, FContext.GetCurrentWindow().Shape.Bounds.Height);
             
             Transform.LocalPosition.SetStaticState(GetPanelPosition(Transform.GlobalToLocal(GlobalTargetPoint.CachedValue), Transform.GlobalToLocal(GlobalBounds), DistanceToTarget));
@@ -285,11 +291,14 @@ namespace FenUISharp.Objects
         {
             var paint = GetRenderPaint();
 
-            RenderMaterial.CachedValue.DrawWithMaterial(canvas, tailPath, this, paint);
+            if (HasTail)
+            {
+                RenderMaterial.CachedValue.DrawWithMaterial(canvas, tailPath, this, paint);
 
-            // Clip only tail area
-            canvas.ClipPath(this.tailPath, SKClipOperation.Difference, true);
-            canvas.ClipPath(tailClip, SKClipOperation.Difference, true);
+                // Clip only tail area
+                canvas.ClipPath(this.tailPath, SKClipOperation.Difference, true);
+                canvas.ClipPath(tailClip, SKClipOperation.Difference, true);
+            }
 
             // Draw base everywhere except tail
             base.Render(canvas);

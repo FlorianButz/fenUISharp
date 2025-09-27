@@ -56,6 +56,7 @@ namespace FenUISharp.Materials
             this.GrabPassFunction = GrabPassFunction;
         }
 
+        // TODO: Causes crashes, engine execution errors
         protected override void Draw(SKCanvas targetCanvas, SKPath path, UIObject caller, SKPaint paint)
         {
             using var windowArea = GrabPassFunction();

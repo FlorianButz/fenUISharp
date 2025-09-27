@@ -26,6 +26,8 @@ namespace FenUISharp.Objects
 
             StackContentComponent layout = new(panel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
 
+            FSimpleButton fg = new(new FText(TextModelFactory.CreateBasic("")), () => FContextMenuFactory.CreateContextMenu());
+            FSimpleButton fg2 = new(new FText(TextModelFactory.CreateBasic("")), () => new FPopupPanel(() => new(150, 400), hasTail: false, scaleAnimationFromZero: false).Show(() => new(0, 0)), position: () => new(200, 0));
             {
                 FText title = new(TextModelFactory.CreateBasic("Images", 20, bold: true), size: () => new Vector2(200, 75));
                 title.SetParent(panel);
@@ -320,7 +322,7 @@ namespace FenUISharp.Objects
             }
 
             // TODO: Fix layout update order
-            FContext.GetCurrentDispatcher().InvokeLater(() => layout.FullUpdateLayout(), 2L);
+            // FContext.GetCurrentDispatcher().InvokeLater(() => layout.FullUpdateLayout(), 5L);
             return new List<UIObject>() { panel };
         }
     }

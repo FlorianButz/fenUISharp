@@ -69,15 +69,14 @@ namespace FenUISharp.Objects
             if (borderThickness > 0.1f)
             {
                 var bounds = Shape.LocalBounds;
-                bounds.Inflate(5, 5);
-                bounds.Offset(0.5f, 0.5f);
+                bounds.Inflate(6, 6);
 
                 using var renderPaint = GetRenderPaint();
                 renderPaint.Color = EnabledFillColor.CachedValue;
                 renderPaint.IsStroke = true;
                 renderPaint.StrokeWidth = borderThickness;
 
-                using (var path = SKSquircle.CreateSquircle(bounds, CornerRadius.CachedValue * 1.3f))
+                using (var path = SKSquircle.CreateSquircle(bounds, CornerRadius.CachedValue * 1.5f))
                     canvas.DrawPath(path, renderPaint);
             }
         }

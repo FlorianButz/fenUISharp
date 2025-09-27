@@ -47,6 +47,7 @@ namespace FenUISharp.Materials
             targetCanvas.DrawImage(windowArea, displayArea, sampling: new(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
 
             targetCanvas.RestoreToCount(unmodified);
+            caller.Invalidate(UIObject.Invalidation.SurfaceDirty);
         }
     }
 }

@@ -567,6 +567,9 @@ namespace FenUISharp
             }
         }
 
+        public void WaitForGPU()
+            => DirectCompositionContext?.WaitForGpu();
+
         public SKImage? CaptureWindowRegion(SKRect region, float quality)
         {
             lock (resourceLock)
@@ -577,16 +580,18 @@ namespace FenUISharp
                 try
                 {
                     // Ensure all drawing is complete before capture
+
+                    DirectCompositionContext?.WaitForGpu(); // Ensure GPU is done
+
+                    grContext?.Submit(true);
                     Surface.Canvas.Flush();
                     Surface.Flush();
-                    grContext?.Submit(true);
 
                     Compositor.Dump(Surface.Snapshot(), "rcontext_buffer_surf_whole");
 
-                    var snapshot = Surface.Snapshot(new SKRectI((int)region.Left, (int)region.Top, (int)region.Right, (int)region.Bottom));
+                    using var snapshot = Surface.Snapshot(new SKRectI((int)region.Left, (int)region.Top, (int)region.Right, (int)region.Bottom));
                     var scaled = RMath.CreateLowResImage(snapshot, RMath.Clamp(quality, 0.01f, 1f), SamplingOptions);
-                    snapshot?.Dispose();
-
+                    
                     Compositor.Dump(scaled, "rcontext_buffer_cropped_scaled");
 
                     return scaled;

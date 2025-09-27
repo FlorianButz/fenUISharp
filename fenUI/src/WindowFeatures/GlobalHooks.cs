@@ -30,17 +30,23 @@ namespace FenUISharp.WinFeatures
 
         #region Properties
 
+        private static float lastScrollDelta = 0;
         private static Vector2 lastMousePosition = new Vector2(0, 0);
         private static Vector2 mousePosition = new Vector2(0, 0);
         public static Vector2 MousePosition { get => mousePosition; }
         public static bool MouseDown { get; private set; }
+
+        // These are set in the hook iteself
+        private static float scrollDelta = 0f;
+        private static Vector2 capturedMousePos;
+        private static bool mouseUpdate;
 
         #endregion
 
         AutoResetEvent signal = new AutoResetEvent(false);
         ConcurrentQueue<InputEvent> queue = new ConcurrentQueue<InputEvent>();
 
-        bool[] keyFlags = new bool[1024];
+        bool[] keyFlags = new bool[256];
 
         private bool _isRegistered = false;
 
@@ -72,26 +78,24 @@ namespace FenUISharp.WinFeatures
             int nCode = evt.nCode;
             IntPtr wParam = evt.wParam;
             IntPtr lParam = evt.lParam;
+            KBDLLHOOKSTRUCT keyInfo = evt.keyInfo;
 
             if (nCode < 0) return;
 
-            if (evt.type == 1)
+            if (evt.type == 1 || mouseUpdate)
             {
-                MSLLHOOKSTRUCT mouseInfo = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+                mouseUpdate = false;
 
                 // Mouse coordinates
-                int mouseX = mouseInfo.pt.x;
-                int mouseY = mouseInfo.pt.y;
+                int mouseX = (int)capturedMousePos.x;
+                int mouseY = (int)capturedMousePos.y;
 
                 // Mouse wheel scrolling
-                if (wParam == (IntPtr)GLOBALHOOKTYPE.WM_MOUSEWHEEL)
-                {
-                    short scrollDelta = (short)((mouseInfo.mouseData >> 16) & 0xFFFF);
+                if (lastScrollDelta != scrollDelta)
                     OnMouseScroll?.Invoke(scrollDelta);
-                }
 
                 // Mouse move callbacks
-                if (wParam == (IntPtr)WindowMessages.WM_MOUSEMOVE)
+                if (lastMousePosition != capturedMousePos)
                 {
                     mousePosition.x = mouseX;
                     mousePosition.y = mouseY;
@@ -102,6 +106,9 @@ namespace FenUISharp.WinFeatures
                     lastMousePosition.x = mouseX;
                     lastMousePosition.y = mouseY;
                 }
+
+                if (evt.type != 1) return;
+                MSLLHOOKSTRUCT mouseInfo = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
 
                 // Mouse button events
                 switch ((MouseMessages)wParam)
@@ -130,8 +137,7 @@ namespace FenUISharp.WinFeatures
             }
             else if (evt.type == 2)
             {
-                // Extracting the input info from the lParam
-                KBDLLHOOKSTRUCT keyInfo = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+                if (keyInfo.vkCode > 255) return;
 
                 // Check if key up or key down event
 
@@ -158,6 +164,28 @@ namespace FenUISharp.WinFeatures
             if (instance == null)
                 return Win32APIs.CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
 
+            MSLLHOOKSTRUCT mouseInfo = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+
+            // Mouse coordinates
+            int mouseX = mouseInfo.pt.x;
+            int mouseY = mouseInfo.pt.y;
+
+            // Mouse wheel scrolling
+            if (wParam == (IntPtr)GLOBALHOOKTYPE.WM_MOUSEWHEEL)
+            {
+                short scrollDelta = (short)((mouseInfo.mouseData >> 16) & 0xFFFF);
+                GlobalHooks.scrollDelta += scrollDelta;
+            }
+
+            // Mouse move callbacks
+            if (wParam == (IntPtr)WindowMessages.WM_MOUSEMOVE)
+            {
+                capturedMousePos.x = mouseX;
+                capturedMousePos.y = mouseY;
+            }
+
+            mouseUpdate = true;
+
             instance.queue.Enqueue(new InputEvent() { type = 1, lParam = lParam, wParam = wParam, nCode = nCode });
             instance.signal.Set();
 
@@ -169,7 +197,8 @@ namespace FenUISharp.WinFeatures
             if (instance == null)
                 return Win32APIs.CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
 
-            instance.queue.Enqueue(new InputEvent() { type = 2, lParam = lParam, wParam = wParam, nCode = nCode });
+            var keyInfo = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+            instance.queue.Enqueue(new InputEvent() { type = 2, lParam = lParam, wParam = wParam, nCode = nCode, keyInfo = keyInfo });
             instance.signal.Set();
 
             return Win32APIs.CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
@@ -195,7 +224,7 @@ namespace FenUISharp.WinFeatures
         {
             if (!_isRegistered) return;
             _isRegistered = false;
-            
+
             if (_keyboardHookID != IntPtr.Zero)
             {
                 Win32APIs.UnhookWindowsHookEx(_keyboardHookID);
@@ -229,6 +258,7 @@ namespace FenUISharp.WinFeatures
             public int nCode;
             public IntPtr wParam;
             public IntPtr lParam;
+            internal KBDLLHOOKSTRUCT keyInfo;
         }
     }
 }
