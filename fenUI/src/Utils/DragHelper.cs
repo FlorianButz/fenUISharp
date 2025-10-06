@@ -67,7 +67,44 @@ namespace FenUISharp
 
         public int GetDataHere(ref FORMATETC format, ref STGMEDIUM medium)
         {
-            return E_NOTIMPL;
+            if (!_data.ContainsKey(format.cfFormat))
+                return DV_E_FORMATETC;
+
+            try
+            {
+                if (format.cfFormat == CF_HDROP && _data[format.cfFormat] is string[] files)
+                {
+                    // Check if the requested medium type is compatible
+                    if ((format.tymed & TYMED.TYMED_HGLOBAL) == 0)
+                        return DV_E_TYMED;
+
+                    // Create HDROP structure for file list
+                    IntPtr hDrop = CreateHDrop(files);
+                    medium.tymed = TYMED.TYMED_HGLOBAL;
+                    medium.unionmember = hDrop;
+                    medium.pUnkForRelease = IntPtr.Zero;
+                    return S_OK;
+                }
+                else if ((format.cfFormat == CF_UNICODETEXT || format.cfFormat == CF_TEXT) && _data[format.cfFormat] is string text)
+                {
+                    // Check if the requested medium type is compatible
+                    if ((format.tymed & TYMED.TYMED_HGLOBAL) == 0)
+                        return DV_E_TYMED;
+
+                    IntPtr hGlobal = CreateTextData(text, format.cfFormat == CF_UNICODETEXT);
+                    medium.tymed = TYMED.TYMED_HGLOBAL;
+                    medium.unionmember = hGlobal;
+                    medium.pUnkForRelease = IntPtr.Zero;
+                    return S_OK;
+                }
+            }
+            catch (Exception ex)
+            {
+                FLogger.Error($"GetData failed: {ex.Message}");
+                return E_UNEXPECTED;
+            }
+
+            return DV_E_FORMATETC;
         }
 
         public int QueryGetData(ref FORMATETC format)
@@ -85,19 +122,13 @@ namespace FenUISharp
         public int GetCanonicalFormatEtc(ref FORMATETC formatIn, out FORMATETC formatOut)
         {
             formatOut = formatIn;
-            return E_NOTIMPL;
+            return DATA_S_SAMEFORMATETC; 
         }
 
         public int SetData(ref FORMATETC formatIn, ref STGMEDIUM medium, bool release)
         {
             return E_NOTIMPL;
         }
-
-        // public int EnumFormatEtc(DATADIR direction, out IEnumFORMATETC ppenumFormatEtc)
-        // {
-        //     ppenumFormatEtc = null;
-        //     return E_NOTIMPL;
-        // }
 
         public int DAdvise(ref FORMATETC pFormatetc, ADVF advf, IAdviseSink adviseSink, out int connection)
         {
@@ -150,13 +181,13 @@ namespace FenUISharp
                 // Create DROPFILES structure
                 DROPFILES dropFiles = new DROPFILES
                 {
-                    pFiles = (uint)dropFilesSize,  // Offset to file list
+                    pFiles = (uint)dropFilesSize,
                     pt = new POINT { x = 0, y = 0 },
-                    fNC = false,    // Files are in client coordinates (not used for file drops)
-                    fWide = true    // Unicode file names
+                    fNC = false,
+                    fWide = true
                 };
 
-                Marshal.StructureToPtr(dropFiles, ptr, true);
+                Marshal.StructureToPtr(dropFiles, ptr, false);
 
                 // Write file paths starting after the DROPFILES structure
                 IntPtr filePtr = IntPtr.Add(ptr, dropFilesSize);
@@ -172,7 +203,7 @@ namespace FenUISharp
                     filePtr = IntPtr.Add(filePtr, fileBytes.Length);
                 }
 
-                // Add final null terminator (already zeroed by GMEM_ZEROINIT)
+                // Add final double null terminator (already zeroed by GMEM_ZEROINIT, but be explicit)
                 Marshal.WriteInt16(filePtr, 0);
             }
             finally
@@ -220,11 +251,11 @@ namespace FenUISharp
 
         // Constants
         private const int S_OK = 0;
+        private const int DATA_S_SAMEFORMATETC = unchecked((int)0x00040130);
         private const int E_NOTIMPL = unchecked((int)0x80004001);
         private const int E_UNEXPECTED = unchecked((int)0x8000FFFF);
         private const int DV_E_FORMATETC = unchecked((int)0x80040064);
         private const int DV_E_TYMED = unchecked((int)0x80040069);
-        private const int CF_FILENAMEW = 0xC0;
         private const int CF_HDROP = 15;
         private const int CF_UNICODETEXT = 13;
         private const int CF_TEXT = 1;
@@ -252,13 +283,46 @@ namespace FenUISharp
         {
             if (direction == DATADIR.DATADIR_GET)
             {
-                FORMATETC[] formats = new FORMATETC[]
+                // Only advertise formats we actually support
+                var formatList = new List<FORMATETC>();
+                
+                if (_data.ContainsKey(CF_HDROP))
                 {
-                    new FORMATETC { cfFormat = CF_HDROP, dwAspect = DVASPECT.DVASPECT_CONTENT, lindex = -1, tymed = TYMED.TYMED_HGLOBAL },
-                    new FORMATETC { cfFormat = CF_FILENAMEW, dwAspect = DVASPECT.DVASPECT_CONTENT, lindex = -1, tymed = TYMED.TYMED_HGLOBAL }
-                };
+                    formatList.Add(new FORMATETC 
+                    { 
+                        cfFormat = (short)CF_HDROP, 
+                        dwAspect = DVASPECT.DVASPECT_CONTENT, 
+                        lindex = -1, 
+                        tymed = TYMED.TYMED_HGLOBAL,
+                        ptd = IntPtr.Zero
+                    });
+                }
 
-                ppenumFormatEtc = new FormatEtcEnumerator(formats);
+                if (_data.ContainsKey(CF_UNICODETEXT))
+                {
+                    formatList.Add(new FORMATETC 
+                    { 
+                        cfFormat = (short)CF_UNICODETEXT, 
+                        dwAspect = DVASPECT.DVASPECT_CONTENT, 
+                        lindex = -1, 
+                        tymed = TYMED.TYMED_HGLOBAL,
+                        ptd = IntPtr.Zero
+                    });
+                }
+
+                if (_data.ContainsKey(CF_TEXT))
+                {
+                    formatList.Add(new FORMATETC 
+                    { 
+                        cfFormat = (short)CF_TEXT, 
+                        dwAspect = DVASPECT.DVASPECT_CONTENT, 
+                        lindex = -1, 
+                        tymed = TYMED.TYMED_HGLOBAL,
+                        ptd = IntPtr.Zero
+                    });
+                }
+
+                ppenumFormatEtc = new FormatEtcEnumerator(formatList.ToArray());
                 return S_OK;
             }
 
@@ -275,7 +339,9 @@ namespace FenUISharp
 
         void IDataObject.GetDataHere(ref FORMATETC format, ref STGMEDIUM medium)
         {
-            throw new NotImplementedException();
+            int hr = GetDataHere(ref format, ref medium);
+            if (hr != 0)
+                Marshal.ThrowExceptionForHR(hr);
         }
 
         void IDataObject.SetData(ref FORMATETC formatIn, ref STGMEDIUM medium, bool release)
@@ -287,13 +353,46 @@ namespace FenUISharp
         {
             if (direction == DATADIR.DATADIR_GET)
             {
-                FORMATETC[] formats = new FORMATETC[]
+                // Only advertise formats we actually support
+                var formatList = new List<FORMATETC>();
+                
+                if (_data.ContainsKey(CF_HDROP))
                 {
-                    new FORMATETC { cfFormat = CF_HDROP, dwAspect = DVASPECT.DVASPECT_CONTENT, lindex = -1, tymed = TYMED.TYMED_HGLOBAL },
-                    new FORMATETC { cfFormat = CF_FILENAMEW, dwAspect = DVASPECT.DVASPECT_CONTENT, lindex = -1, tymed = TYMED.TYMED_HGLOBAL }
-                };
+                    formatList.Add(new FORMATETC 
+                    { 
+                        cfFormat = (short)CF_HDROP, 
+                        dwAspect = DVASPECT.DVASPECT_CONTENT, 
+                        lindex = -1, 
+                        tymed = TYMED.TYMED_HGLOBAL,
+                        ptd = IntPtr.Zero
+                    });
+                }
 
-                return new FormatEtcEnumerator(formats);
+                if (_data.ContainsKey(CF_UNICODETEXT))
+                {
+                    formatList.Add(new FORMATETC 
+                    { 
+                        cfFormat = (short)CF_UNICODETEXT, 
+                        dwAspect = DVASPECT.DVASPECT_CONTENT, 
+                        lindex = -1, 
+                        tymed = TYMED.TYMED_HGLOBAL,
+                        ptd = IntPtr.Zero
+                    });
+                }
+
+                if (_data.ContainsKey(CF_TEXT))
+                {
+                    formatList.Add(new FORMATETC 
+                    { 
+                        cfFormat = (short)CF_TEXT, 
+                        dwAspect = DVASPECT.DVASPECT_CONTENT, 
+                        lindex = -1, 
+                        tymed = TYMED.TYMED_HGLOBAL,
+                        ptd = IntPtr.Zero
+                    });
+                }
+
+                return new FormatEtcEnumerator(formatList.ToArray());
             }
 
             return null!;
@@ -314,9 +413,8 @@ namespace FenUISharp
             // Check if mouse button is still pressed
             bool leftButtonDown = (grfKeyState & MK_LBUTTON) != 0;
             bool rightButtonDown = (grfKeyState & MK_RBUTTON) != 0;
-            bool middleButtonDown = (grfKeyState & MK_MBUTTON) != 0;
 
-            if (!leftButtonDown && !rightButtonDown && !middleButtonDown)
+            if (!leftButtonDown && !rightButtonDown)
                 return DRAGDROP_S_DROP;
 
             return S_OK;
@@ -335,7 +433,6 @@ namespace FenUISharp
         private const int DRAGDROP_S_USEDEFAULTCURSORS = 0x00040102;
         private const uint MK_LBUTTON = 0x0001;
         private const uint MK_RBUTTON = 0x0002;
-        private const uint MK_MBUTTON = 0x0010;
     }
 
     public static class DragSourceHelper
@@ -373,15 +470,8 @@ namespace FenUISharp
             try
             {
                 // Create data object and set file data
-                
-                var dataObjectRaw = new DataObject();
-
-                dataObjectRaw.SetData(CF_HDROP, absolutePaths);
-                dataObjectRaw.SetData(CF_FILENAMEW, absolutePaths[0]);
-
-                // Marshal it as COM for DoDragDrop
-                IntPtr pDataObject = Marshal.GetComInterfaceForObject(dataObjectRaw, typeof(IDataObject));
-                IDataObject dataObject = (IDataObject)Marshal.GetObjectForIUnknown(pDataObject);
+                var dataObject = new DataObject();
+                dataObject.SetData(CF_HDROP, absolutePaths);
 
                 // Create drop source
                 var dropSource = new DropSource();
@@ -425,7 +515,7 @@ namespace FenUISharp
                 }
                 else
                 {
-                    // Some error occurred - could be OLE_E_WRONGCOMPOBJ, E_UNEXPECTED, etc.
+                    // Some error occurred
                     FLogger.Log($"DoDragDrop failed with HRESULT: 0x{result:X8}");
                     return DROPEFFECT.None;
                 }
@@ -464,13 +554,16 @@ namespace FenUISharp
             if (string.IsNullOrEmpty(text))
                 throw new ArgumentException("Text cannot be null or empty");
 
-            // Initialize OLE if not already done
-            DragDropRegistration.Initialize();
+            // Check if we're on an STA thread
+            if (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA)
+            {
+                throw new InvalidOperationException("Drag operations must be performed on an STA thread");
+            }
 
             // Create data object and set text data
             var dataObject = new DataObject();
             dataObject.SetData(CF_UNICODETEXT, text);
-            dataObject.SetData(CF_TEXT, text); // Also provide ANSI version for compatibility
+            dataObject.SetData(CF_TEXT, text);
 
             // Create drop source
             var dropSource = new DropSource();
@@ -483,9 +576,7 @@ namespace FenUISharp
         }
 
         // Constants
-        private const int CF_FILENAMEW = 0xC9;
         private const int CF_HDROP = 15;
-
         private const int CF_UNICODETEXT = 13;
         private const int CF_TEXT = 1;
         private const int DRAGDROP_S_DROP = 0x00040100;
@@ -555,12 +646,13 @@ namespace FenUISharp
 
         public void Clone(out IEnumFORMATETC newEnum)
         {
-            newEnum = new FormatEtcEnumerator(_formats);
+            newEnum = new FormatEtcEnumerator(_formats) { _index = _index };
         }
 
         int IEnumFORMATETC.Reset()
         {
-            throw new NotImplementedException();
+            Reset();
+            return 0;
         }
     }
 }

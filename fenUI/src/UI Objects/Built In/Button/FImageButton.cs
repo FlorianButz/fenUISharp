@@ -27,7 +27,6 @@ namespace FenUISharp.Objects
             Display.Layout.StretchVertical.SetStaticState(true);
 
             Padding.SetStaticState(10);
-            InteractiveSurface.ExtendInteractionRadius.SetStaticState(-10);
         }
     }
 }
