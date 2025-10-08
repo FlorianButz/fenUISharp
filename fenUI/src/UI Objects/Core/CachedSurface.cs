@@ -41,6 +41,11 @@ namespace FenUISharp.Objects
             return _cachedSurface?.SkiaSurface;
         }
 
+        /// <summary>
+        /// Draw the Draw Action to the surface / or returns cached surface. Applies post processing only if cached surface is invalidated
+        /// </summary>
+        /// <param name="effectChain"></param>
+        /// <returns></returns>
         public SKSurface? Draw(PostProcessChain? effectChain = null)
         {
             if (_cachedSurface != null)
