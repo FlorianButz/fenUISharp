@@ -26,7 +26,7 @@ namespace FenUISharp
         public Format DepthStencilFormat { get; }
 
         public IDXGIFactory2 Factory { get; private set; }
-        public readonly ID3D12Device Device;
+        public ID3D12Device Device { get; private set; }
         public readonly FeatureLevel FeatureLevel;
 
         // DirectComposition objects
@@ -176,6 +176,18 @@ namespace FenUISharp
                     {
                         FLogger.Log<DirectCompositionContext>($"D3D11 device created with feature level: {featureLevel}");
                         break;
+                    }
+
+                    if (d3d11Device == null)
+                    {
+                        FLogger.Log<DirectCompositionContext>("Hardware D3D11 failed; falling back to WARP (software rasterizer).");
+                        hr = Vortice.Direct3D11.D3D11.D3D11CreateDevice(
+                            null,
+                            Vortice.Direct3D.DriverType.Warp,
+                            Vortice.Direct3D11.DeviceCreationFlags.BgraSupport,
+                            featureLevels,
+                            out d3d11Device, out var fl, out d3d11Context
+                        );
                     }
                 }
                 catch (Exception ex) when (attempts < maxAttempts - 1)
@@ -419,25 +431,36 @@ namespace FenUISharp
 
         internal void WaitForGpu()
         {
+            // If not found, skip
+            if (CommandQueue == null || Fence == null || FenceEvent == null)
+            {
+                FLogger.Log<DirectCompositionContext>("WaitForGpu skipped: CommandQueue or Fence not initialized.");
+                return;
+            }
+
             var startTime = DateTime.Now;
 
-            CommandQueue?.Signal(Fence, ++_fenceValue);
-
-            if (Fence?.CompletedValue < _fenceValue)
+            // Signal the fence and wait
+            try
             {
-                // FLogger.Log<DirectCompositionContext>($"Waiting for fence {_fenceValue}, current: {Fence?.CompletedValue}");
-                Fence?.SetEventOnCompletion(_fenceValue, FenceEvent);
+                CommandQueue.Signal(Fence, ++_fenceValue);
+            }
+            catch (Exception ex)
+            {
+                FLogger.Log<DirectCompositionContext>($"Warning: CommandQueue.Signal failed: {ex.Message}");
+                return;
+            }
 
-                // Fence timeout
-                if (!FenceEvent?.WaitOne(TimeSpan.FromSeconds(5)) ?? throw new InvalidOperationException("FenceEvent is null"))
+            if (Fence.CompletedValue < _fenceValue)
+            {
+                Fence.SetEventOnCompletion(_fenceValue, FenceEvent);
+
+                if (!FenceEvent.WaitOne(TimeSpan.FromSeconds(5)))
                 {
-                    FLogger.Log<DirectCompositionContext>($"GPU TIMEOUT! Fence never completed");
+                    FLogger.Log<DirectCompositionContext>("GPU TIMEOUT! Fence never completed");
                     return;
                 }
             }
-
-            var elapsed = DateTime.Now - startTime;
-            // FLogger.Log<DirectCompositionContext>($"WaitForGpu took: {elapsed.TotalMilliseconds}ms");
         }
 
         public void Present(Action<(ID3D12GraphicsCommandList commandList, ID3D12Resource backBuffer)>? drawAction = null, PresentFlags flags = PresentFlags.None)
@@ -492,83 +515,44 @@ namespace FenUISharp
         // Add to DirectCompositionContext class
         private bool _disposed = false;
 
+        
         public void Dispose()
         {
             if (_disposed) return;
+            _disposed = true;
 
             try
             {
-                _disposed = true;
+                // Only wait if fence/queue exist
+                try { WaitForGpu(); } catch (Exception ex) { FLogger.Log<DirectCompositionContext>($"Warning: WaitForGpu failed during dispose: {ex.Message}"); }
+                try { RootVisual?.SetContent(null); DCompDevice?.Commit(); } catch { }
 
-                // Wait for GPU to complete all operations
-                try
-                {
-                    WaitForGpu();
-                }
-                catch (Exception ex)
-                {
-                    FLogger.Log<DirectCompositionContext>($"Warning: WaitForGpu failed during dispose: {ex.Message}");
-                }
+                RootVisual?.Dispose(); RootVisual = null;
+                DCompTarget?.Dispose(); DCompTarget = null;
+                DCompDevice3?.Dispose(); DCompDevice3 = null;
+                DCompDevice?.Dispose(); DCompDevice = null;
 
-                FLogger.Log<DirectCompositionContext>("Disposing DirectCompositionContext...");
-
-                // Dispose in reverse order of creation
-
-                // 1. Clear DirectComposition tree first
-                try
-                {
-                    RootVisual?.SetContent(null);
-                    DCompDevice?.Commit();
-                }
-                catch { /* Ignore errors during cleanup */ }
-
-                // 2. Dispose DirectComposition objects
-                RootVisual?.Dispose();
-                RootVisual = null!;
-                DCompTarget?.Dispose();
-                DCompTarget = null!;
-                DCompDevice3?.Dispose();
-                DCompDevice3 = null!;
-                DCompDevice?.Dispose();
-                DCompDevice = null!;
-
-                // 3. Dispose D3D11 objects (used by DirectComposition)
                 d3d11Context?.ClearState();
                 d3d11Context?.Flush();
-                d3d11Context?.Dispose();
-                d3d11Context = null!;
-                d3d11Device?.Dispose();
-                d3d11Device = null!;
+                d3d11Context?.Dispose(); d3d11Context = null;
+                d3d11Device?.Dispose(); d3d11Device = null;
 
-                // 4. Dispose D3D12 resources
-                LastBackBuffer?.Dispose();
-                LastBackBuffer = null!;
-                CommandList?.Dispose();
-                CommandList = null!;
-                CommandAllocator?.Dispose();
-                CommandAllocator = null!;
-                SwapChain?.Dispose();
-                SwapChain = null!;
-                CommandQueue?.Dispose();
-                CommandQueue = null!;
+                LastBackBuffer?.Dispose(); LastBackBuffer = null;
+                CommandList?.Dispose(); CommandList = null;
+                CommandAllocator?.Dispose(); CommandAllocator = null;
+                SwapChain?.Dispose(); SwapChain = null;
 
-                // 5. Dispose fence objects
-                try
-                {
-                    FenceEvent?.Set(); // Wake up any waiting threads
-                }
-                catch { }
-                FenceEvent?.Dispose();
-                FenceEvent = null!;
-                Fence?.Dispose();
-                Fence = null!;
+                // CommandQueue might exist early
+                CommandQueue?.Dispose(); CommandQueue = null;
 
-                // 6. Dispose device and factory last
+                try { FenceEvent?.Set(); } catch {}
+                FenceEvent?.Dispose(); FenceEvent = null;
+                Fence?.Dispose(); Fence = null;
+
                 Device?.Dispose();
-                _cachedAdapter?.Dispose(); // Don't forget the cached adapter!
-                _cachedAdapter = null!;
-                Factory?.Dispose();
-                Factory = null!;
+                Device = null;
+                _cachedAdapter?.Dispose(); _cachedAdapter = null;
+                Factory?.Dispose(); Factory = null;
 
                 FLogger.Log<DirectCompositionContext>("DirectCompositionContext disposed successfully");
             }
