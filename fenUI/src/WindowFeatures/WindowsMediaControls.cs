@@ -308,6 +308,11 @@ namespace FenUISharp.WinFeatures
             }
         }
 
+        public static async void SetTimelineTime(TimeSpan time)
+        {
+            await currentSession?.TryChangePlaybackPositionAsync(time.Ticks);
+        }
+
         private static async void MediaPropertiesChangedHandler(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args)
         {
             await UpdateInfo();

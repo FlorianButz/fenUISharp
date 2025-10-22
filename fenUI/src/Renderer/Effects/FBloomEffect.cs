@@ -45,6 +45,7 @@ namespace FenUISharp.RuntimeEffects
             info.target.Canvas.Flush();
             grContext?.Flush();
             grContext?.Submit(true);
+            FContext.GetCurrentWindow().SkiaDirectCompositionContext?.WaitForGPU();
 
             // Dispose manually after GPU finish
             downscaledImage.Dispose();

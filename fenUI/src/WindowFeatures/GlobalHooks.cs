@@ -164,30 +164,36 @@ namespace FenUISharp.WinFeatures
             if (instance == null)
                 return Win32APIs.CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
 
-            MSLLHOOKSTRUCT mouseInfo = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
-
-            // Mouse coordinates
-            int mouseX = mouseInfo.pt.x;
-            int mouseY = mouseInfo.pt.y;
-
-            // Mouse wheel scrolling
-            if (wParam == (IntPtr)GLOBALHOOKTYPE.WM_MOUSEWHEEL)
+            unsafe
             {
-                short scrollDelta = (short)((mouseInfo.mouseData >> 16) & 0xFFFF);
-                GlobalHooks.scrollDelta += scrollDelta;
+                MSLLHOOKSTRUCT* mouseInfo = (MSLLHOOKSTRUCT*)lParam;
+                mouseUpdate = true;
+
+                // Mouse coordinates
+                int mouseX = mouseInfo->pt.x;
+                int mouseY = mouseInfo->pt.y;
+
+                // Mouse wheel scrolling
+                if (wParam == (IntPtr)GLOBALHOOKTYPE.WM_MOUSEWHEEL)
+                {
+                    short scrollDelta = (short)((mouseInfo->mouseData >> 16) & 0xFFFF);
+                    GlobalHooks.scrollDelta += scrollDelta;
+
+                    return Win32APIs.CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
+                }
+
+                // Mouse move callbacks
+                if (wParam == (IntPtr)WindowMessages.WM_MOUSEMOVE)
+                {
+                    capturedMousePos.x = mouseX;
+                    capturedMousePos.y = mouseY;
+
+                    return Win32APIs.CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
+                }
+
+                instance.queue.Enqueue(new InputEvent() { type = 1, lParam = lParam, wParam = wParam, nCode = nCode });
+                instance.signal.Set();
             }
-
-            // Mouse move callbacks
-            if (wParam == (IntPtr)WindowMessages.WM_MOUSEMOVE)
-            {
-                capturedMousePos.x = mouseX;
-                capturedMousePos.y = mouseY;
-            }
-
-            mouseUpdate = true;
-
-            instance.queue.Enqueue(new InputEvent() { type = 1, lParam = lParam, wParam = wParam, nCode = nCode });
-            instance.signal.Set();
 
             return Win32APIs.CallNextHookEx(_mouseHookID, nCode, wParam, lParam);
         }
@@ -197,9 +203,14 @@ namespace FenUISharp.WinFeatures
             if (instance == null)
                 return Win32APIs.CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
 
-            var keyInfo = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
-            instance.queue.Enqueue(new InputEvent() { type = 2, lParam = lParam, wParam = wParam, nCode = nCode, keyInfo = keyInfo });
-            instance.signal.Set();
+            unsafe
+            {
+                KBDLLHOOKSTRUCT* keyInfo = (KBDLLHOOKSTRUCT*)lParam;
+                KBDLLHOOKSTRUCT capturedKeyInfo = *(KBDLLHOOKSTRUCT*)keyInfo;
+
+                instance.queue.Enqueue(new InputEvent() { type = 2, lParam = lParam, wParam = wParam, nCode = nCode, keyInfo = capturedKeyInfo });
+                instance.signal.Set();
+            }
 
             return Win32APIs.CallNextHookEx(_keyboardHookID, nCode, wParam, lParam);
         }
@@ -212,7 +223,7 @@ namespace FenUISharp.WinFeatures
             IntPtr moduleHandle = Win32APIs.GetModuleHandle(null);
 
             _keyboardHookID = Win32APIs.SetWindowsHookEx((int)GLOBALHOOKTYPE.WH_KEYBOARD_LL, _keyboardProc, moduleHandle, 0);
-            _mouseHookID = Win32APIs.SetWindowsHookEx((int)GLOBALHOOKTYPE.WH_MOUSE_LL, _mouseProc, moduleHandle, 0);
+            // _mouseHookID = Win32APIs.SetWindowsHookEx((int)GLOBALHOOKTYPE.WH_MOUSE_LL, _mouseProc, moduleHandle, 0);
 
             AppDomain.CurrentDomain.ProcessExit += UnregHooksExit;
         }

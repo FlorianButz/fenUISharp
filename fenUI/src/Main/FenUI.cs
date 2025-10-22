@@ -15,7 +15,7 @@ namespace FenUISharp
     public class FenUI
     {
         public static string ResourceLibName => "fenUI";
-        public static Version FenUIVersion => new(0, 0, 2);
+        public static Version FenUIVersion => new(0, 0, 2, 1);
 
         internal static List<FWindow> activeInstances { get; private set; } = new();
 
@@ -42,8 +42,11 @@ namespace FenUISharp
 
             AllowDebugOutput(false);
 
-            // Make sure that Windows isn't handling things it shouldn't handle
+            // Make sure that Windows handles this for us
             Win32APIs.SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT.PER_MONITOR_AWARE_V2);
+
+            // Make sure that Windows isn't handling things it shouldn't handle EDIT: Not so useful actually
+            // Win32APIs.SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT.PER_MONITOR_AWARE_V2);
 
             if (!flags.Contains("disable_crashhandler"))
             {

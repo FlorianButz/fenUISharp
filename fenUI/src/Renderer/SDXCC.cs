@@ -75,8 +75,18 @@ namespace FenUISharp
 
             Window.Callbacks.OnWindowResize += OnResize;
             Window.Callbacks.OnWindowEndResize += OnResizeEnd;
+            Window.Callbacks.DPIChanged += WindowDPIChanged;
 
             FLogger.Log<SkiaDirectCompositionContext>("Done creating SkiaDirectCompositionContext!");
+        }
+
+        private void WindowDPIChanged()
+        {
+            FLogger.Log<SkiaDirectCompositionContext>($"New window DPI: {Window.Shape.WindowDPIScale}");
+
+            UpdateResizeDPIScale();
+            PerformBufferResize(Window.Shape.Size);
+            Window.Redraw();
         }
 
         private void InitializeDeviceAndContext()
@@ -396,6 +406,7 @@ namespace FenUISharp
 
                     // Clear and prepare canvas
                     Surface.Canvas.Save();
+                    Surface.Canvas.Scale(Window.Shape.WindowDPIScale, Window.Shape.WindowDPIScale);
 
                     try
                     {
@@ -495,12 +506,6 @@ namespace FenUISharp
 
             // Pick correct buffer size
             PerformBufferResize(size);
-
-            if (Method == ResizingMethod.Stretch)
-            {
-                DirectCompositionContext?.RootVisual?.SetTransform(null);
-                DirectCompositionContext?.DCompDevice?.Commit();
-            }
         }
 
         private void ResizeWithStretch(Vector2 size)
@@ -528,12 +533,29 @@ namespace FenUISharp
             DirectCompositionContext?.DCompDevice?.Commit();
         }
 
+        private void UpdateResizeDPIScale()
+        {
+            return;
+            if (DirectCompositionContext == null || DirectCompositionContext.DCompDevice == null || !Window.Procedure._isSizeMoving) return;
+
+            // Create a container visual
+            var containerVisual = DirectCompositionContext.RootVisual;
+
+            // Create transform
+            var transform = DirectCompositionContext?.DCompDevice?.CreateScaleTransform();
+            transform?.SetScaleX(1f / Window.Shape.WindowDPIScale);
+            transform?.SetScaleY(1f / Window.Shape.WindowDPIScale);
+            containerVisual?.SetTransform(transform);
+
+            // Replace root visual temporarily
+            DirectCompositionContext?.RootVisual?.SetContent(containerVisual);
+            DirectCompositionContext?.DCompDevice?.Commit();
+        }
+
         internal void PerformBufferResize(Vector2 size)
         {
             lock (resourceLock)
             {
-                size *= Window.Shape.WindowDPIScale;
-
                 if (width == size.x && height == size.y) return;
                 FLogger.Log<SkiaDirectCompositionContext>($"Resizing SDXCC: {size}");
 
@@ -555,16 +577,14 @@ namespace FenUISharp
                 OnDisposeAdditionals?.Invoke();
                 OnRebuildAdditionals?.Invoke();
 
-                // Reset transformation and effects
-                DirectCompositionContext?.RootVisual?.SetTransform(null);
-                DirectCompositionContext?.RootVisual?.SetEffect(null);
-
                 // Committing to the dcomp device
                 DirectCompositionContext?.RootVisual?.SetContent(DirectCompositionContext.SwapChain);
                 DirectCompositionContext?.DCompDevice?.Commit();
 
                 FLogger.Log<SkiaDirectCompositionContext>($"Resize completed");
             }
+
+            UpdateResizeDPIScale();
         }
 
         public void WaitForGPU()

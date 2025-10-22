@@ -56,7 +56,7 @@ namespace FenUISharp
             get
             {
                 Win32APIs.GetClientRect(Window.hWnd, out RECT rect);
-                return new Vector2(rect.Width, rect.Height);
+                return new Vector2(rect.Width, rect.Height) / WindowDPIScale;
             }
         }
 
@@ -247,10 +247,15 @@ namespace FenUISharp
 
             FLogger.Log<FWindowShape>("Rebuild window regions");
 
+            // Define final region pointer
             IntPtr finalRegion = IntPtr.Zero;
-            foreach (var obj in WindowRegion.ToList())
+            foreach (var obj in WindowRegion.ToList()) // Go through all applied regions
             {
+                // Invoke rect function
                 var rect = obj.Value.Invoke();
+
+                // Make DPI aware
+                rect = SKMatrix.CreateScale(Window.Shape.WindowDPIScale, Window.Shape.WindowDPIScale).MapRect(rect);
 
                 IntPtr rgn = Win32APIs.CreateRectRgn((int)(rect.Left), (int)(rect.Top),
                     (int)(rect.Left + rect.Width),

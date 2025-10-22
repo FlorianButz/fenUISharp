@@ -41,6 +41,7 @@ namespace FenUISharp
         public Action<Vector2>? OnWindowEndResize { get; set; } // Once the resizing is done
         public Action<Vector2>? OnWindowMove { get; set; } // When moving the window
         public Action<Vector2>? OnWindowEndMove { get; set; } // After moving the window
+        public Action? DPIChanged { get; set; }
 
         public Action? OnWindowClose { get; set; } // When the window is closed
         public Action? OnWindowDestroy { get; set; } // When the window is destroyed

@@ -27,7 +27,7 @@ namespace FenUISharp
                     int x = (short)lParam.ToInt32();
                     int y = lParam.ToInt32() >> 16;
 
-                    Window.ClientMousePosition = new(x, y);
+                    Window.ClientMousePosition = new Vector2(x, y) / Window.Shape.WindowDPIScale;
                     Window.Callbacks.OnMouseMove?.Invoke(Window.ClientMousePosition);
                     return IntPtr.Zero;
 
@@ -54,9 +54,12 @@ namespace FenUISharp
                 case (int)WindowMessages.WM_GETMINMAXINFO:
                     MINMAXINFO minMaxInfo = Marshal.PtrToStructure<MINMAXINFO>(lParam);
 
+                    // DPI value for making the size limits DPI-Aware
+                    float dpi = Window.Shape.WindowDPIScale;
+
                     // Put minimum and maximum window size into MINMAXINFO struct
-                    minMaxInfo.ptMinTrackSize = new POINT() { x = (int)Window.Shape.MinSize.x, y = (int)Window.Shape.MinSize.y };
-                    minMaxInfo.ptMaxTrackSize = new POINT() { x = (int)Window.Shape.MaxSize.x, y = (int)Window.Shape.MaxSize.y };
+                    minMaxInfo.ptMinTrackSize = new POINT() { x = (int)(Window.Shape.MinSize.x * dpi), y = (int)(Window.Shape.MinSize.y * dpi) };
+                    minMaxInfo.ptMaxTrackSize = new POINT() { x = (int)(Window.Shape.MaxSize.x * dpi), y = (int)(Window.Shape.MaxSize.y * dpi) };
 
                     // Put structure into lParam as pointer
                     Marshal.StructureToPtr(minMaxInfo, lParam, true);
@@ -80,6 +83,11 @@ namespace FenUISharp
                 case (int)WindowMessages.WM_SETTINGCHANGE:
                     FLogger.Log<FWindowProcedure>($"WM_INITMENUPOPUP/WM_SETTINGCHANGE: Window {Window.hWnd}");
                     Window.Properties.UpdateSysDarkmode();
+                    return IntPtr.Zero;
+
+                // Event for when the DPI level changed
+                case (int)WindowMessages.WM_DPICHANGED:
+                    Window.Callbacks.DPIChanged?.Invoke();
                     return IntPtr.Zero;
 
                 // When the window is in a resize action
@@ -159,6 +167,7 @@ namespace FenUISharp
                 // Client area & focused keyboard and mouse callbacks
                 case (int)WindowMessages.WM_KEYDOWN:
                     return IntPtr.Zero;
+
                 case (int)WindowMessages.WM_LBUTTONDOWN:
                     // Capture the cursor events
                     Win32APIs.SetCapture(Window.hWnd);
@@ -195,6 +204,15 @@ namespace FenUISharp
                 
                     Window.LogicDispatcher.Invoke(() => Window.Callbacks.ClientMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Middle, MouseInputState.Up)));
                     return IntPtr.Zero;
+
+                // Always release everything once the capture is lost
+                // case (int)WindowMessages.WM_CAPTURECHANGED:
+                //     Window.LogicDispatcher.Invoke(() => {
+                //         Window.Callbacks.ClientMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Left, MouseInputState.Up));
+                //         Window.Callbacks.ClientMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Right, MouseInputState.Up));
+                //         Window.Callbacks.ClientMouseAction?.Invoke(new MouseInputCode(MouseInputButton.Middle, MouseInputState.Up));
+                //     });
+                //     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_MOUSELEAVE:
                     Window.Callbacks.OnMouseLeft?.Invoke();

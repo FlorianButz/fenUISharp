@@ -106,6 +106,7 @@ namespace FenUISharp.Native
         WM_ENTERSIZEMOVE = 0x0231,
         WM_MOUSEWHEEL = 0x020A,
         WM_WINDOWPOSCHANGING = 0x0046,
+        WM_CAPTURECHANGED = 0x0215,
     }
 
     public enum ShowWindowCommand : int

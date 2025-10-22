@@ -18,8 +18,7 @@ namespace FenUISharp.Objects
             }
         }
 
-        public State<SKRect> GlobalSurface
-        { get; init; }
+        public State<SKRect> GlobalSurface { get; init; }
         private Dispatcher Dispatcher { get; init; }
 
         private string uniqueID = Guid.NewGuid().ToString();
@@ -327,22 +326,20 @@ namespace FenUISharp.Objects
             if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
 
             // Dragging
-
             if (TestIfTopMost_Dragging() && TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition))
-            {
-                if (IsDragging)
-                {
-                    StopDragging();
-                }
-            }
+                if (IsDragging) StopDragging();
 
-            // Mouse actions
+            // Release actions
+            if (code.state == MouseInputState.Up && code.button == MouseInputButton.Left)
+            {
+                IsMouseDown = false;
+                if(IsDragging) StopDragging();
+            }
 
             if (!TestIfTopMost_MouseInteraction() || !TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition)) return;
 
+            // Mouse actions
             if (code.button == MouseInputButton.Left && code.state == MouseInputState.Down) IsMouseDown = true;
-            else if (code.button == MouseInputButton.Left && code.state == MouseInputState.Up) IsMouseDown = false;
-
             OnMouseAction?.Invoke(code);
 
             // Special actions
