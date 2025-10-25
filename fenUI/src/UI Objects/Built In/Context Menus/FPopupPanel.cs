@@ -67,7 +67,7 @@ namespace FenUISharp.Objects
             Composition.LocalZIndex.SetStaticState(99);
             dispatcher = FContext.GetCurrentDispatcher();
 
-            WindowFeatures.GlobalHooks.OnMouseAction += OnGlobalMouseAction;
+            FContext.GetCurrentWindow().Callbacks.ClientMouseAction += OnGlobalMouseAction;
         }
 
         private Dispatcher dispatcher;
@@ -75,8 +75,7 @@ namespace FenUISharp.Objects
         {
             dispatcher.Invoke(() =>
             {
-                if (code.button != MouseInputButton.Left || code.state != MouseInputState.Down) return;
-                if (_inAnimation.IsRunning) return;    // Don't during show/close anims
+                if (code.state != MouseInputState.Down) return;
 
                 if (!Shape.GlobalBounds.Contains(new SKPoint(FContext.GetCurrentWindow().ClientMousePosition.x, FContext.GetCurrentWindow().ClientMousePosition.y)))
                     Close(); // Close this pop-up
@@ -175,7 +174,7 @@ namespace FenUISharp.Objects
 
             // IMPORTANT: Reset (this instance of the) rect of the window to 0, 0 pos as it has to be in client coordinates
             GlobalBounds = new SKRect(0, 0, FContext.GetCurrentWindow().Shape.Bounds.Width, FContext.GetCurrentWindow().Shape.Bounds.Height);
-            
+
             Transform.LocalPosition.SetStaticState(GetPanelPosition(Transform.GlobalToLocal(GlobalTargetPoint.CachedValue), Transform.GlobalToLocal(GlobalBounds), DistanceToTarget));
 
             // Calc
@@ -379,8 +378,11 @@ namespace FenUISharp.Objects
         {
             base.Dispose();
 
-            WindowFeatures.GlobalHooks.OnMouseAction -= OnGlobalMouseAction;
-            FContext.GetKeyboardInputManager().UnregisterKeybind(closeKeybind);
+            if (!FContext.IsDisposingWindow)
+            {
+                WindowFeatures.GlobalHooks.OnMouseAction -= OnGlobalMouseAction;
+                FContext.GetKeyboardInputManager().UnregisterKeybind(closeKeybind);
+            }
         }
     }
 }

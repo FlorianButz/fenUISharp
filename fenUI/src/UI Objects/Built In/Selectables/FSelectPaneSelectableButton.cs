@@ -19,8 +19,6 @@ namespace FenUISharp.Objects
             Label.SetParent(this);
             Label.OnAnyChange += RefreshLabel;
             RefreshLabel();
-
-            InteractiveSurface.ExtendInteractionRadius.SetStaticState(-10);
         }
 
         void RefreshLabel()

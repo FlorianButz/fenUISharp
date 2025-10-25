@@ -9,7 +9,6 @@ namespace FenUISharp.Objects
         public FAlphaSlider()
         {
             KnobPositionSpring.SetValues(3f, 1.5f);
-            InteractiveSurface.ExtendInteractionRadius.SetStaticState(-6);
             ClampKnob = true;
         }
 

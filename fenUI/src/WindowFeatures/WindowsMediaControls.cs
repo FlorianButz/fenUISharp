@@ -228,9 +228,10 @@ namespace FenUISharp.WinFeatures
 
         private static async void UpdateThumbnailAsync()
         {
+            if (currentSession == null) return;
             try
             {
-                var info = await currentSession?.TryGetMediaPropertiesAsync();
+                var info = await currentSession.TryGetMediaPropertiesAsync();
 
                 var thumbnail = info.Thumbnail;
                 if (thumbnail != null)
