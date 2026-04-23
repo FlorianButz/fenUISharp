@@ -15,7 +15,7 @@ namespace FenUISharp
     public class FenUI
     {
         public static string ResourceLibName => "fenUI";
-        public static Version FenUIVersion => new(0, 0, 2, 7);
+        public static Version FenUIVersion => new(0, 0, 2, 9);
 
         internal static List<FWindow> activeInstances { get; private set; } = new();
 
@@ -25,6 +25,8 @@ namespace FenUISharp
         [ThreadStatic]
         private static bool _isMainThread;
         public static bool IsMainThread { get => _isMainThread; }
+
+        public static string[] Flags { get; private set; } = {};
 
         public static void Init(string[]? flags = null)
         {
@@ -36,6 +38,7 @@ namespace FenUISharp
 
             // Create array if null
             flags = flags ?? new string[0];
+            Flags = flags;
 
             // Route console to capture
             ConsoleCapture.StartCapture();

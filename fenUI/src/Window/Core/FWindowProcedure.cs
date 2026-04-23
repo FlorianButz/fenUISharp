@@ -22,15 +22,6 @@ namespace FenUISharp
             // Do not update window queue here. Messages are not sent consistently
             switch (msg)
             {
-                // When mouse moves
-                case (int)WindowMessages.WM_MOUSEMOVE:
-                    int x = (short)lParam.ToInt32();
-                    int y = lParam.ToInt32() >> 16;
-
-                    Window.ClientMousePosition = new Vector2(x, y) / Window.Shape.WindowDPIScale;
-                    Window.Callbacks.OnMouseMove?.Invoke(Window.ClientMousePosition);
-                    return IntPtr.Zero;
-
                 // When mouse scrolls
                 case (int)WindowMessages.WM_MOUSEWHEEL:
                     long wparamLong = wParam.ToInt64();
@@ -261,12 +252,6 @@ namespace FenUISharp
                     FLogger.Log<FWindowProcedure>($"Fully destroyed window {hWnd}. Bye!");
                     FLogger.Log<FWindowProcedure>($"");
                     break;
-
-                // When windows wants to know what areas of the window are interactable
-                case (int)WindowMessages.WM_NCHITTEST:
-                    var custom = Window.WindowHitTest(wParam, lParam);
-                    if (custom != IntPtr.Zero) return custom;
-                    else return Win32APIs.DefWindowProcW(hWnd, msg, wParam, lParam);
 
                 // When the window close button is pressed (X)
                 case (int)WindowMessages.WM_CLOSE:

@@ -39,7 +39,7 @@ namespace FenUISharp
             // else
             {
                 // Otherwise get rect of monitor from the index
-                var monitorRect = Win32APIs.GetMonitorRect(activeMonitorDisplay);
+                var monitorRect = Win32APIs.GetMonitorRect(RMath.Clamp(activeMonitorDisplay, 0, Shape.GetMonitorCount()));
 
                 // Extract values
                 x = monitorRect.left;
@@ -53,9 +53,6 @@ namespace FenUISharp
 
             // Trigger buffer invalidation
             FullRedraw();
-
-            // Trigger wndarea rebuild
-            Shape.RebuildWindowArea();
         }
     }
 }

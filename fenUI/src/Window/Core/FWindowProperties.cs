@@ -74,6 +74,18 @@ namespace FenUISharp
             Win32APIs.SetWindowLong(Window.hWnd, (int)WindowLongs.GWL_STYLE, styl);
         }
 
+        public void ToggleClickability(bool isClickable)
+        {
+            int style = Win32APIs.GetWindowLong(Window.hWnd, (int)WindowLongs.GWL_EXSTYLE);
+
+            if (!isClickable)
+                style |= (int)WindowStyles.WS_EX_LAYERED | (int)WindowStyles.WS_EX_TRANSPARENT;
+            else
+                style &= ~((int)WindowStyles.WS_EX_LAYERED | (int)WindowStyles.WS_EX_TRANSPARENT);
+
+            Win32APIs.SetWindowLong(Window.hWnd, (int)WindowLongs.GWL_EXSTYLE, style);
+        }
+
         public void OverrideWindowStyle(int style)
             => Win32APIs.SetWindowLong(Window.hWnd, (int)WindowLongs.GWL_STYLE, style);
 

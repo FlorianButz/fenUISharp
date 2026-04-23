@@ -58,9 +58,11 @@ namespace FenUISharp.Objects
             // if (activePickerPanel != null) activePickerPanel.Close(() => CreatePicker());
             // else CreatePicker();
 
+            if(IsDisposed || Transform == null) return;
+
             if(activePickerPanel == null)
                 CreatePicker();
-            activePickerPanel?.ToggleShow(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
+            activePickerPanel?.ToggleShow(() => (Transform?.LocalToGlobal(Transform?.LocalPosition.CachedValue ?? new()) ?? new()));
         }
 
         private void CreatePicker()

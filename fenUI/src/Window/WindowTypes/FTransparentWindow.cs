@@ -41,6 +41,9 @@ namespace FenUISharp
             return hWnd;
         }
 
+        public override bool IsAreaClickable(Vector2 mousePosition)
+            => Surface.MouseHitTest(mousePosition);
+
         internal override void ClearSurface(SKCanvas canvas)
         {
             canvas.Clear(SKColors.Transparent);

@@ -221,6 +221,9 @@ namespace FenUISharp.Objects
                 Parent = parent;
                 parent.Children.Add(this);
             }
+
+            // Invalidate z-order cache when structure changes
+            Compositor._zOrderCacheValid = false;
         }
 
         void RemoveFromParent()
@@ -593,6 +596,9 @@ namespace FenUISharp.Objects
 
             ObjectSurface.Dispose();
             ObjectSurface = null;
+
+            // Invalidate z-order cache when objects are disposed
+            Compositor._zOrderCacheValid = false;
 
             IsDisposed = true;
         }

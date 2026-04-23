@@ -22,15 +22,16 @@ namespace FenUISharp.Objects.Text.Layout
         private Dictionary<char, Spring> scaleStringArriving;
 
         // Animation parameters - customizable
-        public float Duration { get; init; } = 0.6f;
+        public float Duration { get; init; } = 0.4f;
         public float DurationLengthAddition { get; init; } = 0.1f;
         public float BlurRadius { get; init; } = 10f;
         public float VerticalOffset { get; init; } = -10f;
         public float SpringSpeed { get; init; } = 3f;
         public float SpringSpringiness { get; init; } = 2f;
-        public float ScaleDownAmount { get; init; } = 0.4f;
+        public float ScaleDownAmount { get; init; } = 0.1f;
         public float GlyphDelay { get; init; } = 0.05f;
-        public Func<float, float> VerticalPositionEasing { get; init; } = Easing.CombineInOut(Easing.EaseInBackDramatic, Easing.EaseOutBackDramatic);
+        public Func<float, float> VerticalPositionEasingArrive { get; init; } = Easing.CombineInOut(Easing.EaseInBackDramatic, Easing.EaseOutExpo);
+        public Func<float, float> VerticalPositionEasingDepart { get; init; } = Easing.CombineInOut(Easing.EaseInExpo, Easing.EaseOutExpo);
         public Func<float, float> SlidePositionEasing { get; init; } = Easing.EaseOutExpo;
         public Func<float, float> FadeEasing { get; init; } = Easing.EaseInCubic;
         public bool LowerQualityOnAnimate { get; init; } = false;
@@ -219,7 +220,7 @@ namespace FenUISharp.Objects.Text.Layout
                 case GlyphTransitionType.Departing:
                     if (oldGlyph == null) return null;
 
-                    float ease = VerticalPositionEasing(t);
+                    float ease = VerticalPositionEasingDepart(t);
                     float fade = FadeEasing(t);
 
                     var dp = new SKPoint(oldGlyph.Position.X, oldGlyph.Position.Y - ease * VerticalOffset);
@@ -235,7 +236,7 @@ namespace FenUISharp.Objects.Text.Layout
                 case GlyphTransitionType.Arriving:
                     if (newGlyph == null) return null;
 
-                    float revEase = VerticalPositionEasing(1f - t);
+                    float revEase = VerticalPositionEasingArrive(1f - t);
                     float revFade = FadeEasing(1f - t);
 
                     var ap = new SKPoint(newGlyph.Position.X, newGlyph.Position.Y + revEase * VerticalOffset);

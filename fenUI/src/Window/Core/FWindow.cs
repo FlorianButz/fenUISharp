@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using fenUI.Utils;
 using FenUISharp.Logging;
 using FenUISharp.Mathematics;
 using FenUISharp.Native;
@@ -23,6 +24,8 @@ namespace FenUISharp
         public int TargetRefreshRate { get; set; } = 60; // TODO: Ideally use monitors refresh rate
 
         // Window components
+
+        private ScreenBuffer? _screenBuffer;
 
         public FWindowShape Shape { get; protected set; }
         public FWindowProcedure Procedure { get; protected set; }
@@ -53,9 +56,9 @@ namespace FenUISharp
         public Vector2 ClientMousePosition { get; internal set; }
 
         public SkiaDirectCompositionContext? SkiaDirectCompositionContext { get; set; }
-        public bool DebugDisplayAreaCache { get; internal set; }
-        public bool DebugDisplayBounds { get; internal set; }
-        public bool DebugDisplayObjectIDs { get; internal set; }
+        public bool DebugDisplayAreaCache { get; set; }
+        public bool DebugDisplayBounds { get; set; }
+        public bool DebugDisplayObjectIDs { get; set; }
 
         public MultiAccess<Cursor> ActiveCursor = new MultiAccess<Cursor>(Cursor.ARROW);
 
@@ -144,6 +147,17 @@ namespace FenUISharp
             var Surface = new FWindowSurface(this);
 
             return (Shape, Procedure, Loop, Callbacks, Properties, Surface);
+        }
+
+        public ScreenBuffer GetScreenBuffer()
+        {
+            if(_screenBuffer == null)
+            {
+                _screenBuffer = new();
+                _screenBuffer.Initialize(Shape.CurrentMonitorIndex);
+            }
+
+            return _screenBuffer;
         }
 
         public virtual void WithView(FenUISharp.Objects.View model)
@@ -295,6 +309,9 @@ namespace FenUISharp
             
         }
 
+        public virtual bool IsAreaClickable(Vector2 mousePosition)
+            => true;
+
         public virtual void Dispose()
         {
             if (_disposingOrDisposed) return;
@@ -358,6 +375,9 @@ namespace FenUISharp
             
             Surface = null!;
 
+            _screenBuffer?.Dispose();
+            _screenBuffer = null!;
+
             FLogger.Log<FWindow>($"Disposing SkiaDirectCompositionContext...");
             SkiaDirectCompositionContext?.Dispose();
             SkiaDirectCompositionContext = null!;
@@ -384,9 +404,6 @@ namespace FenUISharp
                 }
             }
         }
-
-        internal virtual IntPtr WindowHitTest(IntPtr wParam, IntPtr lParam)
-            => IntPtr.Zero;
 
         public void Redraw() => _isDirty = true;
         public void FullRedraw()

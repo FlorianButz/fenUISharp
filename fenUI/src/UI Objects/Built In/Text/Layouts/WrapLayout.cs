@@ -35,9 +35,6 @@ namespace FenUISharp.Objects.Text.Layout
 
             foreach (var part in model.TextParts)
             {
-                var font = TextRenderer.CreateFont(model.Typeface, part.Style);
-                var fontMetrics = new FontMetrics(font);
-
                 var words = SplitWords(part.Content);
 
                 foreach (var word in words)
@@ -50,17 +47,15 @@ namespace FenUISharp.Objects.Text.Layout
                         if (AllowLinebreakChar && AllowLinebreakOnOverflow)
                         {
                             var newLine = new LayoutLine();
-                            newLine.UpdateMetrics(fontMetrics);
                             lines.Add(newLine);
                         }
                         continue;
                     }
 
                     var currentLine = lines[^1];
-                    currentLine.UpdateMetrics(fontMetrics);
 
-                    // Calculate word width
-                    float wordWidth = CalculateTextWidth(word, font, part.CharacterSpacing);
+                    // Calculate word width by summing individual char widths with their specific fonts
+                    float wordWidth = MeasureStringWidth(word, model.Typeface, part);
 
                     // Check if word fits on current line
                     if (currentLine.Width + wordWidth > bounds.Width)
@@ -68,7 +63,7 @@ namespace FenUISharp.Objects.Text.Layout
                         if (!AllowLinebreakOnOverflow && AllowEllipsis)
                         {
                             // Truncate current line with ellipsis
-                            TruncateLineWithEllipsis(currentLine, font, part, bounds.Width);
+                            TruncateLineWithEllipsis(currentLine, model.Typeface, part, bounds.Width);
                             return lines; // Stop processing
                         }
                         else if (AllowLinebreakOnOverflow)
@@ -77,13 +72,11 @@ namespace FenUISharp.Objects.Text.Layout
                             if (currentLine.Characters.Count > 0)
                             {
                                 var newLine = new LayoutLine();
-                                newLine.UpdateMetrics(fontMetrics);
                                 lines.Add(newLine);
                                 currentLine = lines[^1];
                             }
 
                             // Only check height bounds if we would have multiple lines
-                            // and only after we actually add content to the new line
                             bool wouldExceedHeight = false;
                             if (lines.Count > 1)
                             {
@@ -96,38 +89,34 @@ namespace FenUISharp.Objects.Text.Layout
                                 // Remove the last line and add ellipsis to previous line
                                 lines.RemoveAt(lines.Count - 1);
                                 var lastLine = lines[^1];
-                                TruncateLineWithEllipsis(lastLine, font, part, bounds.Width);
+                                TruncateLineWithEllipsis(lastLine, model.Typeface, part, bounds.Width);
                                 return lines;
                             }
 
                             // Try to fit word, character by character if needed
-                            if (!TryAddWord(currentLine, word, font, part, bounds.Width))
-                            {
-                                AddWordCharacterByCharacter(lines, word, font, part, bounds, fontMetrics);
-                            }
+                            if (!TryAddWord(currentLine, word, model.Typeface, part, bounds.Width))
+                                AddWordCharacterByCharacter(lines, word, model.Typeface, part, bounds);
                         }
                         else
                         {
                             // Neither ellipsis nor line breaks allowed - force overflow
-                            // Add the word anyway, allowing it to exceed bounds
-                            AddWordToLine(currentLine, word, font, part);
+                            AddCharsToLine(currentLine, word, model.Typeface, part);
                         }
                     }
                     else
                     {
                         // Word fits on current line
-                        AddWordToLine(currentLine, word, font, part);
+                        AddCharsToLine(currentLine, word, model.Typeface, part);
                     }
 
-                    // Only check height after adding content if we have multiple lines
+                    // Check height after adding content
                     if (lines.Count > 1)
                     {
                         float totalHeight = CalculateTotalHeight(lines);
                         if (totalHeight > bounds.Height && AllowEllipsis)
                         {
-                            // Truncate and stop
                             var lastLine = lines[^1];
-                            TruncateLineWithEllipsis(lastLine, font, part, bounds.Width);
+                            TruncateLineWithEllipsis(lastLine, model.Typeface, part, bounds.Width);
                             break;
                         }
                     }
@@ -137,39 +126,58 @@ namespace FenUISharp.Objects.Text.Layout
             return lines;
         }
 
-        private bool TryAddWord(LayoutLine line, string word, SKFont font, TextSpan part, float maxWidth)
+        /// <summary>
+        /// Tries to add a word to the given LayoutLine
+        /// </summary>
+        /// <param name="line">The target line</param>
+        /// <param name="word">The given word</param>
+        /// <param name="typeface">The words' typeface</param>
+        /// <param name="part">The part the word is contained in</param>
+        /// <param name="maxWidth">The maximum width of the line</param>
+        /// <returns></returns>
+        private bool TryAddWord(LayoutLine line, string word, Model.FTypeface typeface, TextSpan part, float maxWidth)
         {
-            float wordWidth = CalculateTextWidth(word, font, part.CharacterSpacing);
+            float wordWidth = MeasureStringWidth(word, typeface, part);
+            
             if (line.Width + wordWidth <= maxWidth)
             {
-                AddWordToLine(line, word, font, part);
+                AddCharsToLine(line, word, typeface, part);
                 return true;
             }
             return false;
         }
 
-        private void AddWordToLine(LayoutLine line, string word, SKFont font, TextSpan part)
+        /// <summary>
+        /// Iterates over every character, creates the specific font for that script, 
+        /// updates the line metrics, and adds the character.
+        /// </summary>
+        private void AddCharsToLine(LayoutLine line, string text, Model.FTypeface typeface, TextSpan part)
         {
-            foreach (char c in word)
+            foreach (char c in text)
             {
                 if (c == '\n' || c == '\r') continue;
                 
+                var font = TextRenderer.CreateFont(c, typeface, part.Style);            
+                var fontMetrics = new FontMetrics(font);
+                line.UpdateMetrics(fontMetrics);
                 float charWidth = font.MeasureText(c.ToString());
+                
                 var layoutChar = new LayoutCharacter
                 {
                     Character = c,
                     Width = charWidth,
                     CharacterSpacing = part.CharacterSpacing,
-                    Font = font,
+                    Font = font, // Store the resolved font
                     Style = part.Style
                 };
+
                 line.Characters.Add(layoutChar);
                 line.Width += charWidth + part.CharacterSpacing;
             }
         }
 
-        private void AddWordCharacterByCharacter(List<LayoutLine> lines, string word, SKFont font, 
-            TextSpan part, SKRect bounds, FontMetrics fontMetrics)
+        private void AddWordCharacterByCharacter(List<LayoutLine> lines, string word, Model.FTypeface typeface, 
+            TextSpan part, SKRect bounds)
         {
             var currentLine = lines[^1];
             
@@ -177,28 +185,36 @@ namespace FenUISharp.Objects.Text.Layout
             {
                 if (c == '\n' || c == '\r') continue;
 
+                // Resolve Font
+                var font = TextRenderer.CreateFont(c, typeface, part.Style);
+                var fontMetrics = new FontMetrics(font);
+
                 float charWidth = font.MeasureText(c.ToString());
                 
-                // Check if character fits on current line
+                // Check if character fits
                 if (currentLine.Width + charWidth + part.CharacterSpacing > bounds.Width)
                 {
-                    // Only check height before creating new line if we would have multiple lines
                     if (AllowLinebreakOnOverflow)
                     {
-                        // Check if adding a new line would exceed height bounds
-                        float totalHeightWithNewLine = CalculateTotalHeight(lines) + fontMetrics.LineHeight;
-                        if (lines.Count > 0 && totalHeightWithNewLine > bounds.Height && AllowEllipsis)
+                        // Check height bounds
+                        float currentTotalHeight = CalculateTotalHeight(lines);
+                        float projectedHeight = currentTotalHeight + fontMetrics.LineHeight;
+
+                        if (lines.Count > 0 && projectedHeight > bounds.Height && AllowEllipsis)
                         {
-                            TruncateLineWithEllipsis(currentLine, font, part, bounds.Width);
+                            TruncateLineWithEllipsis(currentLine, typeface, part, bounds.Width);
                             return;
                         }
 
                         var newLine = new LayoutLine();
+                        // New line with new metrics
                         newLine.UpdateMetrics(fontMetrics);
                         lines.Add(newLine);
                         currentLine = lines[^1];
                     }
                 }
+
+                currentLine.UpdateMetrics(fontMetrics);
 
                 var layoutChar = new LayoutCharacter
                 {
@@ -213,10 +229,15 @@ namespace FenUISharp.Objects.Text.Layout
             }
         }
 
-        private void TruncateLineWithEllipsis(LayoutLine line, SKFont font, TextSpan part, float maxWidth)
+        private void TruncateLineWithEllipsis(LayoutLine line, Model.FTypeface typeface, TextSpan part, float maxWidth)
         {
+            // Resolve font for Ellipsis
+            var font = TextRenderer.CreateFont(EllipsisChar, typeface, part.Style);
             float ellipsisWidth = font.MeasureText(EllipsisChar.ToString());
             
+            // Update line metrics to ensure the ellipsis fits vertically
+            line.UpdateMetrics(new FontMetrics(font));
+
             // Remove characters until ellipsis fits
             while (line.Characters.Count > 0 && line.Width + ellipsisWidth > maxWidth)
             {
@@ -225,7 +246,6 @@ namespace FenUISharp.Objects.Text.Layout
                 line.Characters.RemoveAt(line.Characters.Count - 1);
             }
 
-            // Add ellipsis
             var ellipsisChar = new LayoutCharacter
             {
                 Character = EllipsisChar,
@@ -238,13 +258,17 @@ namespace FenUISharp.Objects.Text.Layout
             line.Width += ellipsisWidth + part.CharacterSpacing;
         }
 
-        private float CalculateTextWidth(string text, SKFont font, float characterSpacing)
+        private float MeasureStringWidth(string text, Model.FTypeface typeface, TextSpan part)
         {
             float width = 0;
             foreach (char c in text)
             {
                 if (c != '\n' && c != '\r')
-                    width += font.MeasureText(c.ToString()) + characterSpacing;
+                {
+                    // Resolve font per char to get accurate measurement
+                    using var font = TextRenderer.CreateFont(c, typeface, part.Style);
+                    width += font.MeasureText(c.ToString()) + part.CharacterSpacing;
+                }
             }
             return width;
         }
@@ -258,20 +282,17 @@ namespace FenUISharp.Objects.Text.Layout
         {
             var glyphs = new List<Glyph>();
             
-            // Calculate total content dimensions
             float totalHeight = CalculateTotalHeight(layoutLines);
-            
-            // Calculate vertical alignment offset
             float verticalOffset = CalculateVerticalOffset(model.Align.VerticalAlign, bounds.Height, totalHeight);
             
             float currentY = verticalOffset;
             
             foreach (var line in layoutLines)
             {
-                // Calculate horizontal alignment offset for this line
                 float horizontalOffset = CalculateHorizontalOffset(model.Align.HorizontalAlign, bounds.Width, line.Width);
                 
                 float currentX = horizontalOffset;
+                // Baseline is derived from the max metrics of all fonts in this line
                 float baselineY = currentY + line.Baseline;
                 
                 foreach (var layoutChar in line.Characters)
@@ -304,7 +325,7 @@ namespace FenUISharp.Objects.Text.Layout
             {
                 TextAlign.AlignType.Middle => (boundsHeight - contentHeight) / 2,
                 TextAlign.AlignType.End => boundsHeight - contentHeight,
-                _ => 0 // Start
+                _ => 0 
             };
         }
 
@@ -314,7 +335,7 @@ namespace FenUISharp.Objects.Text.Layout
             {
                 TextAlign.AlignType.Middle => (boundsWidth - lineWidth) / 2,
                 TextAlign.AlignType.End => boundsWidth - lineWidth,
-                _ => 0 // Start
+                _ => 0 
             };
         }
 
@@ -330,6 +351,7 @@ namespace FenUISharp.Objects.Text.Layout
 
             public void UpdateMetrics(FontMetrics metrics)
             {
+                // This ensures the line grows to fit the tallest font (e.g. mixed English and Chinese)
                 LineHeight = Math.Max(LineHeight, metrics.LineHeight);
                 Baseline = Math.Max(Baseline, metrics.Baseline);
                 Ascent = Math.Max(Ascent, metrics.Ascent);

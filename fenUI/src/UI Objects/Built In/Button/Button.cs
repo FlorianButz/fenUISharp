@@ -12,6 +12,8 @@ namespace FenUISharp.Objects.Buttons
         public Action? OnClick { get; set; }
 
         public State<float> CornerRadius { get; init; }
+        public State<bool> UseSquircle { get; init; }
+
         public State<SKColor> HoverMix { get; init; }
 
         public float HoverPixelAddition { get; set; } = 1f;
@@ -39,6 +41,7 @@ namespace FenUISharp.Objects.Buttons
             currentHoverMix = SKColors.Transparent;
 
             CornerRadius = new(() => 10f, this, this);
+            UseSquircle = new(() => true, this, this);
 
             InteractiveSurface.EnableMouseActions.SetStaticState(true);
             InteractiveSurface.OnMouseAction += MouseAction;
@@ -128,10 +131,21 @@ namespace FenUISharp.Objects.Buttons
         {
             base.Render(canvas);
 
-            using (var path = SKSquircle.CreateSquircle(Shape.LocalBounds, CornerRadius.CachedValue))
+            if (UseSquircle.CachedValue)
             {
-                using var paint = GetRenderPaint();
-                RenderMaterial.CachedValue.DrawWithMaterial(canvas, path, this, paint);
+                using (var path = SKSquircle.CreateSquircle(Shape.LocalBounds, CornerRadius.CachedValue))
+                {
+                    using var paint = GetRenderPaint();
+                    RenderMaterial.CachedValue.DrawWithMaterial(canvas, path, this, paint);
+                }
+            }
+            else
+            {
+                using (var rect = new SKRoundRect(Shape.LocalBounds, CornerRadius.CachedValue))
+                {
+                    using var paint = GetRenderPaint();
+                    RenderMaterial.CachedValue.DrawWithMaterial(canvas, rect, this, paint);
+                }
             }
         }
 
@@ -139,11 +153,23 @@ namespace FenUISharp.Objects.Buttons
         {
             base.AfterRender(canvas);
 
-            using (var path = SKSquircle.CreateSquircle(Shape.LocalBounds, CornerRadius.CachedValue))
+            if (UseSquircle.CachedValue)
             {
-                using var paint = GetRenderPaint();
-                paint.Color = currentHoverMix;
-                canvas.DrawPath(path, paint);
+                using (var path = SKSquircle.CreateSquircle(Shape.LocalBounds, CornerRadius.CachedValue))
+                {
+                    using var paint = GetRenderPaint();
+                    paint.Color = currentHoverMix;
+                    canvas.DrawPath(path, paint);
+                }
+            }
+            else
+            {
+                using (var rect = new SKRoundRect(Shape.LocalBounds, CornerRadius.CachedValue))
+                {
+                    using var paint = GetRenderPaint();
+                    paint.Color = currentHoverMix;
+                    canvas.DrawRoundRect(rect, paint);
+                }
             }
         }
     }

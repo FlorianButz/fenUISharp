@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using FenUISharp.Mathematics;
 using FenUISharp.Objects.Text.Model;
 using SkiaSharp;
@@ -73,7 +74,7 @@ namespace FenUISharp.Objects.Text.Rendering
                 }
 
                 using (var blur = SKImageFilter.CreateBlur(glyph.Style.BlurRadius, glyph.Style.BlurRadius))
-                using (var font = CreateFont(model.Typeface, glyph.Style))
+                using (var font = CreateFont(glyph.Character, model.Typeface, glyph.Style))
                 {
                     if (glyph.Style.BlurRadius > 0) fontPaint.ImageFilter = blur;
 
@@ -120,9 +121,10 @@ namespace FenUISharp.Objects.Text.Rendering
             canvas.DrawLine(new(glyph.Bounds.Left, glyph.Bounds.Bottom + yOffset), new(glyph.Bounds.Right, glyph.Bounds.Bottom + yOffset), paint);
         }
 
-        public static SKFont CreateFont(FTypeface typeface, TextStyle style)
+        public static SKFont CreateFont(char? character, FTypeface typeface, TextStyle style)
         {
-            SKFont font = new SKFont(typeface.CreateSKTypeface(style.Weight, style.Slant), style.FontSize);
+            SKFont font = new SKFont(
+                typeface.CreateSKTypeface(character ?? ' ', style.Weight, style.Slant), style.FontSize);
             font.Subpixel = true;
             font.ForceAutoHinting = true;
             font.Edging = SKFontEdging.SubpixelAntialias;

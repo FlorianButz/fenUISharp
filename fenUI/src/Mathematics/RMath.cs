@@ -76,15 +76,15 @@ namespace FenUISharp.Mathematics
         {
             if (sourceImage == null) return null;
 
-            int newWidth = (int)(sourceImage.Width * scaleFactor);
-            int newHeight = (int)(sourceImage.Height * scaleFactor);
+            int newWidth = Math.Max(1, (int)(sourceImage.Width * scaleFactor));
+            int newHeight = Math.Max(1, (int)(sourceImage.Height * scaleFactor));
 
             var info = new SKImageInfo(newWidth, newHeight);
             using (var surface = SKSurface.Create(info))
             {
-                if (surface == null) return sourceImage;
+                if (surface == null) return null;
                 var canvas = surface.Canvas;
-                if (canvas == null) return sourceImage;
+                if (canvas == null) return null;
 
                 // Draw the original image scaled down
                 canvas.DrawImage(sourceImage,

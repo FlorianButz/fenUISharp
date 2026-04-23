@@ -259,9 +259,92 @@ namespace FenUISharp
                     AlphaMode = AlphaMode.Premultiplied
                 };
 
+                // Validate inputs before calling DXGI
+                if (width == 0 || height == 0)
+                    throw new InvalidOperationException($"Invalid swapchain size: {width}x{height}");
+
+                if (CommandQueue == null)
+                    throw new InvalidOperationException("CommandQueue is null when creating swapchain");
+
                 FLogger.Log<DirectCompositionContext>("Creating swap chain for composition...");
-                var tempSwap = Factory.CreateSwapChainForComposition(CommandQueue, swapChainDesc);
-                SwapChain = tempSwap.QueryInterface<IDXGISwapChain3>();
+
+                Exception? lastEx = null;
+                IDXGISwapChain3? createdSwap = null;
+
+                // Try the requested configuration first, then try a few known-working fallbacks while logging details.
+                var attempts = new List<SwapChainDescription1>();
+                attempts.Add(swapChainDesc);
+
+                var alt1 = swapChainDesc;
+                alt1.AlphaMode = AlphaMode.Ignore;
+                attempts.Add(alt1);
+
+                var alt2 = swapChainDesc;
+                alt2.SwapEffect = SwapEffect.FlipSequential;
+                attempts.Add(alt2);
+
+                var alt3 = swapChainDesc;
+                alt3.Scaling = Scaling.None;
+                attempts.Add(alt3);
+
+                foreach (var desc in attempts)
+                {
+                    try
+                    {
+                        FLogger.Log<DirectCompositionContext>($"Attempting CreateSwapChainForComposition: Format={desc.Format}, BufferCount={desc.BufferCount}, SwapEffect={desc.SwapEffect}, AlphaMode={desc.AlphaMode}, Scaling={desc.Scaling}");
+                        var tempSwap = Factory.CreateSwapChainForComposition(CommandQueue, desc);
+                        createdSwap = tempSwap.QueryInterfaceOrNull<IDXGISwapChain3>();
+                        if (createdSwap != null)
+                        {
+                            FLogger.Log<DirectCompositionContext>("CreateSwapChainForComposition succeeded with this configuration.");
+                            break;
+                        }
+                        else
+                        {
+                            lastEx = new InvalidOperationException("CreateSwapChainForComposition returned null IDXGISwapChain3");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        lastEx = ex;
+                        FLogger.Log<DirectCompositionContext>($"CreateSwapChainForComposition attempt failed: {ex}");
+                    }
+                }
+
+                if (createdSwap == null)
+                {
+                    // As a last resort, try creating a windowed swapchain for the HWND (not ideal for composition)
+                    try
+                    {
+                        FLogger.Log<DirectCompositionContext>("All CreateSwapChainForComposition attempts failed, attempting CreateSwapChainForHwnd as a fallback.");
+                        var scDesc = new SwapChainDescription1
+                        {
+                            Width = width,
+                            Height = height,
+                            Format = ColorFormat,
+                            Stereo = false,
+                            SampleDescription = new SampleDescription(1, 0),
+                            BufferUsage = Usage.RenderTargetOutput,
+                            BufferCount = BufferCount,
+                            Scaling = Scaling.Stretch,
+                            SwapEffect = SwapEffect.FlipDiscard,
+                            AlphaMode = AlphaMode.Ignore
+                        };
+
+                        using var temp = Factory.CreateSwapChainForHwnd(CommandQueue, hWnd, scDesc);
+                        createdSwap = temp.QueryInterfaceOrNull<IDXGISwapChain3>();
+                        if (createdSwap != null)
+                            FLogger.Log<DirectCompositionContext>("Fallback CreateSwapChainForHwnd succeeded (non-composition fallback).");
+                    }
+                    catch (Exception ex)
+                    {
+                        FLogger.Log<DirectCompositionContext>($"Fallback CreateSwapChainForHwnd failed: {ex}");
+                        // rethrow the original failure
+                        throw lastEx ?? ex;
+                    }
+                }
+
+                SwapChain = createdSwap;
 
                 FLogger.Log<DirectCompositionContext>("Setting swap chain content on root visual...");
                 RootVisual?.SetContent(SwapChain);

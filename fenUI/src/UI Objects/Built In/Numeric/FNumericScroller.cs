@@ -18,6 +18,8 @@ namespace FenUISharp.Objects
         public State<float> Step { get; init; }
 
         public State<string> Suffix { get; set; }
+        
+        public State<int> PopupDistance { get; set; }
 
         /// <summary>
         /// A format provider which will be passed in to the ToString method. See available formats on: https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-numeric-format-strings
@@ -58,6 +60,7 @@ namespace FenUISharp.Objects
             Step = new(() => 0.1f, this, this);
 
             Suffix = new(() => "", this, this);
+            PopupDistance = new(() => (int)(Layout.ClampSize(Transform.Size.CachedValue).y / 2 - 5), this, this);
             FormatProvider = new(formatProvider ?? (() => ""), this, this);
             Culture = new(() => System.Globalization.CultureInfo.CurrentCulture, this, this);
 
@@ -110,10 +113,18 @@ namespace FenUISharp.Objects
 
         public void OpenPopup(bool stayOpen = false)
         {
-            if(activePopup == null) 
+            if (IsDisposed)
+                return;
+
+            if (activePopup == null)
                 CreatePopup();
 
-            if(stayOpen)
+            if (activePopup?.IsDisposed == true) {
+                activePopup = null;
+                return;
+            }
+
+            if (stayOpen)
                 activePopup?.Show(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
             else
                 activePopup?.ToggleShow(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
@@ -123,7 +134,7 @@ namespace FenUISharp.Objects
         {
             activePopup = new FPopupPanel(() => new(70, 30), false);
             activePopup.CornerRadius.SetStaticState(30);
-            activePopup.DistanceToTarget = (int)(Layout.ClampSize(Transform.Size.CachedValue).y / 2 - 5);
+            activePopup.DistanceToTarget = PopupDistance.CachedValue;
 
             activePopup.InteractiveSurface.EnableMouseScrolling.SetStaticState(true);
             activePopup.InteractiveSurface.OnMouseScroll += OnPopupScroll;
@@ -161,6 +172,13 @@ namespace FenUISharp.Objects
 
             OnValueChanged?.Invoke(Value);
             OnUserValueChanged?.Invoke(Value);
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
+            if (activePopup != null && !activePopup.IsDisposed)
+                activePopup.Dispose();
         }
     }
 }

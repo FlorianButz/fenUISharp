@@ -17,6 +17,8 @@ namespace FenUISharp.Objects
 
         public bool LockInvalidation { get; set; } = false;
 
+        private readonly object _drawLock = new();
+
         public bool TryGetSurface(out SKSurface surface)
         {
             if (_cachedSurface == null) { surface = null; return false; }
@@ -48,32 +50,35 @@ namespace FenUISharp.Objects
         /// <returns></returns>
         public SKSurface? Draw(PostProcessChain? effectChain = null)
         {
-            if (_cachedSurface != null)
-                return _cachedSurface.SkiaSurface;
-            else
+            lock (_drawLock)
             {
-                var surface = CreateSurface();
-
-                var ppInfo = new PPInfo()
+                if (_cachedSurface != null)
+                    return _cachedSurface.SkiaSurface;
+                else
                 {
-                    source = surface,
-                    target = surface,
-                    sourceInfo = _cachedImageInfo ?? new()
-                };
+                    var surface = CreateSurface();
 
-                if (effectChain != null && surface != null) effectChain.OnBeforeRender(ppInfo);
+                    var ppInfo = new PPInfo()
+                    {
+                        source = surface,
+                        target = surface,
+                        sourceInfo = _cachedImageInfo ?? new()
+                    };
 
-                DrawAction?.Invoke(surface?.Canvas);
+                    if (effectChain != null && surface != null) effectChain.OnBeforeRender(ppInfo);
 
-                if (effectChain != null && surface != null) effectChain.OnAfterRender(ppInfo);
-                if (effectChain != null && surface != null) effectChain.OnLateAfterRender(ppInfo);
+                    DrawAction?.Invoke(surface?.Canvas);
 
-                _cachedSnapshot?.Dispose();
-                _cachedSnapshot = null;
+                    if (effectChain != null && surface != null) effectChain.OnAfterRender(ppInfo);
+                    if (effectChain != null && surface != null) effectChain.OnLateAfterRender(ppInfo);
 
-                _cachedSnapshot = surface?.Snapshot();
+                    _cachedSnapshot?.Dispose();
+                    _cachedSnapshot = null;
 
-                return surface;
+                    _cachedSnapshot = surface?.Snapshot();
+
+                    return surface;
+                }
             }
         }
 
@@ -143,23 +148,30 @@ namespace FenUISharp.Objects
 
         public void InvalidateSurface(SKRect dimensions, float quality, int padding)
         {
-            if (LockInvalidation) return;
-
-            if (_cachedSurface != null)
+            lock (_drawLock)
             {
-                _cachedSurface?.SkiaSurface?.Canvas.Dispose();
-                _cachedSurface?.Dispose();
-                _cachedSurface = null;
+                if (LockInvalidation) return;
+
+                if (_cachedSurface != null)
+                {
+                    _cachedSurface?.SkiaSurface?.Canvas.Dispose();
+                    _cachedSurface?.Dispose();
+                    _cachedSurface = null;
+                }
+
+                quality = RMath.Clamp(quality, 0, 1);
+
+                float w = Math.Max(0, dimensions.Width);
+                float h = Math.Max(0, dimensions.Height);
+                int width = (int)((w + padding * 2) * quality);
+                int height = (int)((h + padding * 2) * quality);
+                if (width <= 0) width = 1;
+                if (height <= 0) height = 1;
+                this.padding = padding;
+                this.quality = quality;
+
+                _cachedImageInfo = new SKImageInfo(width, height);
             }
-
-            quality = RMath.Clamp(quality, 0, 1);
-
-            int width = (int)((dimensions.Width + padding * 2) * quality);
-            int height = (int)((dimensions.Height + padding * 2) * quality);
-            this.padding = padding;
-            this.quality = quality;
-
-            _cachedImageInfo = new SKImageInfo(width, height);
         }
 
         public SKImage? GetImage()
@@ -175,14 +187,18 @@ namespace FenUISharp.Objects
 
         internal void DisposeSurface()
         {
-            if (LockInvalidation) return;
+            lock (_drawLock)
+            {
+                if (LockInvalidation) return;
 
-            // _cachedImageInfo = null;
-            _cachedSnapshot?.Dispose();
-            _cachedSurface?.Dispose();
+                // GPU will handle resource cleanup asynchronously - no need to block
+                // The old content will be discarded when the GPU gets around to it
+                _cachedSnapshot?.Dispose();
+                _cachedSurface?.Dispose();
 
-            _cachedSnapshot = null;
-            _cachedSurface = null;
+                _cachedSnapshot = null;
+                _cachedSurface = null;
+            }
         }
     }
 }

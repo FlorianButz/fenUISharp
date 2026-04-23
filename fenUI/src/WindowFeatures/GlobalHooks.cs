@@ -220,9 +220,9 @@ namespace FenUISharp.WinFeatures
             if (_isRegistered) return;
             _isRegistered = true;
 
-            IntPtr moduleHandle = Win32APIs.GetModuleHandle(null);
+            // IntPtr moduleHandle = Win32APIs.GetModuleHandle(null);
 
-            _keyboardHookID = Win32APIs.SetWindowsHookEx((int)GLOBALHOOKTYPE.WH_KEYBOARD_LL, _keyboardProc, moduleHandle, 0);
+            // _keyboardHookID = Win32APIs.SetWindowsHookEx((int)GLOBALHOOKTYPE.WH_KEYBOARD_LL, _keyboardProc, moduleHandle, 0);
             // _mouseHookID = Win32APIs.SetWindowsHookEx((int)GLOBALHOOKTYPE.WH_MOUSE_LL, _mouseProc, moduleHandle, 0);
 
             AppDomain.CurrentDomain.ProcessExit += UnregHooksExit;

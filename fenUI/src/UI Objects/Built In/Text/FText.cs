@@ -29,6 +29,8 @@ namespace FenUISharp.Objects.Text
             _renderer = new(this);
             _layout = new WrapLayout(this);
 
+            Transform.SnapPositionToPixelGrid.SetStaticState(true, 256);
+
             Padding.SetStaticState(10);
         }
 

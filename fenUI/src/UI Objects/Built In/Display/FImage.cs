@@ -12,11 +12,14 @@ namespace FenUISharp.Objects
         public enum ImageScaleMode { Stretch, Fit, Contain }
         public State<ImageScaleMode> ScaleMode { get; private init; }
 
+        public State<float> ImageScale { get; private init; }
+
         public FImage(Func<SKImage> image, bool drawBackground = false, bool dynamicColor = false, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
             _drawBasePanel = drawBackground;
             Image = new(image, this, this);
             ScaleMode = new(() => ImageScaleMode.Fit, this, this);
+            ImageScale = new(() => 1f, this, this);
             CornerRadius.SetResponsiveState(() => Layout.ClampSize(Transform.Size.CachedValue).y / 1.5f);
             Padding.Value = () => 10;
         }
@@ -33,7 +36,7 @@ namespace FenUISharp.Objects
             using var panelPath = GetPanelPath(rect);
             canvas.ClipPath(panelPath, antialias: true);
 
-            SKRect? bounds = null;
+            SKRect bounds = rect;
             switch (ScaleMode.CachedValue)
             {
                 case ImageScaleMode.Stretch:
@@ -73,7 +76,10 @@ namespace FenUISharp.Objects
             using (var cFilter = SKColorFilter.CreateBlendMode(TintColor.CachedValue, TintBlendMode.CachedValue))
                 paint.ColorFilter = cFilter;
 
-            canvas.DrawImage(Image.CachedValue, bounds ?? Shape.LocalBounds, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+            var imgScale = SKMatrix.CreateScale(ImageScale.CachedValue, ImageScale.CachedValue, bounds.MidX, bounds.MidY);
+            bounds = imgScale.MapRect(bounds);
+
+            canvas.DrawImage(Image.CachedValue, bounds, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
         }
     }
 }

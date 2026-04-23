@@ -96,7 +96,7 @@ namespace FenUISharp.Objects
                 paint.StrokeCap = SKStrokeCap.Round;
                 paint.Style = SKPaintStyle.Stroke;
 
-                var colors = new SKColor[] { SKColors.Black.WithAlpha(65), SKColors.White.WithAlpha(85), SKColors.Black.WithAlpha(65) };
+                var colors = new SKColor[] { SKColors.White.WithAlpha(85), SKColors.Black.WithAlpha(65), SKColors.Black.WithAlpha(65) };  // Highlight at top
                 var pos = new float[] { 0f, 0.5f, 1f };
                 var mid = new SKPoint(bounds.MidX, bounds.MidY);
 
@@ -105,32 +105,29 @@ namespace FenUISharp.Objects
                     colors,
                     pos,
                     SKShaderTileMode.Clamp,
-                    startAngle: 0,
-                    endAngle: 360
+                    startAngle: -90,
+                    endAngle: 270
                 );
                 paint.BlendMode = SKBlendMode.Screen;
 
                 if (Indeterminate)
                 {
-                    var t = time * 360 + 90;
+                    var t = time * 360;
                     var sweepAng = IndeterminateArc;
 
-                    canvas.RotateDegrees(-90, bounds.MidX, bounds.MidY);
                     canvas.DrawArc(bounds,
-                       startAngle: t,
-                       sweepAngle: sweepAng,
-                       useCenter: false,
-                       paint);
+                    startAngle: t - 90,
+                    sweepAngle: sweepAng,
+                    useCenter: false,
+                    paint);
                 }
                 else
                 {
-
-                    canvas.RotateDegrees(-90, bounds.MidX, bounds.MidY);
                     canvas.DrawArc(bounds,
-                       startAngle: 0,
-                       sweepAngle: sweep,
-                       useCenter: false,
-                       paint);
+                    startAngle: -90,
+                    sweepAngle: sweep,
+                    useCenter: false,
+                    paint);
                 }
             }
         }

@@ -22,6 +22,15 @@ namespace FenUISharp.Objects
         [ThreadStatic]
         private static List<UIObject> _cachedOrderedList = new();
 
+        [ThreadStatic]
+        private static List<UIObject> _cachedEnabledList = new();
+
+        [ThreadStatic]
+        private static bool _zOrderCacheValid = false;
+
+        // Per-instance child list cache
+        private List<UIObject>? _cachedChildrenList;
+
         public static bool EnableDump { get; set; } = false;
 
         public Compositor(UIObject owner)
@@ -46,24 +55,42 @@ namespace FenUISharp.Objects
                 var result = new List<UIObject>();
                 TraverseAndCollect(FContext.GetRootViewPane(), result, false);
                 _cachedOrderedList = result;
+
+                var enabledResult = new List<UIObject>();
+                foreach (var obj in result)
+                {
+                    if (obj.GlobalEnabled && obj.GlobalVisible)
+                        enabledResult.Add(obj);
+                }
+                _cachedEnabledList = enabledResult;
+
+                _zOrderCacheValid = true;
             }
         }
 
         public List<UIObject> GetZOrderedListOfChildren(UIObject root)
         {
-            return root.Children
-                .OrderBy(child => child.Composition.LocalZIndex.CachedValue)
-                .ThenBy(child => child.Composition.CreationIndex)
-                .ToList();
+            if (_cachedChildrenList == null || !_zOrderCacheValid)
+            {
+                _cachedChildrenList = root.Children
+                    .OrderBy(child => child.Composition.LocalZIndex.CachedValue)
+                    .ThenBy(child => child.Composition.CreationIndex)
+                    .ToList();
+            }
+            return _cachedChildrenList;
         }
 
         public List<UIObject> GetZOrderedListOfEnabled()
         {
-            return _cachedOrderedList.Where(x => x.GlobalEnabled && x.GlobalVisible).ToList();
+            if (!_zOrderCacheValid)
+                CacheZOrderedListOfEverything();
+            return _cachedEnabledList;
         }
 
         public List<UIObject> GetZOrderedListOfEverything()
         {
+            if (!_zOrderCacheValid)
+                CacheZOrderedListOfEverything();
             return _cachedOrderedList;
         }
 

@@ -141,12 +141,6 @@ namespace FenUISharp
                     paint.Color = SKColors.Yellow.WithAlpha(25);
                     paint.IsStroke = true;
                     paint.StrokeWidth = 2;
-                    foreach (var area in Window.Shape.GetWinRegion())
-                    {
-                        var a = area.Invoke();
-                        a.Inflate(-2, -2);
-                        canvas.DrawRect(a, paint);
-                    }
                 }
 
                 // Trigger callback
@@ -209,29 +203,33 @@ namespace FenUISharp
         private SKPath? _lastDirtyPath;
         private SKPath CalculateThisFramesDirtyClipPath()
         {
-            // Clear the old cached path
-            _cachedDirtyPath?.Dispose();
-
-            // Create new clip path
-            var clipPath = new SKPath();
+            // Create reusable path
+            var clipPath = _cachedDirtyPath ?? new SKPath();
+            _cachedDirtyPath = null;
 
             // If the window is dirty, add everything to clip path
             if (Window._isDirty)
             {
+                clipPath.Reset();
                 clipPath.AddRect(SKRect.Create(0, 0, Window.Shape.ClientSize.x, Window.Shape.ClientSize.y));
                 _cachedDirtyPath = clipPath;
-                return new SKPath(clipPath); // Return copy
+                return clipPath;
             }
 
-            // Get all UIObjects
-            foreach (var component in GetAllUIObjects())
+            clipPath.Reset();
+
+            // Get all UIObjects - optimized to avoid repeated enumeration
+            var uiObjects = GetAllUIObjects();
+            int count = uiObjects.Count;
+            int pad = 4;
+
+            for (int i = 0; i < count; i++)
             {
+                var component = uiObjects[i];
+
                 // Check if wants to redraw, is active and visible
                 if (component.WindowRedrawThisObject && component.GlobalEnabled && component.GlobalVisible)
                 {
-                    // Define a small padding
-                    int pad = 4;
-
                     // Get object's bounds
                     var bounds = component.Shape.GlobalBounds;
 
@@ -242,8 +240,6 @@ namespace FenUISharp
                     clipPath.AddRect(bounds);
 
                     // Getting the UIObject's bounds of last frame
-                    // This is useful for fast moving elements,
-                    // so their last position get's cleared as well
                     var lastbounds = component.Shape.LastGlobalBounds;
 
                     // Also add padding
@@ -257,28 +253,16 @@ namespace FenUISharp
                 component.WindowRedrawThisObject = false;
             }
 
-            // Setting last path to null
-            SKPath lastPath = null!;
+            // Add last frame's path if exists (for moving elements)
+            if (_lastDirtyPath != null)
+            {
+                clipPath.AddPath(_lastDirtyPath, SKPathAddMode.Append);
+            }
 
-            // Setting last path to dirty clip path of last frame
-            if (_lastDirtyPath != null) lastPath = new SKPath(_lastDirtyPath);
-
-            // Disposing the path of last frame
+            // Cache for next frame
             _lastDirtyPath?.Dispose();
-
-            // Setting last path to the current one
             _lastDirtyPath = new SKPath(clipPath);
-
-            // Checking if last path is not null,
-            // if that is the case, add to current dirty clip path as well
-            if (lastPath != null)
-                clipPath.AddPath(lastPath, SKPathAddMode.Append);
-
-            // Dispose old cache
-            if (_cachedDirtyPath != null) _cachedDirtyPath.Dispose();
-
-            // Cache current path
-            _cachedDirtyPath = new SKPath(clipPath);
+            _cachedDirtyPath = clipPath;
 
             return clipPath;
         }
@@ -287,10 +271,8 @@ namespace FenUISharp
         {
             var list = RootViewPane?.Composition.GetZOrderedListOfChildren(RootViewPane);
             if (list == null) return false;
-
             foreach (var x in list)
                 if (x.Shape.GlobalBounds.Contains(new SKPoint(vector2.x, vector2.y))) return true;
-
             return false;
         }
     }

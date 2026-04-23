@@ -11,7 +11,7 @@ namespace FenUISharp
             path.Offset(rect.Left, rect.Top); // Initial position set
 
             squircleness = Math.Clamp(squircleness ?? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.DefaultSuperellipseRatio, 0.0f, 1.0f);
-            cornerRadius = Math.Min(cornerRadius, Math.Min(rect.Width, rect.Height) * 0.5f);
+            cornerRadius = Math.Abs(Math.Min(cornerRadius, Math.Min(rect.Width, rect.Height) * 0.5f));
 
             float exponent = 2f + (1f - squircleness ?? FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.DefaultSuperellipseRatio) * 2f;
             int segments = 30;
@@ -20,9 +20,6 @@ namespace FenUISharp
             float top = rect.Top;
             float right = rect.Right;
             float bottom = rect.Bottom;
-
-            float width = rect.Width;
-            float height = rect.Height;
 
             float cornerW = cornerRadius;
             float cornerH = cornerRadius;

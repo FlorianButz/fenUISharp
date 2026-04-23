@@ -58,9 +58,11 @@
 
         public Vector2 Update(float deltaTime, Vector2 x)
         {
+            // Cap deltaTime to prevent instability at low framerates
+            deltaTime = MathF.Min(deltaTime, 0.1f); // Max 10 FPS equivalent
+
             const float fixedDelta = 0.016f; // Stable timestep
             const int maxSteps = 5; // Avoid locking up on huge spikes
-            float t = 0f;
 
             int steps = (int)MathF.Min(MathF.Ceiling(deltaTime / fixedDelta), maxSteps);
             float stepSize = deltaTime / steps;

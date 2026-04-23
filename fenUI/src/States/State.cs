@@ -23,6 +23,9 @@ namespace FenUISharp.States
         private List<IStateListener> _listener = new();
         private List<Action<T>> _action = new();
 
+        private static readonly List<State<T>> _pendingStateUpdates = new();
+        private static bool _batchUpdateRegistered = false;
+
         /// <summary>
         /// Will ignore the default value if the set is not empty. Useful to avoid interference with custom resolvers
         /// </summary>
@@ -44,7 +47,7 @@ namespace FenUISharp.States
             if (FContext.GetCurrentWindow() == null)
                 throw new Exception("States can only be declared in a valid FenUISharp window context");
             else
-                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += Update;
+                RegisterForBatchUpdate();
 
             owner.OnObjectDisposed += Dispose;
         }
@@ -66,9 +69,41 @@ namespace FenUISharp.States
             if (FContext.GetCurrentWindow() == null)
                 throw new Exception("States can only be declared in a valid FenUISharp window context");
             else
-                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += Update;
+                RegisterForBatchUpdate();
 
             owner.OnObjectDisposed += Dispose;
+        }
+
+        private static void RegisterForBatchUpdate()
+        {
+            if (_batchUpdateRegistered) return;
+            _batchUpdateRegistered = true;
+            FContext.GetCurrentWindow().Callbacks.OnPreUpdate += BatchUpdateAll;
+        }
+
+        private static void BatchUpdateAll()
+        {
+            lock (_pendingStateUpdates)
+            {
+                foreach (var state in _pendingStateUpdates)
+                {
+                    if (!state.ManualResolve)
+                        state.ReevaluateValue();
+                }
+                _pendingStateUpdates.Clear();
+            }
+        }
+
+        private void Update()
+        {
+            if (!ManualResolve)
+            {
+                lock (_pendingStateUpdates)
+                {
+                    if (!_pendingStateUpdates.Contains(this))
+                        _pendingStateUpdates.Add(this);
+                }
+            }
         }
 
         private Func<T> GetValue()
@@ -147,13 +182,6 @@ namespace FenUISharp.States
                 FContext.GetCurrentDispatcher().Invoke(() => Notify(_lastValue));
         }
 
-
-        private void Update()
-        {
-            if (!ManualResolve)
-                ReevaluateValue();
-        }
-
         public void ReevaluateValue(bool forceReevaluation = false)
         {
             if (Value == null) return;
@@ -161,7 +189,7 @@ namespace FenUISharp.States
 
             var lastVal = _lastValue;
             _lastValue = value;
-            if (!EqualityComparer<T>.Default.Equals(lastVal, value) || forceReevaluation) Notify(value);
+            if (forceReevaluation || !EqualityComparer<T>.Default.Equals(lastVal, value)) Notify(value);
         }
 
         private void Notify(T value)
@@ -178,8 +206,10 @@ namespace FenUISharp.States
 
         public void Dispose()
         {
-            if (FContext.IsValidContext())
-                FContext.GetCurrentWindow().Callbacks.OnPreUpdate -= Update;
+            lock (_pendingStateUpdates)
+            {
+                _pendingStateUpdates.Remove(this);
+            }
 
             if (Owner.TryGetTarget(out var target))
                 target.OnObjectDisposed -= Dispose;

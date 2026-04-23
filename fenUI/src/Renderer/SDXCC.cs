@@ -133,7 +133,22 @@ namespace FenUISharp
             {
                 deviceLost = true;
                 FLogger.Error($"Failed to initialize device and context: {ex.Message}");
-                throw new InvalidOperationException(DirectCompositionContext?.Device.DeviceRemovedReason.Description);
+
+                string? message = null;
+                try
+                {
+                    if (DirectCompositionContext?.Device != null)
+                    {
+                        // DeviceRemovedReason may be a Result-like struct; use Description if available.
+                        message = DirectCompositionContext.Device.DeviceRemovedReason.Description;
+                    }
+                }
+                catch { /* ignore any error while trying to read device reason */ }
+
+                if (string.IsNullOrEmpty(message))
+                    message = ex.Message;
+
+                throw new InvalidOperationException(message, ex);
             }
         }
 
@@ -398,9 +413,6 @@ namespace FenUISharp
                         return;
                     }
 
-                    // Wait for any previous frame to complete before starting new work
-                    DirectCompositionContext?.WaitForGpu();
-
                     // Reset consecutive error count on successful preparation
                     consecutiveDrawErrors = 0;
 
@@ -421,11 +433,10 @@ namespace FenUISharp
                     }
 
                     // Flush drawing commands efficiently
-                    Surface.Canvas.Flush();
                     Surface.Flush();
 
-                    // Submit to GRContext and ensure completion before copy
-                    grContext?.Submit(true);
+                    // Submit to GRContext (async submission is sufficient for most cases)
+                    grContext?.Submit(false);
 
                     // Present with proper error handling
                     DirectCompositionContext?.Present(SwapFromPersistent, PresentFlags.None);
@@ -535,7 +546,8 @@ namespace FenUISharp
 
         private void UpdateResizeDPIScale()
         {
-            return;
+            // early-exit disabled intentionally for now; keep the code below but do not short-circuit compilation
+            // return;
             if (DirectCompositionContext == null || DirectCompositionContext.DCompDevice == null || !Window.Procedure._isSizeMoving) return;
 
             // Create a container visual

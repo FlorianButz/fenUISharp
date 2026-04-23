@@ -5,7 +5,7 @@ namespace FenUISharp
 {
     public static class FContext
     {
-        public static float Time { get => (float)(CurrentWindow?.Time.Time ?? 0); } 
+        public static float Time { get => (float)(CurrentWindow?.Time.Time ?? 0); }
         public static float DeltaTime { get => (float)(CurrentWindow?.Time.DeltaTime ?? 0); }
         public static bool IsDisposingWindow { get => isDisposingWindow; }
 
@@ -23,6 +23,9 @@ namespace FenUISharp
 
         [ThreadStatic]
         internal static DateTime frameStartTime;
+
+        [ThreadStatic]
+        internal static int CurrentFrameCount = 0;
 
         public static double CurrentFrameTimeMillis { get => (DateTime.Now - frameStartTime).TotalMilliseconds; }
 

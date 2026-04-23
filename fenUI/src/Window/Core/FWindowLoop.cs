@@ -17,6 +17,8 @@ namespace FenUISharp
         public float MaxFrameTime { get; set; } = 32;
 
         private bool _delayedFocus = true;
+        private bool _lastFrameClickable = true;
+        private Vector2 _cursorPosLastFrame;
 
         public Func<bool>? _logicIsRunning { get; set; }
         public Func<bool>? _windowIsRunning { get; set; }
@@ -62,8 +64,8 @@ namespace FenUISharp
                     Win32APIs.DispatchMessage(ref msg);
                 }
 
-                // Add dynamic sleep
-                Thread.Sleep((Window?.Properties?.IsWindowFocused ?? false) ? 2 : 15); // Prevent too high cpu usage
+                // Shorter sleep for better message responsiveness (reduced from 15ms to 8ms)
+                Thread.Sleep((Window?.Properties?.IsWindowFocused ?? false) ? 2 : 8);
             }
         }
 
@@ -107,6 +109,9 @@ namespace FenUISharp
 
                 if (timeUntilNextFrame <= 0)
                 {
+                    // Increment frame count for caching
+                    FContext.CurrentFrameCount++;
+
                     // Calculate delta time and set the previous frame time
                     Window.Time.DeltaTime = (float)(currentTime - previousFrameTime) / 1000.0f;
                     previousFrameTime = currentTime;
@@ -139,13 +144,23 @@ namespace FenUISharp
                     // Setting the delayed focus variable
                     _delayedFocus = Window.Properties.IsWindowFocused;
                 }
-
-                // Sleep to avoid too high CPU usage
-                else if (timeUntilNextFrame > 2.0)
-                    Thread.Sleep(1);
                 else
-                    // Spin thread if next frame is too far in the future
-                    Thread.SpinWait(20);
+                {
+                    // Smarter sleep to reduce CPU usage while maintaining responsiveness
+                    // Only sleep if we have meaningful time until next frame
+                    if (timeUntilNextFrame > 1.0)
+                    {
+                        // Use shorter sleep when close to next frame, longer when waiting longer
+                        int sleepTime = timeUntilNextFrame > 8.0 ? 1 : 0;
+                        if (sleepTime > 0)
+                            Thread.Sleep(sleepTime);
+                    }
+                    // Spin wait for very short durations (more responsive than sleep)
+                    else if (timeUntilNextFrame > 0.1)
+                    {
+                        Thread.SpinWait(10);
+                    }
+                }
             }
         }
 
@@ -165,6 +180,22 @@ namespace FenUISharp
             // Call the pre update iteration, only if not paused
             if (!isPaused)
             {
+                // Area hit test
+                bool areaClickable = Window.IsAreaClickable(Window.ClientMousePosition);
+                if(_lastFrameClickable != areaClickable)
+                {
+                    _lastFrameClickable = areaClickable;
+                    Window.Properties.ToggleClickability(areaClickable);
+                }
+
+                // Mouse position update
+                Window.ClientMousePosition = Win32APIs.GetClientCursorPosition(Window.hWnd);
+                if(_cursorPosLastFrame != Window.ClientMousePosition)
+                {
+                    Window.Callbacks.OnMouseMove?.Invoke(Window.ClientMousePosition);
+                    _cursorPosLastFrame = Window.ClientMousePosition;   
+                }
+
                 Window.Callbacks.OnPreUpdate?.Invoke();
 
                 // Reverse update iteration, only if not paused

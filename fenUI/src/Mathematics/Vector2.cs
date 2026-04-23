@@ -31,6 +31,9 @@ namespace FenUISharp.Mathematics {
             y = cX;
         }
 
+        public Vector2 ToFixed(float decimalPlaces)
+            => new(MathF.Round(x * decimalPlaces) / decimalPlaces, MathF.Round(y * decimalPlaces) / decimalPlaces);
+
         public static Vector2 Clamp(Vector2 value, Vector2 min, Vector2 max)
         {
             return new Vector2(RMath.Clamp(value.x, min.x, max.x), RMath.Clamp(value.y, min.y, max.y));

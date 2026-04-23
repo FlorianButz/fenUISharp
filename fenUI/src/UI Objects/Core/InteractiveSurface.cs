@@ -92,7 +92,7 @@ namespace FenUISharp.Objects
         private bool ParentIgnoreChild { get => (owner?.Parent?.InteractiveSurface.IgnoreChildInteractions.CachedValue ?? false) || (owner?.Parent?.InteractiveSurface.ParentIgnoreChild ?? false); }
 
         [ThreadStatic]
-        private static List<InteractiveSurface> _surfaces;
+        private static List<InteractiveSurface> _surfaces = new();
 
         [ThreadStatic]
         private static InteractiveSurface? _topmostSurface;
@@ -194,6 +194,9 @@ namespace FenUISharp.Objects
 
         private void FuncOnMouseActionGlobal(MouseInputCode code)
         {
+            if (owner == null || !owner.GlobalEnabled || !owner.GlobalVisible)
+                return;
+
             var capturedOwner = owner;
 
             if (capturedOwner == null) return;
@@ -204,6 +207,9 @@ namespace FenUISharp.Objects
 
         private void Global_FuncOnMouseScroll(float obj)
         {
+            if (owner == null || !owner.GlobalEnabled || !owner.GlobalVisible)
+                return;
+
             var capturedOwner = owner;
 
             if (capturedOwner == null) return;
@@ -215,6 +221,9 @@ namespace FenUISharp.Objects
 
         private void Global_FuncOnMouseMove(Vector2 vector)
         {
+            if (owner == null || !owner.GlobalEnabled || !owner.GlobalVisible)
+                return;
+
             var capturedOwner = owner;
 
             if (capturedOwner == null) return;
@@ -225,6 +234,9 @@ namespace FenUISharp.Objects
 
         private void FuncOnMouseScroll()
         {
+            if (owner == null || !owner.GlobalEnabled || !owner.GlobalVisible)
+                return;
+
             var capturedOwner = owner;
 
             if (capturedOwner == null) return;
@@ -237,6 +249,9 @@ namespace FenUISharp.Objects
 
         private void FuncOnMouseMove()
         {
+            if (owner == null || !owner.GlobalEnabled || !owner.GlobalVisible)
+                return;
+
             var capturedOwner = owner;
 
             if (capturedOwner == null) return;
@@ -269,6 +284,9 @@ namespace FenUISharp.Objects
 
         private void FuncProcessDrag()
         {
+            if (owner == null || !owner.GlobalEnabled || !owner.GlobalVisible)
+                return;
+
             var capturedOwner = owner;
 
             if (capturedOwner == null) return;
@@ -302,6 +320,9 @@ namespace FenUISharp.Objects
 
         private void FuncOnMouseMoveGlobal(MouseInputCode code)
         {
+            if (owner == null || !owner.GlobalEnabled || !owner.GlobalVisible)
+                return;
+
             var capturedOwner = owner;
 
             if (capturedOwner == null) return;
@@ -320,6 +341,9 @@ namespace FenUISharp.Objects
 
         private void FuncOnMouseAction(MouseInputCode code)
         {
+            if (owner == null || !owner.GlobalEnabled || !owner.GlobalVisible)
+                return;
+
             var capturedOwner = owner;
 
             if (capturedOwner == null) return;
@@ -377,6 +401,9 @@ namespace FenUISharp.Objects
         public bool TestForGlobalPoint(in Vector2 point)
         {
             if (owner == null) return false;
+            
+            // Check if this object is enabled and visible
+            if (!owner.GlobalEnabled || !owner.GlobalVisible) return false;
             
             // return GetGlobalInteractionRect().Contains(point.x, point.y);
             return GetGlobalInteractionRect().Contains(point.x, point.y) && (owner.Parent != null ? owner.Parent.InteractiveSurface.TestForGlobalPoint(point) : true);

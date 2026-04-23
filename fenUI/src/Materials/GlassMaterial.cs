@@ -126,9 +126,10 @@ namespace FenUISharp.Materials
             // Get displacement map
             using SKShader displacementMap =
                 displacementSurface.SkiaSurface.Snapshot().ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, new SKSamplingOptions(SKFilterMode.Nearest, SKMipmapMode.Nearest));
+            using var grabPassShader = blurredWindowArea.ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
             using SKShader? masterShader = CreateShader(
                 displacementMap,
-                blurredWindowArea.ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear)),
+                grabPassShader,
                 pathBounds,
                 caller,
                 BaseColor(),
@@ -154,7 +155,7 @@ namespace FenUISharp.Materials
             // targetCanvas.DrawImage(windowArea, displayArea, paint);
             targetCanvas.DrawPath(path, paint);
 
-            var highlightPaint = new SKPaint
+            using var highlightPaint = new SKPaint
             {
                 Color = paint.Color,
                 // BlendMode = SKBlendMode.SoftLight,
@@ -173,6 +174,12 @@ namespace FenUISharp.Materials
 
             // Restore
             targetCanvas.RestoreToCount(unmodified);
+
+            // Flush and wait for GPU to finish using the resources before disposing
+            targetCanvas.Flush();
+            FContext.GetCurrentWindow().SkiaDirectCompositionContext?.grContext?.Flush();
+            FContext.GetCurrentWindow().SkiaDirectCompositionContext?.grContext?.Submit(true);
+            FContext.GetCurrentWindow().SkiaDirectCompositionContext?.WaitForGPU();
 
             caller.Invalidate(UIObject.Invalidation.SurfaceDirty);
             blurredWindowArea.Dispose();
@@ -259,10 +266,14 @@ namespace FenUISharp.Materials
                 }
             ";
 
-            SKRuntimeEffect effect = SKRuntimeEffect.CreateShader(sksl, out var err);
-            if (effect == null) FLogger.Error($"Shader compilation failed: {err}");
+            using var effect = SKRuntimeEffect.CreateShader(sksl, out var err);
+            if (effect == null)
+            {
+                FLogger.Error($"Shader compilation failed: {err}");
+                return null;
+            }
 
-            var uniforms = new SKRuntimeEffectUniforms(effect);
+            using var uniforms = new SKRuntimeEffectUniforms(effect);
             uniforms["iBaseMix"] = new float[] { (float)baseColorMix.Red / 255f, (float)baseColorMix.Green / 255f, (float)baseColorMix.Blue / 255f };
             uniforms["iResolution"] = new float[] { bounds.Width, bounds.Height };
             uniforms["iOff"] = new float[] { (float)-caller.Padding.CachedValue, (float)-caller.Padding.CachedValue };
@@ -271,11 +282,11 @@ namespace FenUISharp.Materials
             uniforms["iBright"] = (float)Brightness();
             uniforms["iDownscale"] = (float)DisplacementMapDownscale;
 
-            var children = new SKRuntimeEffectChildren(effect); // Content behind the glass
+            using var children = new SKRuntimeEffectChildren(effect); // Content behind the glass
             children["contentShader"] = displacementMap;
             children["grabPass"] = grabPass;
 
-            return effect?.ToShader(uniforms, children) ?? null;
+            return effect.ToShader(uniforms, children);
         }
     }
 }
