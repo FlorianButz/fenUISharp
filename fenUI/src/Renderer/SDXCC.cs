@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using FenUISharp.Logging;
 using FenUISharp.Mathematics;
 using FenUISharp.Objects;
@@ -41,10 +42,7 @@ namespace FenUISharp
         private bool resourcesNeedRecreation = true;
         private readonly object resourceLock = new object();
 
-        // Device recovery tracking
-        private bool deviceLost = false;
-        private int consecutiveDrawErrors = 0;
-        private const int MAX_CONSECUTIVE_ERRORS = 3;
+        private bool _deviceLost;
 
         // This is used to resize buffer while the user is still resizing
         private int resizeOverflowPadding = 350;
@@ -124,14 +122,9 @@ namespace FenUISharp
 
                 // Initial resource creation
                 EnsureResourcesCreated();
-
-                // Reset error tracking
-                deviceLost = false;
-                consecutiveDrawErrors = 0;
             }
             catch (Exception ex)
             {
-                deviceLost = true;
                 FLogger.Error($"Failed to initialize device and context: {ex.Message}");
 
                 string? message = null;
@@ -139,14 +132,15 @@ namespace FenUISharp
                 {
                     if (DirectCompositionContext?.Device != null)
                     {
-                        // DeviceRemovedReason may be a Result-like struct; use Description if available.
                         message = DirectCompositionContext.Device.DeviceRemovedReason.Description;
                     }
                 }
-                catch { /* ignore any error while trying to read device reason */ }
+                catch { }
 
                 if (string.IsNullOrEmpty(message))
                     message = ex.Message;
+
+                CleanupAfterFailedRecovery();
 
                 throw new InvalidOperationException(message, ex);
             }
@@ -161,65 +155,95 @@ namespace FenUISharp
             return reason == 0; // S_OK means device is valid
         }
 
-        private void RecoverFromDeviceRemoval()
+        private void LogDeviceRemovedReason()
         {
-            deviceLost = true;
-            FLogger.Warn("Device removed, attempting recovery...");
-
-            lock (resourceLock)
+            try
             {
-                try
-                {
-                    Surface?.Canvas?.Flush();
-                    Surface?.Flush();
-                    grContext?.AbandonContext(releaseResources: false);
-                }
-                catch { /* Ignore — device may already be gone */ }
+                var reason = DirectCompositionContext?.Device?.DeviceRemovedReason;
+                if (reason != null)
+                    FLogger.Error($"DeviceRemovedReason: 0x{reason.Value.Code:X8} ({reason.Value.Description})");
+            }
+            catch { }
+        }
 
-                DisposeSkiaResources();
+        private void DisposeGrContext()
+        {
+            if (grContext == null) return;
 
-                try { grContext?.Dispose(); } catch { }
+            // Try normal dispose first — at this early stage (called right
+            // when device loss is detected in Draw()) the driver DLL should
+            // still be loaded and AbandonContext should succeed.
+            try
+            {
+                grContext.Dispose();
                 grContext = null;
+                return;
+            }
+            catch
+            {
+                // Normal dispose failed, fall back to reflection-based
+                // disposal to avoid the uncatchable 0xC000001D crash.
+            }
 
-                try { backendContext?.Dispose(); } catch { }
-                backendContext = null;
+            DisposeGrContextSafely();
+        }
 
-                try { adapter?.Dispose(); } catch { }
-                adapter = null;
+        private void DisposeGrContextSafely()
+        {
+            if (grContext == null) return;
 
-                try { DirectCompositionContext?.Dispose(); } catch { }
-                DirectCompositionContext = null;
+            try
+            {
+                // Snapshot COM pointers BEFORE reflection, before any disposal
+                var devPtr = backendContext?.Device ?? IntPtr.Zero;
+                var queuePtr = backendContext?.Queue ?? IntPtr.Zero;
+                var adaptPtr = backendContext?.Adapter ?? IntPtr.Zero;
 
-                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
-                GC.WaitForPendingFinalizers();
-                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
-                GC.WaitForPendingFinalizers();
+                // Zero the native handle so DisposeNative() (= AbandonContext)
+                // is skipped — avoids uncatchable 0xC000001D on removed devices.
+                var flags = System.Reflection.BindingFlags.NonPublic |
+                            System.Reflection.BindingFlags.Instance;
+                var type = typeof(SkiaSharp.SKNativeObject);
+                var handleField = type.GetField("_handle", flags)
+                               ?? type.GetField("handle", flags);
+                var ownsHandleField = type.GetField("_ownsHandle", flags);
 
-                System.Threading.Thread.Sleep(300);
-
-                consecutiveDrawErrors = 0;
-                resourcesNeedRecreation = true;
-                currentBackBufferIndex = uint.MaxValue;
-
-                try
+                if (handleField != null)
                 {
-                    InitializeDeviceAndContext();
-                    deviceLost = false;
-                    FLogger.Log<SkiaDirectCompositionContext>("Device recovery successful");
+                    handleField.SetValue(grContext, IntPtr.Zero);
+                    ownsHandleField?.SetValue(grContext, false);
                 }
-                catch (Exception ex)
+
+                grContext.Dispose();
+
+                // GRContext.CreateDirect3D(backendContext) internally AddRef'd
+                // each COM pointer.  We must undo that before creating any new
+                // D3D12 device in this process — the runtime refuses otherwise.
+                foreach (var ptr in new[] { devPtr, queuePtr, adaptPtr })
                 {
-                    deviceLost = true;
-                    FLogger.Error($"Device recovery failed permanently: {ex.Message}");
-
-                    // Best-effort final cleanup so nothing leaks
-                    try { grContext?.Dispose(); grContext = null; } catch { }
-                    try { DirectCompositionContext?.Dispose(); DirectCompositionContext = null; } catch { }
-                    try { adapter?.Dispose(); adapter = null; } catch { }
-
-                    throw new InvalidOperationException($"Device recovery failed: {ex.Message}", ex);
+                    if (ptr != IntPtr.Zero)
+                    {
+                        try { Marshal.Release(ptr); } catch { }
+                    }
                 }
             }
+            catch
+            {
+                // Manual release failed — leak native handles rather than crash
+            }
+
+            grContext = null;
+        }
+
+        private void CleanupAfterFailedRecovery()
+        {
+            grContext = null;
+            try { DirectCompositionContext?.Dispose(); } catch { }
+            DirectCompositionContext = null;
+            try { adapter?.Dispose(); } catch { }
+            adapter = null;
+            try { backendContext?.Dispose(); } catch { }
+            backendContext = null;
         }
 
         private void EnsureResourcesCreated()
@@ -329,11 +353,6 @@ namespace FenUISharp
                 if (persistentRenderTarget == null)
                     throw new InvalidOperationException("Persistent render target is null");
 
-                // Make sure Skia has finished all operations on the persistent render target
-                Surface?.Canvas?.Flush();
-                Surface?.Flush();
-                grContext?.Submit(true); // Force completion
-
                 // The backBuffer comes in as RenderTarget state from Present()
                 // We need to transition it to CopyDest
                 // The persistentRenderTarget is currently in RenderTarget state, transition to CopySource
@@ -379,7 +398,7 @@ namespace FenUISharp
         internal void Draw()
         {
             // Don't draw if we're in an invalid state
-            if (deviceLost || _isDisposed)
+            if (_deviceLost || _isDisposed)
                 return;
 
             try
@@ -392,8 +411,10 @@ namespace FenUISharp
                     // Check device validity first
                     if (!IsDeviceValid())
                     {
-                        RecoverFromDeviceRemoval();
-                        return;
+                        LogDeviceRemovedReason();
+                        DisposeGrContext();
+
+                        throw new InvalidOperationException("FenUI: Graphics device lost permanently. Process has to restart.");
                     }
 
                     // Ensure resources are created
@@ -404,9 +425,6 @@ namespace FenUISharp
                         FLogger.Warn("Surface or Canvas is null, skipping draw");
                         return;
                     }
-
-                    // Reset consecutive error count on successful preparation
-                    consecutiveDrawErrors = 0;
 
                     // Clear and prepare canvas
                     Surface.Canvas.Save();
@@ -441,24 +459,11 @@ namespace FenUISharp
                                                ex.ResultCode == Vortice.DXGI.ResultCode.DeviceHung)
             {
                 FLogger.Warn($"Device lost during draw: {ex.Message}");
-                RecoverFromDeviceRemoval();
-            }
-            catch (Exception ex)
-            {
-                consecutiveDrawErrors++;
-                FLogger.Error($"Error during draw (attempt {consecutiveDrawErrors}): {ex.Message}");
+                LogDeviceRemovedReason();
+                DisposeGrContext();
 
-                // If we get too many consecutive errors, try device recovery
-                if (consecutiveDrawErrors >= MAX_CONSECUTIVE_ERRORS)
-                {
-                    FLogger.Warn($"Too many consecutive draw errors ({consecutiveDrawErrors}), attempting device recovery");
-                    RecoverFromDeviceRemoval();
-                }
-                else
-                {
-                    // Mark resources for recreation on next frame
-                    resourcesNeedRecreation = true;
-                }
+                _deviceLost = true;   
+                throw new Exception("FenUI: Graphics device failed permanently. The GPU driver has entered an unrecoverable state. The application must restart.");
             }
         }
 
@@ -613,7 +618,7 @@ namespace FenUISharp
                     Surface.Canvas.Flush();
                     Surface.Flush();
 
-                    Compositor.Dump(Surface.Snapshot(), "rcontext_buffer_surf_whole");
+                    // Compositor.Dump(Surface.Snapshot(), "rcontext_buffer_surf_whole");
 
                     using var snapshot = Surface.Snapshot(new SKRectI((int)region.Left, (int)region.Top, (int)region.Right, (int)region.Bottom));
                     var scaled = RMath.CreateLowResImage(snapshot, RMath.Clamp(quality, 0.01f, 1f), SamplingOptions);
@@ -708,22 +713,29 @@ namespace FenUISharp
 
             lock (resourceLock)
             {
-                // Wait for GPU before disposing
-                DirectCompositionContext?.WaitForGpu();
+                if (IsDeviceValid())
+                {
+                    try { DirectCompositionContext?.WaitForGpu(); } catch { }
+                    DisposeSkiaResources();
+                    try { grContext?.Dispose(); } catch { }
+                }
+                else
+                {
+                    DisposeSkiaResources();
+                    // Device is removed — normal grContext.Dispose() can trigger
+                    // STATUS_ILLEGAL_INSTRUCTION (0xC000001D). Use reflection to
+                    // zero the native handle first so DisposeNative() is a no-op.
+                    DisposeGrContextSafely();
+                }
 
-                // Disposing all resources
-                DisposeSkiaResources();
-                grContext?.Dispose();
                 grContext = null!;
-
-                // Setting draw action to null
                 DrawAction = null!;
 
-                // Disposing direct composition context
-                DirectCompositionContext?.Dispose();
+                try { DirectCompositionContext?.Dispose(); } catch { }
                 DirectCompositionContext = null!;
 
-                adapter?.Dispose();
+                try { adapter?.Dispose(); } catch { }
+                adapter = null;
             }
         }
 

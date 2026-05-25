@@ -151,6 +151,7 @@ namespace FenUISharp
             }
 
             activeInstances.ForEach(x => x.Dispose());
+            Environment.Exit(-1);
         }
 
         public static void Shutdown()

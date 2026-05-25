@@ -104,11 +104,34 @@ namespace FenUISharp
                     {
                         device = D3D12CreateDevice<ID3D12Device>(_cachedAdapter, FeatureLevel);
                     }
-                    catch (SharpGenException ex) when (ex.ResultCode == Vortice.DXGI.ResultCode.InvalidCall && attempts < maxAttempts - 1)
+                    catch (SharpGenException ex) when (ex.ResultCode == Vortice.DXGI.ResultCode.InvalidCall)
                     {
                         FLogger.Log<DirectCompositionContext>($"Device creation attempt {attempts + 1} failed, retrying...");
-                        System.Threading.Thread.Sleep(100); // Brief delay
+                        // Exponential backoff: 200ms, 400ms, 800ms
+                        System.Threading.Thread.Sleep(200 * (1 << attempts));
                         attempts++;
+                    }
+                }
+
+                if (device == null)
+                {
+                    FLogger.Log<DirectCompositionContext>("Hardware adapter failed, trying WARP software adapter...");
+                    try
+                    {
+                        var warpAdapter = GetWarpAdapter();
+                        if (warpAdapter != null)
+                        {
+                            device = D3D12CreateDevice<ID3D12Device>(warpAdapter, FeatureLevel);
+                            if (device != null)
+                            {
+                                _cachedAdapter = warpAdapter;
+                                FLogger.Log<DirectCompositionContext>("WARP adapter device created successfully");
+                            }
+                        }
+                    }
+                    catch (Exception warpEx)
+                    {
+                        FLogger.Log<DirectCompositionContext>($"WARP adapter also failed: {warpEx.Message}");
                     }
                 }
 
@@ -373,6 +396,28 @@ namespace FenUISharp
             }
         }
 
+        private IDXGIAdapter1? GetWarpAdapter()
+        {
+            try
+            {
+                if (Factory.QueryInterfaceOrNull<IDXGIFactory4>() is IDXGIFactory4 factory4)
+                {
+                    var hr = factory4.EnumWarpAdapter(out IDXGIAdapter1? warpAdapter);
+                    factory4.Dispose();
+                    if (hr.Success && warpAdapter != null)
+                    {
+                        FLogger.Log<DirectCompositionContext>($"Found WARP adapter: {warpAdapter.Description1.Description}");
+                        return warpAdapter;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                FLogger.Log<DirectCompositionContext>($"Failed to get WARP adapter: {ex.Message}");
+            }
+            return null;
+        }
+
         public void Resize(int newWidth, int newHeight, Action disposeTargets)
         {
             if (newWidth == SizeX && newHeight == SizeY)
@@ -437,7 +482,7 @@ namespace FenUISharp
                 }
             }
 
-            var elapsed = DateTime.Now - startTime;
+            // var elapsed = DateTime.Now - startTime;
             // FLogger.Log<DirectCompositionContext>($"WaitForGpu took: {elapsed.TotalMilliseconds}ms");
         }
 
@@ -446,6 +491,7 @@ namespace FenUISharp
             try
             {
                 // Reset command list
+                WaitForGpu();
                 CommandAllocator?.Reset();
                 CommandList?.Reset(CommandAllocator, null);
 

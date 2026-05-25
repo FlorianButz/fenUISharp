@@ -13,12 +13,15 @@ namespace FenUISharp.Objects
 
         public State<bool> UseSquircle { get; private init; }
 
+        public State<bool> ClipChildren { get; private init; }
+
         protected bool _drawBasePanel = true;
 
         public FPanel(Func<Vector2>? position = null, Func<Vector2>? size = null, float? cornerRadius = null, Func<SKColor>? color = null) : base(position, size)
         {
             CornerRadius = new(() => cornerRadius ?? 35, this, this);
             UseSquircle = new(() => true, this, this);
+            ClipChildren = new(() => false, this, this);
 
             Transform.SnapPositionToPixelGrid.SetStaticState(true);
 
@@ -41,6 +44,16 @@ namespace FenUISharp.Objects
             using var paint = GetRenderPaint();
             using var path = GetPanelPath(rect);
             RenderMaterial.CachedValue.DrawWithMaterial(canvas, path, this, paint);
+        }
+
+        public override void DrawChildren(SKCanvas? canvas)
+        {
+            if (ClipChildren.CachedValue)
+            {
+                using (var clipPath = this.GetPanelPath())
+                    canvas?.ClipPath(clipPath);
+            }
+            base.DrawChildren(canvas);
         }
 
         public SKPath GetPanelPath(SKRect? rect = null)

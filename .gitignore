@@ -406,3 +406,6 @@ FodyWeavers.xsd
 # Ignore everything inside the lib folder
 /crash-handler/fenUICrashHandler/lib/*
 !/crash-handler/fenUICrashHandler/lib/.gitkeep
+fenUI/lib/fenUICrashHandler.dll
+/fenUI/lib
+fenUI/lib/fenUICrashHandler.exe

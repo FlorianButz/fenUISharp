@@ -44,6 +44,8 @@ namespace FenUISharp.Behavior.RuntimeEffects
             if (capturedOwner == null)
                 return;
 
+            capturedOwner.Visible.SetStaticState(Opacity.CachedValue != 0, 256);
+
             if (_valuesChanged)
             {
                 _valuesChanged = false;
