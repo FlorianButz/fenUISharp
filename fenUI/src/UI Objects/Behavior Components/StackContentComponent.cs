@@ -122,7 +122,7 @@ namespace FenUISharp.Behavior
                     var canvas = ((SKCanvas TargetCanvas, bool RenderChildren))data;
                     OnBeforeRenderChildren(canvas.TargetCanvas);
                     break;
-                case BehaviorEventType.AfterDrawChildren:        
+                case BehaviorEventType.AfterDrawChildren:
                     if (data == null) return;
                     var canvas2 = (SKCanvas)data;
                     OnAfterRenderChildren(canvas2);
@@ -431,15 +431,16 @@ namespace FenUISharp.Behavior
             UpdateScrollbar();
         }
 
-        public void GetClipFactors(UIObject child, in float clipStart, in float clipLength, out float startFactor, out float endFactor)
+        public void GetClipFactors(int childIndex, in float clipStart, in float clipLength, out float startFactor, out float endFactor)
         {
-            float pos = StackType == ContentStackType.Horizontal ? child.Shape.SurfaceDrawRect.MidX : child.Shape.SurfaceDrawRect.MidY;
-            float parPos = (StackType == ContentStackType.Horizontal ? Owner.Transform.Position.x : Owner.Transform.Position.y) + Owner.Padding.CachedValue;
+            float relativePos = StackType == ContentStackType.Horizontal
+                ? ChildLocalPosition[childIndex].x + ChildrenOffset.x
+                : ChildLocalPosition[childIndex].y + ChildrenOffset.y;
 
             var clipLengthCapped = Math.Clamp(clipLength, 0.01f, float.MaxValue);
 
-            startFactor = Math.Clamp((parPos - pos + clipLength + clipStart) / clipLengthCapped, 0, 1);
-            endFactor = Math.Clamp(1 - (parPos - pos + _pageSize - clipStart) / clipLengthCapped, 0, 1);
+            startFactor = Math.Clamp((clipLength + clipStart - relativePos) / clipLengthCapped, 0, 1);
+            endFactor = Math.Clamp(1 - (_pageSize - clipStart - relativePos) / clipLengthCapped, 0, 1);
         }
 
         public void UpdatePosition()
@@ -537,7 +538,7 @@ namespace FenUISharp.Behavior
                     if (childList[i] == null || ChildLocalPosition[i] == null) continue;
                     childList[i].Transform.LocalPosition.SetStaticState(ChildLocalPosition[i]);
 
-                    GetClipFactors(childList[i], ContentClipBehaviorProvider.ClipStart, ContentClipBehaviorProvider.ClipLength, out float startFactor, out float endFactor);
+                    GetClipFactors(i, ContentClipBehaviorProvider.ClipStart, ContentClipBehaviorProvider.ClipLength, out float startFactor, out float endFactor);
 
                     if (ContentClipBehaviorProvider.Inverse)
                     {
@@ -617,58 +618,103 @@ namespace FenUISharp.Behavior
 
     public class StackContentClipBehavior : ContentClipBehaviorProvider
     {
-        public float DistanceFromEdge { get; set; } = 25;
+        public float DistanceFromEdge { get; set; } = 25f;
 
-        public Vector2 Scale { get; set; } = new Vector2(1, 1) * 0.85f;
-        public bool FlipZIndex { get; set; } = false;
+        public Vector2 Scale { get; set; } = new(0.85f, 0.85f);
 
-        public float SeparationDistance { get; set; } = 25;
-        public float SlideStart { get; set; } = 65;
+        public float SeparationDistance { get; set; } = 25f;
+
+        public float SlideStart { get; set; } = 65f;
 
         public StackContentClipBehavior(StackContentComponent layout) : base(layout)
         {
             layout.ContentFade = false;
         }
 
-        public override void ClipBehavior(float t, StackContentComponent layout, UIObject child, int childIndex, bool isBottom)
+        public override void ClipBehavior(
+            float t,
+            StackContentComponent layout,
+            UIObject child,
+            int childIndex,
+            bool isBottom)
         {
-            var locPos = layout.ChildLocalPosition[childIndex];
+            if (childIndex < 0 || childIndex >= layout.ChildLocalPosition.Count)
+                return;
 
-            layout.GetClipFactors(child, ClipStart - 200, ClipLength * 2, out float startFactor1, out float endFactor1);
-            float tAlpha = ClipEase(Math.Abs(Math.Max(startFactor1, endFactor1)));
+            Vector2 locPos = layout.ChildLocalPosition[childIndex];
 
-            layout.GetClipFactors(child, ClipStart - 100, ClipLength * 3, out float startFactor2, out float endFactor2);
-            float tScale = Math.Abs(Math.Max(startFactor2, endFactor2));
+            // Main clip factor
+            layout.GetClipFactors(
+                childIndex,
+                ClipStart - SlideStart,
+                ClipLength * 3,
+                out float startFactor,
+                out float endFactor
+            );
 
-            layout.GetClipFactors(child, ClipStart - SlideStart, ClipLength * 3, out float startFactor3, out float endFactor3);
-            float tPos = Math.Abs(Math.Max(startFactor3, endFactor3));
+            // Signed direction:
+            // negative = upper/left side
+            // positive = lower/right side
+            float signedFactor =
+                Math.Abs(startFactor) > Math.Abs(endFactor)
+                    ? -startFactor
+                    : endFactor;
 
-            layout.GetClipFactors(child, ClipStart - SlideStart - 50, ClipLength * 3, out float startFactor4, out float endFactor4);
-            float tSlide = Math.Abs(Math.Max(startFactor4, endFactor4));
+            float stackT = Math.Clamp(Math.Abs(signedFactor), 0f, 1f);
 
-            float dist = layout.StackType == StackContentComponent.ContentStackType.Horizontal ?
-                (child.Transform.Position.x - layout.Owner.Transform.Position.x) :
-                (child.Transform.Position.y - layout.Owner.Transform.Position.y);
+            // Scale factor
+            layout.GetClipFactors(
+                childIndex,
+                ClipStart - 100,
+                ClipLength * 3,
+                out float scaleStart,
+                out float scaleEnd
+            );
 
-            bool isInUpperHalf = layout.StackType == StackContentComponent.ContentStackType.Horizontal ?
-                dist < layout._pageSize / 2 :
-                dist < layout._pageSize / 2;
+            float scaleT = Math.Clamp(
+                Math.Abs(Math.Max(scaleStart, scaleEnd)),
+                0f,
+                1f
+            );
 
-            float pos = layout.StackType == StackContentComponent.ContentStackType.Vertical ?
-                !isInUpperHalf ? (layout._pageSize - layout.ChildrenOffset.y - DistanceFromEdge) : -layout.ChildrenOffset.y + DistanceFromEdge :
-                !isInUpperHalf ? (layout._pageSize - layout.ChildrenOffset.x - DistanceFromEdge) : -layout.ChildrenOffset.x + DistanceFromEdge;
+            bool upperSide = signedFactor < 0;
 
-            if (FlipZIndex) isInUpperHalf = !isInUpperHalf;
-            child.Composition.LocalZIndex.SetStaticState(isInUpperHalf ? 0 : -childIndex + layout.Owner.Children.Count);
+            bool vertical =
+                layout.StackType ==
+                StackContentComponent.ContentStackType.Vertical;
 
+            float edgePos =
+                vertical
+                    ? (
+                        upperSide
+                            ? -layout.ChildrenOffset.y + DistanceFromEdge
+                            : layout._pageSize - layout.ChildrenOffset.y - DistanceFromEdge
+                    )
+                    : (
+                        upperSide
+                            ? -layout.ChildrenOffset.x + DistanceFromEdge
+                            : layout._pageSize - layout.ChildrenOffset.x - DistanceFromEdge
+                    );
 
-            if (layout.StackType == StackContentComponent.ContentStackType.Horizontal)
-                locPos.x = RMath.Lerp(locPos.x, RMath.Lerp(pos, pos + (isBottom ? SeparationDistance : -SeparationDistance), tPos), tPos);
+            float separation =
+                upperSide
+                    ? -SeparationDistance
+                    : SeparationDistance;
+
+            float target =
+                edgePos + separation * stackT;
+
+            if (vertical)
+                locPos.y = RMath.Lerp(locPos.y, target, t);
             else
-                locPos.y = RMath.Lerp(locPos.y, RMath.Lerp(pos, pos + (isBottom ? (SeparationDistance) : -(SeparationDistance)), tPos), tPos);
+                locPos.x = RMath.Lerp(locPos.x, target, t);
 
-            // child.ImageEffect.Opacity = 1 - tAlpha; // TODO: Add back alpha
-            child.Transform.Scale.SetStaticState(new Vector2(RMath.Remap(1 - tScale, 0, 1, Scale.x, 1f), RMath.Remap(1 - tScale, 0, 1, Scale.y, 1f)));
+            child.Transform.Scale.SetStaticState(
+                new Vector2(
+                    RMath.Lerp(1f, Scale.x, scaleT),
+                    RMath.Lerp(1f, Scale.y, scaleT)
+                )
+            );
 
             child.Transform.LocalPosition.SetStaticState(locPos);
         }
@@ -693,7 +739,7 @@ namespace FenUISharp.Behavior
         {
             base.Update(layout, children);
 
-            if (offsets == null)
+            if (offsets == null || offsets.Count != children.Count)
             {
                 offsets = new List<Vector2>();
                 for (int i = 0; i < children.Count; i++)
