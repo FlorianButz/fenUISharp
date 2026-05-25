@@ -44,7 +44,7 @@ namespace FenUISharp.Objects
         /// </summary>
         public bool DisableWhenOutOfParentBounds { get; set; } = true;
 
-        public bool GlobalEnabled { get => Enabled.CachedValue && (Parent?.Enabled.CachedValue ?? true) && (DisableWhenOutOfParentBounds ? _insideParent : true); }
+        public bool GlobalEnabled { get => Enabled.CachedValue && (Parent?.Enabled.CachedValue ?? true); }
         public bool GlobalVisible { get => LocalVisible.CachedValue && Visible.CachedValue && (Parent?.Visible.CachedValue ?? true) && (DisableWhenOutOfParentBounds ? _insideParent : true); }
 
         private bool _wasBeginCalled = false;
@@ -136,6 +136,9 @@ namespace FenUISharp.Objects
             bool returnValue = RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Shape.Bounds, Shape.GlobalBounds);
             _insideParent = returnValue;
         }
+
+        public List<T> TryGetComponents<T>() where T : BehaviorComponent
+            => BehaviorComponents.OfType<T>().ToList();
 
         protected virtual void OnThemeChanged()
         {

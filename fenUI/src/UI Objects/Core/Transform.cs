@@ -41,10 +41,6 @@ namespace FenUISharp.Objects
         public SKMatrix DrawMatrix { get; internal set; }
         public SKMatrix RecursiveDrawMatrix { get; internal set; }
 
-        // Cached matrix for inverse operations
-        private SKMatrix? _cachedInverseMatrix;
-        private int _cachedInverseFrame = -1;
-
         public Transform(UIObject owner)
         {
             this.WeakOwner = new(owner);
@@ -133,35 +129,13 @@ namespace FenUISharp.Objects
 
         public Vector2 GlobalToDrawLocal(Vector2 local, SKMatrix? matrix = null)
         {
-            var m = matrix ?? RecursiveDrawMatrix;
-            var frame = FContext.CurrentFrameCount;
-
-            // Cache the inverted matrix for this frame
-            if (_cachedInverseFrame != frame)
-            {
-                m.TryInvert(out var cm);
-                _cachedInverseMatrix = cm;
-                _cachedInverseFrame = frame;
-            }
-
-            var point = (_cachedInverseMatrix ?? m).MapPoint(local.x, local.y);
+            var point = (matrix ?? RecursiveDrawMatrix).Invert().MapPoint(local.x, local.y);
             return new(point.X, point.Y);
         }
 
         public SKRect GlobalToDrawLocal(SKRect local, SKMatrix? matrix = null)
         {
-            var m = matrix ?? RecursiveDrawMatrix;
-            var frame = FContext.CurrentFrameCount;
-
-            // Cache the inverted matrix for this frame
-            if (_cachedInverseFrame != frame)
-            {
-                m.TryInvert(out var cm);
-                _cachedInverseMatrix = cm;
-                _cachedInverseFrame = frame;
-            }
-
-            return (_cachedInverseMatrix ?? m).MapRect(local);
+            return (matrix ?? RecursiveDrawMatrix).Invert().MapRect(local);
         }
 
         public SKMatrix LocalToGlobalMatrix()

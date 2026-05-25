@@ -1,0 +1,1094 @@
+[33mcommit 1050214440b61d517aa67d92620046f4ef4539ab[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Apr 23 20:56:55 2026 +0200
+
+    Batch Update
+
+[33mcommit ed6fad57697e3d40da9d147c123ad45f29773d89[m
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Sat Feb 28 12:11:40 2026 +0100
+
+    Update README with maintenance warning
+    
+    Added a warning about the repository's maintenance status.
+
+[33mcommit e758c3c8d6cc8e705abc3883d2f525da8e4ee96b[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Oct 25 18:42:39 2025 +0200
+
+    Minor fixes
+
+[33mcommit 9f95b5f73bfded6215a3e6b2389cac2ba00f75cb[m
+Merge: db477c2 f610606
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Oct 22 18:22:04 2025 +0200
+
+    Merge branch 'main' of https://github.com/FlorianButz/fenUISharp
+
+[33mcommit db477c260a9bc0c370dde4b2d323203e570203ce[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Oct 22 18:22:00 2025 +0200
+
+    Add better DPI-Awareness
+    
+    Fix sticky dragging issue
+
+[33mcommit f610606126915e6d7bcf82f7641c5475ad671e92[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Mon Oct 20 08:29:35 2025 +0200
+
+    Add WARP fallback
+
+[33mcommit f58e1b0fe279fe55990029f2b9feaff1efd4a477[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Oct 8 21:26:04 2025 +0200
+
+    Fix fatal error in FBloomEffect
+
+[33mcommit 35601f6ca7e7b2d8d8fbbd86db7a93e424bf714d[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Mon Oct 6 22:40:05 2025 +0200
+
+    Fix Drag Helper
+
+[33mcommit d98ec2ad6b1f330851ad5a047e767f484a2ffa4b[m[33m ([m[1;32mlayout-refactor[m[33m)[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Sep 27 11:55:04 2025 +0200
+
+    Fix further Global Hooks issues with queue spamming
+
+[33mcommit fcd829d576f6ffe9baf5d976388e45aa854c9343[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Tue Sep 23 21:30:57 2025 +0200
+
+    Fixing several coordinate issues
+    
+    Fix FPopupPanel using desktop coordinates instead of client coordinates
+    Fix window regions when moving inbetween monitors
+    (Presumably) Fix index out of range in GlobalHooks
+    Add frame time cap to UIObject's render tree
+    Refactor returning IntPtr.Zero instead of breaking in FWindowProcedure
+
+[33mcommit 2d0d77de85349f3385f6a45b121d89c8abcb15de[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Mon Sep 22 21:38:45 2025 +0200
+
+    Switch to using (mostly) no global hooks
+    
+    Fix drop component not working
+
+[33mcommit c66a7c166efd58ad556b85e4e6c029ea68615d2b[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Tue Sep 16 21:42:22 2025 +0200
+
+    Rewrite Global Hooks class and fix major performance issues
+
+[33mcommit 327203fd8b40796f008469400b0d2c7789774b1e[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Mon Sep 15 21:42:09 2025 +0200
+
+    Fix several issues with build scripts, crashes and crash handler
+
+[33mcommit c808ea012c062ba669a4df40cdfab0c3f6c6adf5[m
+Merge: b114a68 70ab792
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Sun Aug 10 00:46:29 2025 +0200
+
+    Merge pull request #5 from FlorianButz/WindowRework
+    
+    Window rework
+
+[33mcommit 70ab792f971b162d9447ab110d20d14fb44674c6[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Aug 10 00:46:09 2025 +0200
+
+    Major window class refactor
+
+[33mcommit 1c52a9a0beacb730b88f947c345bf49b2713bbb6[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri Aug 8 18:39:47 2025 +0200
+
+    Use FLogger class instead of Console
+
+[33mcommit 3b5b4b41821a5e8a1b0e78298af4376f9520233d[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri Aug 8 18:38:31 2025 +0200
+
+    Update SDXCC.cs
+
+[33mcommit c6cb0f67696c2304472a85eb4dbee73769b80453[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri Aug 8 18:30:54 2025 +0200
+
+    Update FWindowCallbacks.cs
+
+[33mcommit 5e93f5285e424eab307953af3e9eb11c3b047f58[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri Aug 8 18:30:30 2025 +0200
+
+    Fix version control issues
+
+[33mcommit 97bc29e496529c920216c11eb06f15e1669c4220[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Aug 7 22:32:39 2025 +0200
+
+    Refactor window class
+    
+    Pivot to using composition in a simpler and more structured FWindow class
+
+[33mcommit 214649b22012bd8982b70655330fc414e977fbef[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Aug 7 18:19:51 2025 +0200
+
+    Add DX12onDX11 device and integrate with DirectComposition
+
+[33mcommit b114a684d513b1d37a0c598efc36cb011771455e[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Tue Aug 5 17:42:37 2025 +0200
+
+    Add some comments
+
+[33mcommit 21f980539353766a4ac33a8d989c2cb9ef1addcf[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Aug 3 22:19:25 2025 +0200
+
+    Various fixes and improvements
+    
+    Add FDisplayableType to abstract FImage and FAVDisplay
+    Add FLargeSelectButton
+    Add DragHelper (does not work with all apps including Explorer yet)
+    Add proper GlassMaterial
+
+[33mcommit e1d8e42995d7313a92cc4d7da085be99de8e6242[m
+Merge: 2d4ae2d 8dda618
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri Aug 1 01:24:20 2025 +0200
+
+    Merge branch 'main' of https://github.com/FlorianButz/fenUISharp
+
+[33mcommit 2d4ae2d0ceee8bc7efe928368debb1ea1ae911fc[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri Aug 1 01:24:10 2025 +0200
+
+    Update FAVDisplay.cs
+
+[33mcommit 8dda61859724cea892af63089603951a2eb0ee26[m
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Fri Aug 1 01:21:16 2025 +0200
+
+    Create .gitkeep in crash-handler lib
+
+[33mcommit 1fced69543a08285eb901ee6c2829350a4d5c736[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri Aug 1 01:19:24 2025 +0200
+
+    Update .gitignore
+
+[33mcommit 31e76ea783c44f43bfc8d4e7406ca5b1ed4a0c23[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri Aug 1 01:15:36 2025 +0200
+
+    Add FAV system
+    
+    Add FAV system (FenUI Animatable Vectors)
+    Update documentation to include FAVs
+    Fix UIObject dispose order
+
+[33mcommit 529b81409737821067ba654e5648a7d5ace790cf[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Wed Jul 30 12:37:13 2025 +0200
+
+    Add FAVs
+
+[33mcommit a4d7f3cfc0f95e6547e2f3400a8fe3e9249213e4[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Tue Jul 29 22:01:23 2025 +0200
+
+    Add post processing chain
+    
+    Add FBloomEffect
+    Add FGradientSwipeEffect
+    Lower build size
+    Add build cmd
+
+[33mcommit 218271eb69689fdf7983109ae6aa70922eff74db[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jul 27 21:44:21 2025 +0200
+
+    Add crash handler
+    
+    Add FLogger class
+
+[33mcommit 793b633a2f4446b9cceb9e95072039cc31b920db[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jul 27 00:34:54 2025 +0200
+
+    Add crashlogs and new logo
+
+[33mcommit f0d581b2fd73c42a454d3b713716aaa04885624e[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Jul 24 22:09:04 2025 +0200
+
+    Fix memory issues
+
+[33mcommit 7c72b704772234bb2dc50da9d51a82cfcc5b115a[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Mon Jul 21 09:15:43 2025 +0200
+
+    Add AppDomain exception handler
+    
+    Make sure to dispose global hooks and window to avoid mouse lag on exception (when debugging)
+
+[33mcommit 0272cdc88d8750af9c6672b50ee7275aacc79ecf[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jul 20 16:46:46 2025 +0200
+
+    Fix massive memory leaks
+    
+    Attempt to fix multiple issues regarding garbage collection and memory management
+
+[33mcommit b4b367fbb84b6832034eb22ef4b6215ba4257f34[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 19 01:18:40 2025 +0200
+
+    Fix WindowsMediaControls thumbnails for slow apps
+    
+    Add another SKColor extension
+    Add try block to DirectRenderContext
+    Add quality of life feature to State (ignore default value in resolver)
+    Fix wrong namespace for Rotation3DTransformComponent
+    Other minor fixes
+
+[33mcommit 0f5f0981ce1002fa0fd21b73c1d33296c3f0e002[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Jul 17 17:51:32 2025 +0200
+
+    Add Rotation3DTransformComponent behavior
+    
+    Small name refactor to avoid confusion
+    Minor fixes
+
+[33mcommit 33843adc32176cf337d87c824cfa4d3188e41408[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Jul 16 22:10:52 2025 +0200
+
+    Fix button hitbox issue
+
+[33mcommit a3a05e1a51880a2bb927d4bca67561327590f36d[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Tue Jul 15 19:22:14 2025 +0200
+
+    Minor bug fixes and changes
+
+[33mcommit c5bd845a75baff599f1739bd572e8ba5b16d729d[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jul 6 22:25:32 2025 +0200
+
+    Add LayoutComponent and recursive layout updates
+
+[33mcommit 8d336affcdf88bc2f2246399fb602544cb64776b[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 21:28:10 2025 +0200
+
+    Add optional debug functionality using F7 and F8 keys
+
+[33mcommit 520b81f13379884c857f9d60d858c323eeff40ef[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 21:14:55 2025 +0200
+
+    Small Window cleanup
+
+[33mcommit 23c896788932c2d7197b03f340769e00dc857c9d[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 17:45:02 2025 +0200
+
+    Fix StackContentComponent issue when enabling stretching in Layout
+
+[33mcommit 02f1be7073db7f5f0dec88f38d4e5b77e9bffdaa[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 17:35:00 2025 +0200
+
+    Add min and max size options to Layout
+
+[33mcommit 70085205d3986d97bf7b5ad70a9e624fefeb2ca5[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 17:03:41 2025 +0200
+
+    Add ImageEffects class
+
+[33mcommit b2213f00e673ed72bc29345ddb011542234317d0[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 16:42:57 2025 +0200
+
+    Fix issue in State class and add processor
+
+[33mcommit 6923e227ea0b38625bd98a34438a8d8b9c7581ea[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 15:55:51 2025 +0200
+
+    Fix issue with states reevaluating their values
+
+[33mcommit 48b5c7baaaa23aac906840360a0059421ade00b9[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 15:35:40 2025 +0200
+
+    Update FColorPatch.cs
+    
+    Fix non-existent namespace reference
+
+[33mcommit 006ce187dcb763ac27298eed022061404535d0f4[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 15:35:18 2025 +0200
+
+    Refactor the State class to be priority aware
+    
+    Add resolver to State class for custom ordering
+
+[33mcommit d719557605a655c8798454672224304019d78ae8[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 12:59:11 2025 +0200
+
+    Remove unnecessary namespaces
+
+[33mcommit 87b9b39cfe335c1e611d04f3b194e04668ef2bc3[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 12:32:08 2025 +0200
+
+    Refactor Demo in FenUI to work again
+
+[33mcommit 1ac3072793754007b640977118f5cdfa2b02862d[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 12:29:38 2025 +0200
+
+    Rename wrongly named files / folders
+
+[33mcommit 1291d936378d7832c550259ff4b1c245af9fc536[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 00:27:33 2025 +0200
+
+    Fix visual issues with light theme
+    
+    Fix FSlider wrong material
+    Fix offset issue inside InteractableDefaultMaterial
+    Fix issue with wrong coloring in FImage
+
+[33mcommit 2bc9bc4575a2de6d583125f7fd388c4a5c33581d[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 00:15:30 2025 +0200
+
+    Fix null reference exception in FSegmentedControl
+
+[33mcommit f83eed16ffdd866a05a89c24ede7f1caed766ed4[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 00:12:56 2025 +0200
+
+    Add theme change option to demo
+
+[33mcommit 53154f5fc902acf9d9ba681b080233610b132e6f[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jul 5 00:05:30 2025 +0200
+
+    Refactor FSegmentedControl to expose colors
+    
+    Fix issue with global bounds in FSegmentedControl
+    Add selected text color to FSegmentedControl
+
+[33mcommit 25209946957e0fda0f16a7db8c2deef48c6c2192[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri Jul 4 23:15:05 2025 +0200
+
+    Change default corner radius of FPanel
+    
+    Fix rendering in FSegmentedControl
+
+[33mcommit b16e0936cbcabd6d8dbc03764441c3c82102b4fe[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri Jul 4 18:50:37 2025 +0200
+
+    Change FSlider to use RenderMaterial
+    
+    Change visibility of FHueSlider and FAlphaSlider
+
+[33mcommit aa0387b761c6eb47a798d4725987f1efb8929c86[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Jul 3 22:34:58 2025 +0200
+
+    Add escape to close functionality to FPopupPanel
+
+[33mcommit 7bcdf81643f0ec79ded1ff88511b58850d5d0a02[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Jul 3 22:32:43 2025 +0200
+
+    Add password input to demo
+
+[33mcommit ef447187097a9874148c9a8dc2ff1c4e8d8664a9[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Jul 3 22:32:27 2025 +0200
+
+    Add tab selection functionality using SelectableComponent
+    
+    Add SelectableComponent to Button, FColorPatch, FNumericScroller, FTextInputField and FSlider
+    Fix issues with FPopupPanel show and close functions
+
+[33mcommit 248b984b1557c8d44fc0d94206b014e1dc441452[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Jul 3 16:27:34 2025 +0200
+
+    Add simple keybind system
+
+[33mcommit 81a30121afa46a4ab0793dee8917b2383c93f863[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Thu Jul 3 08:24:56 2025 +0200
+
+    Add text change events to FTextInputField
+
+[33mcommit 94ba3c1a6e0d7756ea07e0f015f9e2da34115f92[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Jul 2 23:03:59 2025 +0200
+
+    Add missing functionality to FTextInputField
+
+[33mcommit 0231f277f24ce247992de30bfbb70d1a5bcadaf3[m
+Merge: 261a5fb 96294cf
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Wed Jul 2 00:54:54 2025 +0200
+
+    Merge pull request #4 from FlorianButz/ComponentRefactor
+    
+    Add functionality to follow caret in FTextInputField
+
+[33mcommit 96294cf17da1d22ea76466817bfeea78b2f866f2[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Jul 2 00:54:16 2025 +0200
+
+    Add functionality to follow caret in FTextInputField
+
+[33mcommit 261a5fbbbaedc3a835f1f3e1df8add3f2687e91a[m
+Merge: 591d2a5 4838713
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Mon Jun 30 23:06:17 2025 +0200
+
+    Merge pull request #3 from FlorianButz/ComponentRefactor
+    
+    Component refactor
+
+[33mcommit 4838713bcc76e9042d8fce4f01d10fe0c96468ce[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Mon Jun 30 22:21:35 2025 +0200
+
+    Add BackgroundColor property to TextStyle
+    
+    Add caret and caret position changing functionality to FTextInputField
+
+[33mcommit 258c0b2312643827fd32619bf1dd7991b8f55622[m
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Mon Jun 30 15:11:20 2025 +0200
+
+    Add FTextInputField
+
+[33mcommit f803d6b73269c6704b6f5c02cc47e606907cc6b4[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jun 29 22:07:54 2025 +0200
+
+    Add demo view back
+
+[33mcommit 2616fd7b548216b244c71f096a5fd3175487e134[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jun 29 00:49:29 2025 +0200
+
+    Fix InteractiveSurface global scrolling issue
+
+[33mcommit 2cdf7d5398134cd1b23ced9581fc8e217c554f54[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jun 29 00:42:57 2025 +0200
+
+    Fix performance
+    
+    Fix FNumericScroller popup caching
+    Fix massive performance problems with high UIObject count
+    Add new default material
+    Fix dirty path evaluation
+    Fix issue with initial color on FColorPatch
+
+[33mcommit 5ffa983035aa7ee0c758c51edfcbcffff4db0f78[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Jun 28 14:19:24 2025 +0200
+
+    Fix FPopupPanel disposal issue
+    
+    Cache FPopupPanel in FColorPatch instead of creating new every time
+    Fix several issues with FSlider
+
+[33mcommit 7543ec4e58a1a55771a7c1fa7388245260aea8fb[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri Jun 27 23:56:48 2025 +0200
+
+    Add FNumericScroller
+    
+    Make adjustments to color picker dialog
+
+[33mcommit e6a6b29ec70434ac3d5be3c82aded0a2cb9ef15a[m
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Fri Jun 27 12:48:28 2025 +0200
+
+    Add FColorPatch
+    
+    Fix FSimpleButton leak
+    Update FToggle to use squircle
+
+[33mcommit 8360b4a94d3559c7bcb6e0c239610e64a7ce0009[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Jun 26 22:19:47 2025 +0200
+
+    Add FColorPicker and FHueSlider
+    
+    Update FSlider
+    Add checkmark for FToggle
+    Fix bug in FImage
+
+[33mcommit c061c0b361887cf5579470b46aaa21995a5f8c04[m
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Thu Jun 26 13:20:33 2025 +0200
+
+    Fix Slider, Add FToggle
+
+[33mcommit f459345c02e7e87724c41e71d867da61560a020a[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Jun 25 22:53:01 2025 +0200
+
+    Update settings.json
+
+[33mcommit b7d745fe81f317777d340d59bb454cfa9643c096[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Jun 25 22:52:32 2025 +0200
+
+    Major refactor
+    
+    Make new UIObject system
+    Add State system
+    Refactor to use new UIObject system
+
+[33mcommit 591d2a5a993698f45277a573c44e4a5940c91b07[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Jun 11 16:39:33 2025 +0200
+
+    Revert visual changes in FRoundToggle
+
+[33mcommit 3495457b0ddd583ebcaad32248f5c544e86f4ace[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Jun 11 16:34:08 2025 +0200
+
+    Update visuals
+    
+    Add NumericTextLayoutProcessor
+    Add FGlass component
+
+[33mcommit 3c6a2f82e7e39597b92d452870ee2ebb61a8e4c4[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jun 8 01:07:35 2025 +0200
+
+    Update minor things
+    
+    Add new text layout processors
+    Add new easing types
+    Change Component to BehaviorComponent
+    Fix SKSquircle
+    Add CopyBasic method to TextModelFactory
+
+[33mcommit 7fed3ae485d43a9ce720e4dec05d4f613037a0d1[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Mon Jun 2 22:19:44 2025 +0200
+
+    Fix FButtonGroup
+
+[33mcommit 1af1f80982695e0631eabef1aa3368f7c3200eb9[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jun 1 22:20:55 2025 +0200
+
+    Fix Dispatcher using correct DateTime field
+
+[33mcommit 4fcdf84352af48c9269cdd30cfa31634aa370b10[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jun 1 22:17:39 2025 +0200
+
+    Fix Dispatcher
+
+[33mcommit 7b36c31db5a716771f2ab60fd2b6b4f5247fdc5d[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jun 1 20:58:42 2025 +0200
+
+    Add Dispatcher class
+
+[33mcommit f964615d337ef53934716a881c726711f93363fc[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jun 1 18:14:11 2025 +0200
+
+    Refactor of FBlurPane to look nicer with Mica
+
+[33mcommit 079f0d46fc964b6ec7770522077e0acdeafc1f3a[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jun 1 16:35:35 2025 +0200
+
+    Fix Spring frame dependance
+    
+    The Spring class now takes the deltaTime parameter from the Update function properly in to account
+    
+    Fix PixelSnapping for some ui components
+
+[33mcommit fd8ea34000e15aefebebd94542241cc8a499aae0[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Jun 1 01:12:17 2025 +0200
+
+    Refactor Buttons
+    
+    Add SelectableButton
+    Abstract FSimpleButton to use generic parent class
+    Add ButtonGroup
+    Update FRoundToggle to use ButtonGroup and inherit SelectableButton
+
+[33mcommit cc7a51819a4844619ef359cbdf396fcd9ebc205d[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri May 30 22:19:55 2025 +0200
+
+    Several small fixes
+
+[33mcommit 6cac2292910ee5b35e494890eac50c027b6bd681[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Mon May 19 22:01:32 2025 +0200
+
+    Fix minor things
+
+[33mcommit 0a9e5988a3bfffd91c74cb9a2e313f23e4ec14bc[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun May 18 21:11:53 2025 +0200
+
+    Update documentation
+
+[33mcommit 32693f151de61121a1cae36300a9c9a2111a86aa[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat May 17 14:11:01 2025 +0200
+
+    Make build ready fixes
+
+[33mcommit 5eda811c78e68a0b50f01334eef46e219e61b039[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Apr 27 21:21:59 2025 +0200
+
+    Add Toggle
+
+[33mcommit 955bba3b11f8e6d5664dfbf208634c47f54c0324[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Apr 26 00:45:21 2025 +0200
+
+    Update Demo
+
+[33mcommit 11d34d7384b6ac516bf097d5c97bc3a49994ad48[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Apr 24 20:30:30 2025 +0200
+
+    Add progress bar UIComponents
+    
+    Update scroll sensitivity on StackContentComponent
+    Add horizontal progress bar
+    Add radial progress bar
+
+[33mcommit cd2b12327b61325a24a00d1ddcea9c9312518d21[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Apr 23 02:16:54 2025 +0200
+
+    Update to using Demo method in FenUI class
+
+[33mcommit d9d11ceceb2781789de39ecbce26ba0915a7e838[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Tue Apr 22 22:17:55 2025 +0200
+
+    Fix warning in MultiAccess
+    
+    Remove font resource
+
+[33mcommit ade127012750588fdedda6bbcff39d60fdc4c57e[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Tue Apr 22 22:01:30 2025 +0200
+
+    Refactor project
+    
+    Fix most warnings
+    Fix broken BlurLayoutProcessor
+    Fix broken theme switching
+
+[33mcommit 3d29eb8e4b2d66500e00b68f71f59b70582e7c51[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Tue Apr 22 01:47:40 2025 +0200
+
+    Add Layout Processors
+    
+    Add BlurLayoutProcessor
+    Add WiggleCharLayoutProcessor
+
+[33mcommit c0882728abcf554f70b849d1b376c1a125eba4da[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Apr 20 21:44:58 2025 +0200
+
+    Add new text system
+
+[33mcommit d3bb9c8842335bda0cfdbc25d710fe216c2196bc[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri Apr 18 20:48:33 2025 +0200
+
+    Fix scroll render issue
+    
+    Add SnappingProvider to StackContentComponent
+
+[33mcommit cfad722f2b9b9f4f617141328003143963566b24[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Apr 16 23:35:54 2025 +0200
+
+    Fix ZIndex issue with ContentStackClipProvider
+
+[33mcommit 3a3a17ee54454c2d1aef153e45599c12a678c001[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Apr 16 00:18:04 2025 +0200
+
+    Fix StackContentComponent fade
+
+[33mcommit 5cc1ba88e865b375848ad8afaf130b96a5a8ff97[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Mon Apr 14 23:56:39 2025 +0200
+
+    Update docs
+    
+    Update docs
+    Refactor file structure
+    Refactor namespace names
+
+[33mcommit 6dd1b5e04437690e5cf4f0ca05cd7c2874c23382[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Mon Apr 14 13:49:08 2025 +0200
+
+    Update docs styling
+
+[33mcommit bc6cb8fa0c188f211e330afc2f69d15828b20390[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Mon Apr 14 12:42:27 2025 +0200
+
+    Initialize docsify
+
+[33mcommit a3773e2c52d5be6aeacadf66c5c1876d652fa1e8[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Mon Apr 14 11:49:15 2025 +0200
+
+    Update StackContentClipBehavior
+    
+    A few minor improvements and changes
+
+[33mcommit 25b364e07bdf5ab5262ec57944e65372b531a218[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Apr 12 15:23:31 2025 +0200
+
+    Fix FLabel FitContent Behavior
+
+[33mcommit e9fc21a541834d9532bf957fd23caa37502e8572[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Fri Apr 11 23:52:09 2025 +0200
+
+    Add SKSquircle
+
+[33mcommit af3c00ca3ecc4bcf5dd74c573afc3982068ae43d[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Thu Apr 10 15:00:00 2025 +0200
+
+    Update StackContentComponent
+
+[33mcommit 5d24691a563cecd26a9a49e67c854744a7d39da0[m
+Merge: b9c205d f8057e9
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Sun Apr 6 21:41:52 2025 +0200
+
+    Merge pull request #2 from FlorianButz/full-refactor
+    
+    Full refactor
+
+[33mcommit f8057e94b57fac4f5d2fa3c8e470272a42cd293e[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Apr 6 21:41:28 2025 +0200
+
+    Fix ContextMenu
+    
+    Add FImage
+    Fix Component issue
+    Fix StackContentComponent fade issue
+    Fix FLabel animation duration
+
+[33mcommit 03706baf6e233a0af303f57c57dde128ed6a64c2[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Apr 6 14:04:13 2025 +0200
+
+    Fixed taskbar icon visibility method
+
+[33mcommit a9497b8403c92b46d79b5e8d79e570b3445c1cec[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Apr 5 23:59:43 2025 +0200
+
+    Update ContextMenu
+    
+    Add remap utility method
+    Fix StackContentComponent black fade
+    Fix instance WindowsProcedure issues
+
+[33mcommit 647e49f53563162357079128a090dd45d5cffa5a[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Apr 5 22:41:49 2025 +0200
+
+    Add back easing type
+
+[33mcommit 75cd6eccbb64e1b8300d7595bd55943537886a6b[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Apr 3 20:52:37 2025 +0200
+
+    Abstract OverlayWindow for more control
+    
+    Add StackContentComponent fade to indicate scrollability
+
+[33mcommit 9ef73e6379c34d9e62ed99112c31256765add0d9[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Mon Mar 31 22:08:53 2025 +0200
+
+    Add ToastMessageSender
+    
+    Updated most properties to follow the same naming scheme
+    Fixed area stack component bug
+    Add FenUI class
+
+[33mcommit b9c205d0a73f34fe657c043f44b3b81dfcdab3da[m
+Merge: 1d010dc 12f6c6f
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Sat Mar 29 17:29:56 2025 +0100
+
+    Merge pull request #1 from FlorianButz/full-refactor
+    
+    Full refactor
+
+[33mcommit 12f6c6f26c791cb4f2390f01704d1f75ad3cb239[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Mar 29 17:29:27 2025 +0100
+
+    Add DirectX GPU acceleration
+
+[33mcommit ee5a8a4315180e94a7bbeb3656948747c75645cd[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Fri Mar 28 14:40:53 2025 +0100
+
+    Fix scroll view globally invalidated issue
+
+[33mcommit cfdb862c36b1b400c06e3e55f0b250e069937c18[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Mar 27 22:01:50 2025 +0100
+
+    Add scroll bar
+
+[33mcommit 6b737d4b129a0c4f88e3141ef402e81fab7b57e8[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Thu Mar 27 15:10:59 2025 +0100
+
+    Add Layout component
+    
+    Found bug with missing resize cursor
+
+[33mcommit b2f2281b44f1e4100f8fae49b602a04c4ba393ee[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Mar 26 21:04:24 2025 +0100
+
+    Add Theme Manager, Update Window, Fix OverlayWindow
+    
+    Add Mica support
+    Fix transparent layered windows
+    Add DropComponent
+    Add CursorComponent
+
+[33mcommit e7fc22e87ac15d4abd3ad10db0ec1679882413c0[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Mon Mar 24 21:03:58 2025 +0100
+
+    Add OverlayWindow
+
+[33mcommit c5b17861dad47a74e57d84ac4f235eaa75dc9dae[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Mon Mar 24 15:58:09 2025 +0100
+
+    Fix SoftwareRenderContext
+
+[33mcommit e39edbb143a87d9f872e71faa1ea8b157f05f06e[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Mar 23 21:15:37 2025 +0100
+
+    Fix FBlurPane
+
+[33mcommit efb6b2ad44202090ebba3ec12789f6434c33a705[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Mar 23 21:11:22 2025 +0100
+
+    Fix FSimpleButton onClick Action
+
+[33mcommit 71bab537bb52a75f471fedf22c5e098a4b01711a[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Mar 23 20:45:33 2025 +0100
+
+    Update Window, render contexts and components
+
+[33mcommit ab8641b93ce9b74e34166add4d2808a274a1c089[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Fri Mar 21 15:51:59 2025 +0100
+
+    Add FRenderContext class
+
+[33mcommit e04b8f3e3f7f94e7373ec132da9f5eda07a16d3a[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Mar 19 07:03:43 2025 +0100
+
+    Add Disposable Window class and move things out of Win32Helper
+
+[33mcommit 1d010dcf8c9924b3f1f8c8b54cc32867803eee2c[m
+Merge: 0870679 62b8ac2
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Tue Mar 18 17:27:52 2025 +0100
+
+    Merge branch 'main' of https://github.com/FlorianButz/fenUISharp
+
+[33mcommit 08706795efb49c0b3730b49494167d0c2181e61f[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Tue Mar 18 17:27:46 2025 +0100
+
+    Refactor class names and DragDrop
+
+[33mcommit 62b8ac2becca4ac9bdda74ff50294ff71f541e3c[m
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Tue Mar 18 09:26:27 2025 +0100
+
+    Delete .github/workflows directory
+
+[33mcommit a6dcfaba64f6db3e3781b3633665ae7b5be9e886[m
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Tue Mar 18 09:03:02 2025 +0100
+
+    Update and rename build-on-push.yml to build-nightly.yml
+
+[33mcommit e46fe320127d8f45d677d7496370ca556c091664[m
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Tue Mar 18 08:47:19 2025 +0100
+
+    Create build-on-push.yml
+
+[33mcommit e0b0037e14846b8a0f81ccab65398f313edf39d4[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Mar 16 21:25:55 2025 +0100
+
+    Add desktop blur
+
+[33mcommit a8ad2c54b142acb0c538bf29501e1a98640250fd[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Mar 16 01:26:00 2025 +0100
+
+    Cleanup, Add FBlurPane, Add Label animation, Fix bounds issues
+
+[33mcommit dc5a324f8ae351df43f00b5245dcd30bafcb0365[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sat Mar 15 00:28:52 2025 +0100
+
+    Add stretch to parent
+    
+    Fix several components
+
+[33mcommit 823226f463cb4c887fe3273557f4ed1e71a4a510[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Fri Mar 14 14:27:22 2025 +0100
+
+    Fix GetTopmostComponentAtPosition bug
+
+[33mcommit 76dfd6d74b18fcd310fb71d37afc4ebc233660c3[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Mar 13 22:39:46 2025 +0100
+
+    Add FSimpleButton
+    
+    Refactor class names
+    Add component system
+    Add animator component
+
+[33mcommit 400adf9ac4482b7be41176b954b5fe28b60d7346[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Mar 13 07:06:19 2025 +0100
+
+    Add FLabel and FResources
+
+[33mcommit 893bc98c70563f6e43233ace80d00fc2f54327fc[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Tue Mar 11 22:35:31 2025 +0100
+
+    Fix anchor issues
+
+[33mcommit 0bae4d02703d7fcd30084589060e602b77d6fe2e[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Tue Mar 11 14:23:11 2025 +0100
+
+    Update FTransform, Add Media Control
+    
+    Added 3D rotation matrix to FTransform
+
+[33mcommit a19732499ce1e94d320bd2b12d314284b9c99f7b[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Mar 9 21:35:36 2025 +0100
+
+    Add FMath class
+    
+    Overhauled Components
+    Add SecondOrder class
+    Global Key / Mouse input hooks
+    Add MultiAccess class
+
+[33mcommit cc160632b13f225fc3c2c3de7471cddba021e59f[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Sun Mar 9 00:50:03 2025 +0100
+
+    Add Component system
+
+[33mcommit 7b99d4cbba30a63021eedf1856d9d42ade3c5d9c[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Fri Mar 7 17:41:19 2025 +0100
+
+    Add Win32Helper
+
+[33mcommit 0a058a1ebc1c6931f6a4d01bfb130c5acf5bdb60[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Mar 6 22:26:54 2025 +0100
+
+    Actually add Win32Helper
+
+[33mcommit c16dc9c27bc397ac38c38a9eefab0cdbb8d1e394[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Thu Mar 6 21:37:16 2025 +0100
+
+    Add Win32Helper
+
+[33mcommit 875db5491ed0f8edc21a8125f223f46485c95060[m
+Author: FlorianButz <fb8599422@gmail.com>
+Date:   Wed Mar 5 21:50:20 2025 +0100
+
+    Refactor unfinished structure
+
+[33mcommit 61194ede523afe8f6fd6256ca5fbf8c7e837c031[m
+Author: fen4flo <fb8599422@gmail.com>
+Date:   Wed Mar 5 18:29:01 2025 +0100
+
+    Init
+
+[33mcommit 6d9c6988e08ca0ff6df15fc5729d780355b0537c[m
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Tue Mar 4 22:58:59 2025 +0100
+
+    Update README.md
+
+[33mcommit ffc41dc840cf356e8a9d821c5da2d6554ab4b353[m
+Author: fen4flo <75260616+FlorianButz@users.noreply.github.com>
+Date:   Tue Mar 4 22:58:14 2025 +0100
+
+    Initial commit

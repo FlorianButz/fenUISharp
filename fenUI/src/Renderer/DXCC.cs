@@ -1,3 +1,4 @@
+
 using System;
 using SkiaSharp;
 using Vortice.DXGI;
@@ -26,7 +27,7 @@ namespace FenUISharp
         public Format DepthStencilFormat { get; }
 
         public IDXGIFactory2 Factory { get; private set; }
-        public ID3D12Device Device { get; private set; }
+        public readonly ID3D12Device Device;
         public readonly FeatureLevel FeatureLevel;
 
         // DirectComposition objects
@@ -150,10 +151,10 @@ namespace FenUISharp
                 creationFlags |= Vortice.Direct3D11.DeviceCreationFlags.Debug;
 
             var featureLevels = new[] {
-        Vortice.Direct3D.FeatureLevel.Level_11_0,
-        Vortice.Direct3D.FeatureLevel.Level_10_1,
-        Vortice.Direct3D.FeatureLevel.Level_10_0
-    };
+                Vortice.Direct3D.FeatureLevel.Level_11_0,
+                Vortice.Direct3D.FeatureLevel.Level_10_1,
+                Vortice.Direct3D.FeatureLevel.Level_10_0
+            };
 
             // Add retry logic here too
             var attempts = 0;
@@ -176,18 +177,6 @@ namespace FenUISharp
                     {
                         FLogger.Log<DirectCompositionContext>($"D3D11 device created with feature level: {featureLevel}");
                         break;
-                    }
-
-                    if (d3d11Device == null)
-                    {
-                        FLogger.Log<DirectCompositionContext>("Hardware D3D11 failed; falling back to WARP (software rasterizer).");
-                        hr = Vortice.Direct3D11.D3D11.D3D11CreateDevice(
-                            null,
-                            Vortice.Direct3D.DriverType.Warp,
-                            Vortice.Direct3D11.DeviceCreationFlags.BgraSupport,
-                            featureLevels,
-                            out d3d11Device, out var fl, out d3d11Context
-                        );
                     }
                 }
                 catch (Exception ex) when (attempts < maxAttempts - 1)
@@ -259,92 +248,9 @@ namespace FenUISharp
                     AlphaMode = AlphaMode.Premultiplied
                 };
 
-                // Validate inputs before calling DXGI
-                if (width == 0 || height == 0)
-                    throw new InvalidOperationException($"Invalid swapchain size: {width}x{height}");
-
-                if (CommandQueue == null)
-                    throw new InvalidOperationException("CommandQueue is null when creating swapchain");
-
                 FLogger.Log<DirectCompositionContext>("Creating swap chain for composition...");
-
-                Exception? lastEx = null;
-                IDXGISwapChain3? createdSwap = null;
-
-                // Try the requested configuration first, then try a few known-working fallbacks while logging details.
-                var attempts = new List<SwapChainDescription1>();
-                attempts.Add(swapChainDesc);
-
-                var alt1 = swapChainDesc;
-                alt1.AlphaMode = AlphaMode.Ignore;
-                attempts.Add(alt1);
-
-                var alt2 = swapChainDesc;
-                alt2.SwapEffect = SwapEffect.FlipSequential;
-                attempts.Add(alt2);
-
-                var alt3 = swapChainDesc;
-                alt3.Scaling = Scaling.None;
-                attempts.Add(alt3);
-
-                foreach (var desc in attempts)
-                {
-                    try
-                    {
-                        FLogger.Log<DirectCompositionContext>($"Attempting CreateSwapChainForComposition: Format={desc.Format}, BufferCount={desc.BufferCount}, SwapEffect={desc.SwapEffect}, AlphaMode={desc.AlphaMode}, Scaling={desc.Scaling}");
-                        var tempSwap = Factory.CreateSwapChainForComposition(CommandQueue, desc);
-                        createdSwap = tempSwap.QueryInterfaceOrNull<IDXGISwapChain3>();
-                        if (createdSwap != null)
-                        {
-                            FLogger.Log<DirectCompositionContext>("CreateSwapChainForComposition succeeded with this configuration.");
-                            break;
-                        }
-                        else
-                        {
-                            lastEx = new InvalidOperationException("CreateSwapChainForComposition returned null IDXGISwapChain3");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        lastEx = ex;
-                        FLogger.Log<DirectCompositionContext>($"CreateSwapChainForComposition attempt failed: {ex}");
-                    }
-                }
-
-                if (createdSwap == null)
-                {
-                    // As a last resort, try creating a windowed swapchain for the HWND (not ideal for composition)
-                    try
-                    {
-                        FLogger.Log<DirectCompositionContext>("All CreateSwapChainForComposition attempts failed, attempting CreateSwapChainForHwnd as a fallback.");
-                        var scDesc = new SwapChainDescription1
-                        {
-                            Width = width,
-                            Height = height,
-                            Format = ColorFormat,
-                            Stereo = false,
-                            SampleDescription = new SampleDescription(1, 0),
-                            BufferUsage = Usage.RenderTargetOutput,
-                            BufferCount = BufferCount,
-                            Scaling = Scaling.Stretch,
-                            SwapEffect = SwapEffect.FlipDiscard,
-                            AlphaMode = AlphaMode.Ignore
-                        };
-
-                        using var temp = Factory.CreateSwapChainForHwnd(CommandQueue, hWnd, scDesc);
-                        createdSwap = temp.QueryInterfaceOrNull<IDXGISwapChain3>();
-                        if (createdSwap != null)
-                            FLogger.Log<DirectCompositionContext>("Fallback CreateSwapChainForHwnd succeeded (non-composition fallback).");
-                    }
-                    catch (Exception ex)
-                    {
-                        FLogger.Log<DirectCompositionContext>($"Fallback CreateSwapChainForHwnd failed: {ex}");
-                        // rethrow the original failure
-                        throw lastEx ?? ex;
-                    }
-                }
-
-                SwapChain = createdSwap;
+                var tempSwap = Factory.CreateSwapChainForComposition(CommandQueue, swapChainDesc);
+                SwapChain = tempSwap.QueryInterface<IDXGISwapChain3>();
 
                 FLogger.Log<DirectCompositionContext>("Setting swap chain content on root visual...");
                 RootVisual?.SetContent(SwapChain);
@@ -514,36 +420,25 @@ namespace FenUISharp
 
         internal void WaitForGpu()
         {
-            // If not found, skip
-            if (CommandQueue == null || Fence == null || FenceEvent == null)
-            {
-                FLogger.Log<DirectCompositionContext>("WaitForGpu skipped: CommandQueue or Fence not initialized.");
-                return;
-            }
-
             var startTime = DateTime.Now;
 
-            // Signal the fence and wait
-            try
-            {
-                CommandQueue.Signal(Fence, ++_fenceValue);
-            }
-            catch (Exception ex)
-            {
-                FLogger.Log<DirectCompositionContext>($"Warning: CommandQueue.Signal failed: {ex.Message}");
-                return;
-            }
+            CommandQueue?.Signal(Fence, ++_fenceValue);
 
-            if (Fence.CompletedValue < _fenceValue)
+            if (Fence?.CompletedValue < _fenceValue)
             {
-                Fence.SetEventOnCompletion(_fenceValue, FenceEvent);
+                // FLogger.Log<DirectCompositionContext>($"Waiting for fence {_fenceValue}, current: {Fence?.CompletedValue}");
+                Fence?.SetEventOnCompletion(_fenceValue, FenceEvent);
 
-                if (!FenceEvent.WaitOne(TimeSpan.FromSeconds(5)))
+                // Fence timeout
+                if (!FenceEvent?.WaitOne(TimeSpan.FromSeconds(5)) ?? throw new InvalidOperationException("FenceEvent is null"))
                 {
-                    FLogger.Log<DirectCompositionContext>("GPU TIMEOUT! Fence never completed");
+                    FLogger.Log<DirectCompositionContext>($"GPU TIMEOUT! Fence never completed");
                     return;
                 }
             }
+
+            var elapsed = DateTime.Now - startTime;
+            // FLogger.Log<DirectCompositionContext>($"WaitForGpu took: {elapsed.TotalMilliseconds}ms");
         }
 
         public void Present(Action<(ID3D12GraphicsCommandList commandList, ID3D12Resource backBuffer)>? drawAction = null, PresentFlags flags = PresentFlags.None)
@@ -598,44 +493,83 @@ namespace FenUISharp
         // Add to DirectCompositionContext class
         private bool _disposed = false;
 
-        
         public void Dispose()
         {
             if (_disposed) return;
-            _disposed = true;
 
             try
             {
-                // Only wait if fence/queue exist
-                try { WaitForGpu(); } catch (Exception ex) { FLogger.Log<DirectCompositionContext>($"Warning: WaitForGpu failed during dispose: {ex.Message}"); }
-                try { RootVisual?.SetContent(null); DCompDevice?.Commit(); } catch { }
+                _disposed = true;
 
-                RootVisual?.Dispose(); RootVisual = null;
-                DCompTarget?.Dispose(); DCompTarget = null;
-                DCompDevice3?.Dispose(); DCompDevice3 = null;
-                DCompDevice?.Dispose(); DCompDevice = null;
+                // Wait for GPU to complete all operations
+                try
+                {
+                    WaitForGpu();
+                }
+                catch (Exception ex)
+                {
+                    FLogger.Log<DirectCompositionContext>($"Warning: WaitForGpu failed during dispose: {ex.Message}");
+                }
 
+                FLogger.Log<DirectCompositionContext>("Disposing DirectCompositionContext...");
+
+                // Dispose in reverse order of creation
+
+                // 1. Clear DirectComposition tree first
+                try
+                {
+                    RootVisual?.SetContent(null);
+                    DCompDevice?.Commit();
+                }
+                catch { /* Ignore errors during cleanup */ }
+
+                // 2. Dispose DirectComposition objects
+                RootVisual?.Dispose();
+                RootVisual = null!;
+                DCompTarget?.Dispose();
+                DCompTarget = null!;
+                DCompDevice3?.Dispose();
+                DCompDevice3 = null!;
+                DCompDevice?.Dispose();
+                DCompDevice = null!;
+
+                // 3. Dispose D3D11 objects (used by DirectComposition)
                 d3d11Context?.ClearState();
                 d3d11Context?.Flush();
-                d3d11Context?.Dispose(); d3d11Context = null;
-                d3d11Device?.Dispose(); d3d11Device = null;
+                d3d11Context?.Dispose();
+                d3d11Context = null!;
+                d3d11Device?.Dispose();
+                d3d11Device = null!;
 
-                LastBackBuffer?.Dispose(); LastBackBuffer = null;
-                CommandList?.Dispose(); CommandList = null;
-                CommandAllocator?.Dispose(); CommandAllocator = null;
-                SwapChain?.Dispose(); SwapChain = null;
+                // 4. Dispose D3D12 resources
+                LastBackBuffer?.Dispose();
+                LastBackBuffer = null!;
+                CommandList?.Dispose();
+                CommandList = null!;
+                CommandAllocator?.Dispose();
+                CommandAllocator = null!;
+                SwapChain?.Dispose();
+                SwapChain = null!;
+                CommandQueue?.Dispose();
+                CommandQueue = null!;
 
-                // CommandQueue might exist early
-                CommandQueue?.Dispose(); CommandQueue = null;
+                // 5. Dispose fence objects
+                try
+                {
+                    FenceEvent?.Set(); // Wake up any waiting threads
+                }
+                catch { }
+                FenceEvent?.Dispose();
+                FenceEvent = null!;
+                Fence?.Dispose();
+                Fence = null!;
 
-                try { FenceEvent?.Set(); } catch {}
-                FenceEvent?.Dispose(); FenceEvent = null;
-                Fence?.Dispose(); Fence = null;
-
+                // 6. Dispose device and factory last
                 Device?.Dispose();
-                Device = null;
-                _cachedAdapter?.Dispose(); _cachedAdapter = null;
-                Factory?.Dispose(); Factory = null;
+                _cachedAdapter?.Dispose(); // Don't forget the cached adapter!
+                _cachedAdapter = null!;
+                Factory?.Dispose();
+                Factory = null!;
 
                 FLogger.Log<DirectCompositionContext>("DirectCompositionContext disposed successfully");
             }

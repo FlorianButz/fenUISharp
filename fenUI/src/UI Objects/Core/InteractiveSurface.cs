@@ -97,12 +97,9 @@ namespace FenUISharp.Objects
         [ThreadStatic]
         private static InteractiveSurface? _topmostSurface;
         [ThreadStatic]
-        private static InteractiveSurface? _topmostSurfaceMouseAction;
+        internal static InteractiveSurface? _topmostSurfaceMouseAction;
         [ThreadStatic]
-        private static InteractiveSurface? _topmostSurfaceMouseScroll;
-
-        [ThreadStatic]
-        private static int activeInstances = 0;
+        internal static InteractiveSurface? _topmostSurfaceMouseScroll;
 
         public InteractiveSurface(UIObject owner, Dispatcher dispatcher, Func<SKRect> globalSurface)
         {
@@ -122,53 +119,43 @@ namespace FenUISharp.Objects
             FContext.GetCurrentWindow().Callbacks.OnMouseMove += Global_FuncOnMouseMove;
             WindowFeatures.GlobalHooks.OnMouseAction += FuncOnMouseActionGlobal;
 
-            if (activeInstances == 0)
-            {
-                _surfaces = new();
-                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += CacheTopmostMouseAction;
-                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += CacheTopmostMouseScroll;
-            }
-
-            activeInstances++;
-
+            if (_surfaces == null) _surfaces = new();
             _surfaces.Add(this);
         }
 
-        private void CacheTopmostMouseAction()
+        internal static void CacheTopmostMouseAction()
         {
-            var capturedOwner = owner;
-            if (capturedOwner == null) return;
+            var ordered = Compositor.GetZOrderedListOfEnabled();
+            // GetZOrderedListOfEnabled returns back-to-front, so reverse for front-to-back
+            ordered.Reverse();
 
-            List<UIObject> ordered = capturedOwner.Composition.GetZOrderedListOfEnabled();
+            _topmostSurfaceMouseAction = null;
 
-            // Goes in reverse Z-order (front to back)
-            for (int i = ordered.Count - 1; i >= 0; i--)
+            foreach (var obj in ordered)
             {
-                var obj = ordered[i];
-                var surfaces = _surfaces.Where(s =>
+                var surface = _surfaces.FirstOrDefault(s =>
                     s.owner == obj &&
                     s.owner.GlobalEnabled &&
                     !s.IgnoreInteractions.CachedValue &&
                     !s.ParentIgnoreChild &&
                     s.EnableMouseActions.CachedValue &&
-                    s.TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition) // <- Important!
-                ).ToList();
+                    s.TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition)
+                );
 
-                if (surfaces.Count == 0) _topmostSurfaceMouseAction = null;
-                else
+                if (surface != null)
                 {
-                    _topmostSurfaceMouseAction = surfaces[0];
+                    _topmostSurfaceMouseAction = surface;
                     break;
                 }
             }
         }
 
-        private void CacheTopmostMouseScroll()
+        internal static void CacheTopmostMouseScroll()
         {
-            var capturedOwner = owner;
-            if (capturedOwner == null) return;
+            List<UIObject> ordered = 
+                Compositor.GetZOrderedListOfEnabled();
 
-            List<UIObject> ordered = capturedOwner.Composition.GetZOrderedListOfEnabled();
+            _topmostSurfaceMouseScroll = null;
 
             // Goes in reverse Z-order (front to back)
             for (int i = ordered.Count - 1; i >= 0; i--)
@@ -183,8 +170,7 @@ namespace FenUISharp.Objects
                     s.TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition) // <- Important!
                 ).ToList();
 
-                if (surfaces.Count == 0) _topmostSurfaceMouseScroll = null;
-                else
+                if (surfaces.Count > 0)
                 {
                     _topmostSurfaceMouseScroll = surfaces[0];
                     break;
@@ -401,7 +387,7 @@ namespace FenUISharp.Objects
         public bool TestForGlobalPoint(in Vector2 point)
         {
             if (owner == null) return false;
-            
+        
             // Check if this object is enabled and visible
             if (!owner.GlobalEnabled || !owner.GlobalVisible) return false;
             
@@ -453,13 +439,13 @@ namespace FenUISharp.Objects
                 FContext.GetCurrentWindow().Callbacks.OnMouseMove -= Global_FuncOnMouseMove;
                 WindowFeatures.GlobalHooks.OnMouseAction -= FuncOnMouseActionGlobal;
             }
+        }
 
-            activeInstances--;
-            if (activeInstances <= 0 && !FContext.IsDisposingWindow)
-            {
-                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += CacheTopmostMouseAction;
-                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += CacheTopmostMouseScroll;
-            }
+        public static void PrintTopmostSurfaces()
+        {
+            Console.WriteLine(_topmostSurface?.ToString() + ", " + _topmostSurface?.owner?.ToString());
+            Console.WriteLine(_topmostSurfaceMouseAction?.ToString() + ", " + _topmostSurfaceMouseAction?.owner?.ToString());
+            Console.WriteLine(_topmostSurfaceMouseScroll?.ToString() + ", " + _topmostSurfaceMouseScroll?.owner?.ToString());
         }
     }
 }

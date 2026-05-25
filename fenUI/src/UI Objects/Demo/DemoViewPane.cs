@@ -25,6 +25,10 @@ namespace FenUISharp.Objects
             panel.Layout.MarginVertical.SetStaticState(25);
 
             StackContentComponent layout = new(panel, StackContentComponent.ContentStackType.Vertical, StackContentComponent.ContentStackBehavior.Scroll);
+            layout.ContentFade = true;
+            layout.ContentBlur = true;
+            // layout.MaxBlur = 10;
+            // layout.BlurLength = 100;
 
             FSimpleButton fg = new(new FText(TextModelFactory.CreateBasic("")), () => FContextMenuFactory.CreateContextMenu());
             FSimpleButton fg2 = new(new FText(TextModelFactory.CreateBasic("")), () => new FPopupPanel(() => new(150, 400), hasTail: false, scaleAnimationFromZero: false).Show(() => new(0, 0)), position: () => new(200, 0));
@@ -85,7 +89,7 @@ namespace FenUISharp.Objects
                 
                 FText text4 = new(TextModelFactory.CreateBasic("Text change animation (Text 1)"), size: () => new(0, 100));
                 text4.Layout.StretchHorizontal.SetStaticState(true);
-                text4.LayoutModel = new BlurLayoutProcessor(text4, new WrapLayout(text4));
+                text4.LayoutModel = new NumericTextLayoutProcessor(text4, new WrapLayout(text4));
                 text4.Layout.MarginHorizontal.SetStaticState(65);
                 text4.Transform.Size.SetStaticState(new(0, text4.LayoutModel.GetBoundingRect(text4.Model, SKRect.Create(subpanel.Transform.Size.CachedValue.x, 250)).Height));
                 text4.SetParent(subpanel);

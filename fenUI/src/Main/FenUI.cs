@@ -207,6 +207,7 @@ namespace FenUISharp
         {
             FNativeWindow window = new FNativeWindow("Demo", "demoClass", size: new Vector2(900, 800));
 
+            window.Properties.MicaBackdropType = MicaBackdropType.TransientWindow;
             window.Properties.UseSystemDarkMode = true;
             // window.WindowThemeManager.SetTheme(Resources.GetTheme("default-light"));
 
@@ -214,7 +215,6 @@ namespace FenUISharp
             window.Properties.AllowMinimize = true;
             window.Properties.AllowMaximize = true;
             window.Properties.UseMica = true;
-            // window.Properties.MicaBackdropType = MicaBackdropType.TransientWindow;
             // window.DebugDisplayAreaCache = true;
             // window.DebugDisplayBounds = true;
 

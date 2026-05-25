@@ -21,7 +21,7 @@ namespace FenUISharp.Objects
             RenderMaterial.SetResponsiveState(FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.PanelMaterial);
             CornerRadius.SetStaticState(20);
             BaseColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary.Multiply(0.9f).Saturate(0.35f), this, this);
-            SelectedBorderThickness = new(() => 3, this, this);
+            SelectedBorderThickness = new(() => 4, this, this);
 
             ImageEffects.SelfOpacity.SetStaticState(0.38f);
 
@@ -51,7 +51,7 @@ namespace FenUISharp.Objects
             base.Update();
 
             var lastBT = borderThickness;
-            borderThickness = RMath.Lerp(borderThickness, IsSelected ? SelectedBorderThickness.CachedValue : 0, FContext.DeltaTime * 10f);
+            borderThickness = RMath.Lerp(borderThickness, IsSelected ? SelectedBorderThickness.CachedValue : 0, FContext.DeltaTime * 4f);
 
             if (!RMath.Approximately(borderThickness, lastBT)) Invalidate(Invalidation.SurfaceDirty);
         }
@@ -69,14 +69,13 @@ namespace FenUISharp.Objects
             if (borderThickness > 0.1f)
             {
                 var bounds = Shape.LocalBounds;
-                bounds.Inflate(6, 6);
 
                 using var renderPaint = GetRenderPaint();
                 renderPaint.Color = EnabledFillColor.CachedValue;
                 renderPaint.IsStroke = true;
                 renderPaint.StrokeWidth = borderThickness;
 
-                using (var path = SKSquircle.CreateSquircle(bounds, CornerRadius.CachedValue * 1.5f))
+                using (var path = SKSquircle.CreateSquircle(bounds, CornerRadius.CachedValue))
                     canvas.DrawPath(path, renderPaint);
             }
         }

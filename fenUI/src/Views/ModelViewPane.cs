@@ -16,8 +16,11 @@ namespace FenUISharp.Objects
 
         private AnimatorComponent _viewTransitionComponent;
 
-        public float AnimOutDuration { get; set; } = 0.25f;
-        public float AnimInDuration { get; set; } = 0.25f;
+        public float AnimOutDuration { get; set; } = 0.15f;
+        public float AnimInDuration { get; set; } = 0.1f;
+
+        public AnimatorComponent Animator => _viewTransitionComponent;
+        public Action? OnAnimationComplete { get; set; }
 
         public ModelViewPane(View? model, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position, size)
         {
@@ -30,8 +33,8 @@ namespace FenUISharp.Objects
 
             OnAnimationValueUpdated += (x) =>
             {
-                // Transform.LocalPosition.SetStaticState(new(0, x * (_viewTransitionComponent.Inverse ? -15 : 15)));
-                Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(x, 0, 1, 1, 0.95f));
+                // Transform.LocalPosition.SetStaticState(new(0, x * (_viewTransitionComponent.Inverse ? -10 : 10)));
+                Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(x, 0, 1, 1, 0.99f));
                 ImageEffects.Opacity.SetStaticState(1 - x);
             };
         }
@@ -55,6 +58,7 @@ namespace FenUISharp.Objects
                 {
                     _viewTransitionComponent.Duration = AnimateViewModelSwap ? AnimInDuration : 0f;
                     _viewTransitionComponent.OnComplete = null;
+                    OnAnimationComplete?.Invoke();
                     RecursiveInvalidate(Invalidation.All);
                 };
 

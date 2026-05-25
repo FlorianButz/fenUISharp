@@ -22,24 +22,23 @@ namespace FenUISharp
         {
             FenUI.Init();
             FenUI.SetupAppModel("FlorianButz.fenUI");
+            // FWindow testWindow = new FTransparentWindow("Test Window!", "testWindow", null, null);
+            // // testWindow.Properties.ExcludeFromPeek = true;
+            // // testWindow.Properties.UseMica = true;
+            // // testWindow.Properties.MicaBackdropType = Native.MicaBackdropType.MainWindow;
+            // testWindow.Properties.VisibleInTaskbar = false;
+            // testWindow.Properties.AlwaysOnTop = true;
 
-            FWindow testWindow = new FTransparentWindow("Test Window!", "testWindow", null, null);
-            // testWindow.Properties.ExcludeFromPeek = true;
-            // testWindow.Properties.UseMica = true;
-            // testWindow.Properties.MicaBackdropType = Native.MicaBackdropType.MainWindow;
-            testWindow.Properties.VisibleInTaskbar = false;
-            testWindow.Properties.AlwaysOnTop = true;
+            // string iconPath = Resources.ExtractResourceToTempFile<FenUI>($"{FenUI.ResourceLibName}.icons.fenui.ico");
+            // testWindow.Properties.SetWindowIcon(iconPath);
+            // testWindow.Properties.CreateTrayIcon(iconPath, "Test Tooltip!");
 
-            string iconPath = Resources.ExtractResourceToTempFile<FenUI>($"{FenUI.ResourceLibName}.icons.fenui.ico");
-            testWindow.Properties.SetWindowIcon(iconPath);
-            testWindow.Properties.CreateTrayIcon(iconPath, "Test Tooltip!");
+            // testWindow.WithView(new BasicView());
 
-            testWindow.WithView(new BasicView());
+            // testWindow.Properties.AllowResize = false;
 
-            testWindow.Properties.AllowResize = false;
-
-            testWindow.Properties.ShowWindow(Native.ShowWindowCommand.SW_SHOW);
-            testWindow.BeginWindowLoop();
+            // testWindow.Properties.ShowWindow(Native.ShowWindowCommand.SW_SHOW);
+            // testWindow.BeginWindowLoop();
 
             FenUI.EnableDebugFunctions();
             FenUI.Demo();

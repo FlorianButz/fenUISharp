@@ -21,7 +21,12 @@ namespace FenUISharp.Behavior
         public bool AllowScrollOverflow { get; set; } = true;
         public bool ContentFade { get; set; } = false;
         public bool ContentClip { get; set; } = true;
-        public float FadeLength { get; set; } = 60;
+        public float FadeLength { get; set; } = 20;
+
+        public float BlurLength { get; set; } = 45;
+        public float BlurSigma { get; set; } = 10f;
+        public float BlurQuality { get; set; } = 0.6f;
+        public bool ContentBlur { get; set; } = false;
 
         public ContentStackType StackType { get; set; }
         public ContentStackBehavior StackBehavior { get; set; }
@@ -138,7 +143,8 @@ namespace FenUISharp.Behavior
 
             Owner?.Composition.GetZOrderedListOfChildren(Owner).ForEach(x =>
             {
-                if (!x.BehaviorComponents.Any(x => x is LayoutObject && ((LayoutObject)x).IgnoreParentLayout.CachedValue))
+                if (!x.BehaviorComponents.Any(x => x is LayoutObject && ((LayoutObject)x).IgnoreParentLayout.CachedValue)
+                    && x.Layout != null && !x.IsDisposed) // Make sure element is initialized and not disposed
                     affected.Add(x);
             });
 
@@ -156,105 +162,162 @@ namespace FenUISharp.Behavior
         }
 
         private int? _fadeLayerSaveCount = null;
+
         public void OnBeforeRenderChildren(SKCanvas? canvas)
         {
-            if (ContentClip) canvas?.ClipRect(Owner.Shape.LocalBounds);
+            if (canvas == null) return;
 
-            if (StackBehavior != ContentStackBehavior.Scroll) return;
-            if (!ContentFade || _contentSize <= _pageSize) return;
-            
-            // TODO: Fix layer issue with render surface system
+            if (ContentClip)
+                canvas.ClipRect(Owner.Shape.LocalBounds);
 
-            // Save a layer for the children to be rendered into
+            if (StackBehavior != ContentStackBehavior.Scroll)
+                return;
+
+            if ((!ContentFade && !ContentBlur) || _contentSize <= _pageSize)
+                return;
+
             var bounds = Owner.Shape.LocalBounds;
-            _fadeLayerSaveCount = canvas?.SaveLayer(bounds, null);
+            bool isHorizontal = StackType == ContentStackType.Horizontal;
+
+            float dimension = isHorizontal ? bounds.Width : bounds.Height;
+            if (dimension <= 0f)
+                return;
+
+            SKPoint start = isHorizontal
+                ? new SKPoint(bounds.Left, bounds.MidY)
+                : new SKPoint(bounds.MidX, bounds.Top);
+
+            SKPoint end = isHorizontal
+                ? new SKPoint(bounds.Right, bounds.MidY)
+                : new SKPoint(bounds.MidX, bounds.Bottom);
+
+            float fadeT = Math.Clamp(FadeLength / dimension, 0.0001f, 0.5f);
+            float blurT = Math.Clamp(BlurLength / dimension, 0.0001f, 0.5f);
+
+            SKImageFilter? finalFilter = null;
+
+            if (ContentBlur)
+            {
+                // Progressive blur at edges, sharp content in center, edges remain opaque.
+                var blurredContent = BuildProgressiveBlurFilter(start, end, blurT);
+
+                if (ContentFade)
+                {
+                    var faded = ApplyFadeMask(blurredContent, start, end, fadeT);
+                    blurredContent.Dispose();
+                    finalFilter = faded;
+                }
+                else
+                    finalFilter = blurredContent;
+            }
+            else if (ContentFade)
+                finalFilter = ApplyFadeMask(null, start, end, fadeT);
+
+            if (finalFilter != null)
+            {
+                using var masterPaint = new SKPaint { ImageFilter = finalFilter };
+                _fadeLayerSaveCount = canvas.SaveLayer(bounds, masterPaint);
+                finalFilter.Dispose();
+            }
+        }
+
+        private SKImageFilter BuildProgressiveBlurFilter(SKPoint start, SKPoint end, float blurT)
+        {
+            const int Steps = 3;
+            SKImageFilter? progressiveBlur = null;
+
+            for (int i = Steps; i >= 1; i--)
+            {
+                float sigma = BlurSigma * (Steps - i + 1) / (float)Steps;
+                float t = blurT * i / (float)Steps;
+
+                // Symmetric edge mask opaque at both edges, transparent in center
+                var edgeShader = SKShader.CreateLinearGradient(
+                    start, end,
+                    new[] { SKColors.Black, SKColors.Transparent, SKColors.Transparent, SKColors.Black },
+                    new[] { 0f, t, 1f - t, 1f },
+                    SKShaderTileMode.Clamp
+                );
+                var edgeMaskFilter = SKImageFilter.CreateShader(edgeShader);
+                edgeShader.Dispose();
+
+                var scaleMatrix = SKMatrix.CreateScale(BlurQuality, BlurQuality);
+                using var scaleFilter = SKImageFilter.CreateMatrix(scaleMatrix);
+
+                var blurFilter = SKImageFilter.CreateBlur(sigma, sigma, scaleFilter);
+
+                var inverseScaleMatrix = SKMatrix.CreateScale(1f / BlurQuality, 1f / BlurQuality);
+                using var inverseScaleFilter = SKImageFilter.CreateMatrix(inverseScaleMatrix, SKSamplingOptions.Default, blurFilter);
+
+                var maskedBlur = SKImageFilter.CreateBlendMode(SKBlendMode.DstIn, inverseScaleFilter, edgeMaskFilter);
+                blurFilter.Dispose();
+                edgeMaskFilter.Dispose();
+
+                if (progressiveBlur == null)
+                {
+                    progressiveBlur = maskedBlur;
+                }
+                else
+                {
+                    var next = SKImageFilter.CreateBlendMode(SKBlendMode.SrcOver, progressiveBlur, maskedBlur);
+                    progressiveBlur.Dispose();
+                    maskedBlur.Dispose();
+                    progressiveBlur = next;
+                }
+            }
+
+            var centerShader = SKShader.CreateLinearGradient(
+                start, end,
+                new[] { SKColors.Transparent, SKColors.Black, SKColors.Black, SKColors.Transparent },
+                new[] { 0f, blurT, 1f - blurT, 1f },
+                SKShaderTileMode.Clamp
+            );
+            var centerMaskFilter = SKImageFilter.CreateShader(centerShader);
+            centerShader.Dispose();
+
+            var sharpCenter = SKImageFilter.CreateBlendMode(SKBlendMode.DstIn, null, centerMaskFilter);
+            centerMaskFilter.Dispose();
+
+            if (progressiveBlur == null)
+                return sharpCenter;
+
+            var result = SKImageFilter.CreateBlendMode(SKBlendMode.SrcOver, progressiveBlur, sharpCenter);
+            progressiveBlur.Dispose();
+            sharpCenter.Dispose();
+            return result;
+        }
+
+        private static SKImageFilter ApplyFadeMask(
+            SKImageFilter? source, SKPoint start, SKPoint end, float fadeT)
+        {
+            // Symmetric fade transparent at both edges, opaque in center.
+            var fadeShader = SKShader.CreateLinearGradient(
+                start, end,
+                new[] { SKColors.Transparent, SKColors.Black, SKColors.Black, SKColors.Transparent },
+                new[] { 0f, fadeT, 1f - fadeT, 1f },
+                SKShaderTileMode.Clamp
+            );
+            var fadeMaskFilter = SKImageFilter.CreateShader(fadeShader);
+            fadeShader.Dispose();
+
+            var result = SKImageFilter.CreateBlendMode(SKBlendMode.DstIn, source, fadeMaskFilter);
+            fadeMaskFilter.Dispose();
+            return result;
         }
 
         public void OnAfterRenderChildren(SKCanvas? canvas)
         {
-            if (StackBehavior != ContentStackBehavior.Scroll) return;
-            if (!ContentFade) return;
-            if (_contentSize <= _pageSize || _fadeLayerSaveCount == null) return;
+            if (canvas == null) return;
 
-            var bounds = Owner.Shape.LocalBounds;
+            if (StackBehavior != ContentStackBehavior.Scroll)
+                return;
 
-            using (var maskPaint = new SKPaint())
-            {
-                maskPaint.BlendMode = SKBlendMode.DstIn;
+            if ((!ContentFade && !ContentBlur) || _contentSize <= _pageSize || _fadeLayerSaveCount == null)
+                return;
 
-                SKPoint start = new SKPoint(0, bounds.Top);
-                SKPoint end = new SKPoint(0, bounds.Bottom);
-
-                if (StackType == ContentStackType.Horizontal)
-                {
-                    start = new SKPoint(bounds.Left, 0);
-                    end = new SKPoint(bounds.Right, 0);
-                }
-
-                var fadeLength = (bounds.Height - (bounds.Height - FadeLength)) / bounds.Height;
-
-                float bias(float t) => (float)Math.Pow(t, 1.5f); // Simple quadratic ease-in
-
-                maskPaint.Shader = SKShader.CreateLinearGradient(
-                    start,
-                    end,
-                    new SKColor[] {
-                        SKColors.Transparent,
-                        SKColors.Black,
-                        SKColors.Black,
-                        SKColors.Transparent
-                    },
-                    new float[] {
-                        0f,
-                        bias(fadeLength),
-                        1 - bias(fadeLength),
-                        1f
-                    },
-                    SKShaderTileMode.Clamp
-                );
-
-                canvas?.DrawRect(bounds, maskPaint);
-            }
-
-            if (_fadeLayerSaveCount != null)
-                canvas?.RestoreToCount(_fadeLayerSaveCount.Value);
+            canvas.RestoreToCount(_fadeLayerSaveCount.Value);
             _fadeLayerSaveCount = null;
         }
-
-        // public void OnBeforeRenderChildren(SKCanvas? canvas){}
-        // public void OnAfterRenderChildren(SKCanvas? canvas)
-        // {
-        //     if (!ContentFade || _contentSize <= _pageSize || canvas == null) return;
-
-        //     var bounds = Owner.Shape.SurfaceDrawRect;
-        //     float fadeLength = FadeLength; // pixels
-
-        //     using var paint = new SKPaint
-        //     {
-        //         IsAntialias = true,
-        //         BlendMode = SKBlendMode.Clear, // for actual masking, or SrcOver for visual fade
-        //     };
-
-        //     // Top fade
-        //     paint.Shader = SKShader.CreateLinearGradient(
-        //         new SKPoint(0, bounds.Top),
-        //         new SKPoint(0, bounds.Top + fadeLength),
-        //         new[] { SKColors.Transparent, SKColors.Black },
-        //         null,
-        //         SKShaderTileMode.Clamp);
-
-        //     canvas.DrawRect(new SKRect(bounds.Left, bounds.Top, bounds.Right, bounds.Top + fadeLength), paint);
-
-        //     // Bottom fade
-        //     paint.Shader = SKShader.CreateLinearGradient(
-        //         new SKPoint(0, bounds.Bottom - fadeLength),
-        //         new SKPoint(0, bounds.Bottom),
-        //         new[] { SKColors.Black, SKColors.Transparent },
-        //         null,
-        //         SKShaderTileMode.Clamp);
-
-        //     canvas.DrawRect(new SKRect(bounds.Left, bounds.Bottom - fadeLength, bounds.Right, bounds.Bottom), paint);
-        // }
 
         public void ComponentSetup()
         {
@@ -413,8 +476,7 @@ namespace FenUISharp.Behavior
                 else
                     childList[c].Transform.LocalPosition.SetStaticState(new Vector2(0, currentPos));
 
-                if (!(childList.Count <= c || ChildLocalPosition.Capacity <= c))
-                    ChildLocalPosition.Insert(c, childList[c].Transform.LocalPosition.CachedValue); // Since the value is statically assigned it should already be updated in the cached value
+                ChildLocalPosition.Add(childList[c].Transform.LocalPosition.CachedValue); // Since the value is statically assigned it should already be updated in the cached value
 
                 currentPos += lastItemSize / 2;
                 contentSize += lastItemSize / 2;
@@ -438,9 +500,16 @@ namespace FenUISharp.Behavior
                     break;
             }
 
-            Owner.Transform.Size.Value = () => calculatedOwnerSize;
+            switch (StackBehavior)
+            {
+                case ContentStackBehavior.SizeToFitAll:
+                case ContentStackBehavior.SizeToFit:
+                    Owner.Transform.Size.Value = () => calculatedOwnerSize;
+                    break;
+            }
 
-            _pageSize = StackType == ContentStackType.Horizontal ? calculatedOwnerSize.x : calculatedOwnerSize.y;
+            var resolvedSize = new Vector2(Owner.Shape.LocalBounds.Width, Owner.Shape.LocalBounds.Height);
+            _pageSize = StackType == ContentStackType.Horizontal ? resolvedSize.x : resolvedSize.y;
             _scrollMax = contentSize - _pageSize;
             _contentSize = contentSize;
 

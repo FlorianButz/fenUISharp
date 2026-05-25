@@ -343,6 +343,9 @@ namespace FenUISharp.Native
         [DllImport("user32.dll", SetLastError = true)]
         internal static extern bool DestroyWindow(IntPtr hWnd);
 
+        [DllImport("dwmapi.dll")]
+        internal static extern int DwmIsCompositionEnabled(out bool enabled);
+
         [DllImport("user32.dll")]
         internal static extern void PostQuitMessage(int nExitCode);
 

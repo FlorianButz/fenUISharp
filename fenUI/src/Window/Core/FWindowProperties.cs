@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using FenUISharp.Logging;
 using FenUISharp.Native;
+using SkiaSharp;
 
 namespace FenUISharp
 {
@@ -158,27 +159,46 @@ namespace FenUISharp
             _useMica = useMica;
             _micaBackdropType = backdropType;
 
+            bool canUseMica =
+                useMica &&
+                IsWindows11OrGreater() &&
+                IsCompositionEnabled();
+
             // First, apply the Mica system backdrop
-            int micaEffect = useMica ? (int)backdropType : (int)MicaBackdropType.None;
-            Win32APIs.DwmSetWindowAttribute(
+            int micaEffect = canUseMica ? (int)backdropType : (int)MicaBackdropType.None;
+            int hr = Win32APIs.DwmSetWindowAttribute(
                 Window.hWnd,
                 (uint)DWMWINDOWATTRIBUTE.DWMWA_SYSTEMBACKDROP_TYPE,
                 ref micaEffect,
                 Marshal.SizeOf<int>()
             );
 
-            // int frameExtension = useMica ? -1 : 0;
+            bool micaApplied = hr >= 0;
+            _useMica = micaApplied;
 
-            // // Extend the frame into the client area
-            // MARGINS margins = new MARGINS
-            // {
-            //     cxLeftWidth     = frameExtension,
-            //     cxRightWidth    = frameExtension,
-            //     cyTopHeight     = frameExtension,
-            //     cyBottomHeight  = frameExtension
-            // };
+            int frameExtension = useMica ? -1 : 0;
+            // Extend the frame into the client area
+            MARGINS margins = new MARGINS
+            {
+                cxLeftWidth     = frameExtension,
+                cxRightWidth    = frameExtension,
+                cyTopHeight     = frameExtension,
+                cyBottomHeight  = frameExtension
+            };
 
-            // Win32APIs.DwmExtendFrameIntoClientArea(hWnd, ref margins);
+            Win32APIs.DwmExtendFrameIntoClientArea(Window.hWnd, ref margins);
+        }
+
+        bool IsWindows11OrGreater()
+        {
+            var version = Environment.OSVersion.Version;
+            return version.Major >= 10 && version.Build >= 22000;
+        }
+
+        bool IsCompositionEnabled()
+        {
+            Win32APIs.DwmIsCompositionEnabled(out bool enabled);
+            return enabled;
         }
 
         internal void UpdateTransparentIgnoreClientInteractions(bool isSet)

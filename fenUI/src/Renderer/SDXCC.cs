@@ -163,9 +163,6 @@ namespace FenUISharp
 
         private void RecoverFromDeviceRemoval()
         {
-            if (deviceLost)
-                return; // Already in recovery
-
             deviceLost = true;
             FLogger.Warn("Device removed, attempting recovery...");
 
@@ -173,57 +170,52 @@ namespace FenUISharp
             {
                 try
                 {
-                    // First, dispose all GPU resources in the correct order
-                    DisposeSkiaResources();
+                    Surface?.Canvas?.Flush();
+                    Surface?.Flush();
+                    grContext?.AbandonContext(releaseResources: false);
+                }
+                catch { /* Ignore — device may already be gone */ }
 
-                    // Dispose GRContext while we still have valid D3D12 objects
-                    grContext?.Dispose();
-                    grContext = null;
+                DisposeSkiaResources();
 
-                    // Now dispose D3D objects
-                    adapter?.Dispose();
-                    adapter = null;
+                try { grContext?.Dispose(); } catch { }
+                grContext = null;
 
-                    DirectCompositionContext?.Dispose();
-                    DirectCompositionContext = null;
+                try { backendContext?.Dispose(); } catch { }
+                backendContext = null;
 
-                    // Clear any cached state
-                    consecutiveDrawErrors = 0;
-                    resourcesNeedRecreation = true;
-                    currentBackBufferIndex = uint.MaxValue;
+                try { adapter?.Dispose(); } catch { }
+                adapter = null;
 
-                    // Wait for system to stabilize
-                    System.Threading.Thread.Sleep(200);
+                try { DirectCompositionContext?.Dispose(); } catch { }
+                DirectCompositionContext = null;
 
-                    // Force garbage collection to clean up any lingering references
-                    GC.Collect();
-                    GC.WaitForPendingFinalizers();
-                    GC.Collect();
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
+                GC.WaitForPendingFinalizers();
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true);
+                GC.WaitForPendingFinalizers();
 
-                    // Recreate everything from scratch
+                System.Threading.Thread.Sleep(300);
+
+                consecutiveDrawErrors = 0;
+                resourcesNeedRecreation = true;
+                currentBackBufferIndex = uint.MaxValue;
+
+                try
+                {
                     InitializeDeviceAndContext();
-
                     deviceLost = false;
                     FLogger.Log<SkiaDirectCompositionContext>("Device recovery successful");
                 }
                 catch (Exception ex)
                 {
-                    FLogger.Error($"Device recovery failed: {ex.Message}");
-
-                    // If recovery fails completely, mark as permanently failed
                     deviceLost = true;
+                    FLogger.Error($"Device recovery failed permanently: {ex.Message}");
 
-                    // Try to clean up what we can
-                    try
-                    {
-                        grContext?.Dispose();
-                        grContext = null;
-                        DirectCompositionContext?.Dispose();
-                        DirectCompositionContext = null;
-                        adapter?.Dispose();
-                        adapter = null;
-                    }
-                    catch { /* Ignore cleanup errors during failed recovery */ }
+                    // Best-effort final cleanup so nothing leaks
+                    try { grContext?.Dispose(); grContext = null; } catch { }
+                    try { DirectCompositionContext?.Dispose(); DirectCompositionContext = null; } catch { }
+                    try { adapter?.Dispose(); adapter = null; } catch { }
 
                     throw new InvalidOperationException($"Device recovery failed: {ex.Message}", ex);
                 }
@@ -268,7 +260,7 @@ namespace FenUISharp
                     1,
                     1,
                     0,
-                    ResourceFlags.AllowRenderTarget,
+                    Vortice.Direct3D12.ResourceFlags.AllowRenderTarget,
                     Vortice.Direct3D12.TextureLayout.Unknown
                 );
 
@@ -432,11 +424,13 @@ namespace FenUISharp
                         Surface.Canvas.Restore();
                     }
 
-                    // Flush drawing commands efficiently
+                    // Flush drawing commands to ensure they're queued
+                    Surface.Canvas.Flush();
                     Surface.Flush();
 
-                    // Submit to GRContext (async submission is sufficient for most cases)
-                    grContext?.Submit(false);
+                    // Submit to GRContext synchronously and wait for GPU completion
+                    // Using true ensures GPU finishes processing before Present is called
+                    grContext?.Submit(true);
 
                     // Present with proper error handling
                     DirectCompositionContext?.Present(SwapFromPersistent, PresentFlags.None);
@@ -623,7 +617,7 @@ namespace FenUISharp
 
                     using var snapshot = Surface.Snapshot(new SKRectI((int)region.Left, (int)region.Top, (int)region.Right, (int)region.Bottom));
                     var scaled = RMath.CreateLowResImage(snapshot, RMath.Clamp(quality, 0.01f, 1f), SamplingOptions);
-                    
+
                     Compositor.Dump(scaled, "rcontext_buffer_cropped_scaled");
 
                     return scaled;
@@ -664,7 +658,7 @@ namespace FenUISharp
                 Format = Format.B8G8R8A8_UNorm,
                 SampleDescription = new SampleDescription(1, 0),
                 Layout = Vortice.Direct3D12.TextureLayout.Unknown,
-                Flags = ResourceFlags.AllowRenderTarget
+                Flags = Vortice.Direct3D12.ResourceFlags.AllowRenderTarget
             };
 
             var clearValue = new ClearValue
@@ -769,6 +763,7 @@ namespace FenUISharp
             persistentRenderTarget = null;
 
             backendContext?.Dispose();
+            backendContext = null;
         }
     }
 }

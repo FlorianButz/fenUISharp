@@ -72,6 +72,22 @@ namespace FenUISharp.Mathematics
             return (float)Math.Round(x, 2);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="x">The value. Linear in [0; maxValue], Rubber for { maxValue < x }</param>
+        /// <param name="maxValue">The maximum value</param>
+        /// <param name="d">Scaling constant</param>
+        /// <param name="c">Steepness constant</param>
+        /// <returns></returns>
+        public static float RubberBand(float x, float maxValue, float d = 0.1f, float c = 1f)
+        {
+            if (x <= maxValue)
+                return x;
+            
+            return (1 - (1 / ((((x - maxValue) * c) / d) + 1))) * d + maxValue;
+        }
+
         public static SKImage? CreateLowResImage(SKImage sourceImage, float scaleFactor, SKSamplingOptions samplingOptions)
         {
             if (sourceImage == null) return null;

@@ -26,7 +26,7 @@ namespace FenUISharp.Objects
         private static List<UIObject> _cachedEnabledList = new();
 
         [ThreadStatic]
-        private static bool _zOrderCacheValid = false;
+        internal static bool _zOrderCacheValid = false;
 
         // Per-instance child list cache
         private List<UIObject>? _cachedChildrenList;
@@ -80,7 +80,7 @@ namespace FenUISharp.Objects
             return _cachedChildrenList;
         }
 
-        public List<UIObject> GetZOrderedListOfEnabled()
+        public static List<UIObject> GetZOrderedListOfEnabled()
         {
             if (!_zOrderCacheValid)
                 CacheZOrderedListOfEverything();

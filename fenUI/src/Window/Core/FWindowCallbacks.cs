@@ -1,5 +1,6 @@
 using FenUISharp.Mathematics;
 using FenUISharp.Native;
+using FenUISharp.Objects;
 using FenUISharp.WinFeatures;
 using SkiaSharp;
 
@@ -63,6 +64,9 @@ namespace FenUISharp
                     Window.ClientMousePosition = Window.DropTarget.LastMouseDragPosition;
                     Window.Callbacks.OnMouseMove?.Invoke(Window.ClientMousePosition);
                 };
+
+                OnPreUpdate += InteractiveSurface.CacheTopmostMouseAction;
+                OnPreUpdate += InteractiveSurface.CacheTopmostMouseScroll;
             });
         }
 
