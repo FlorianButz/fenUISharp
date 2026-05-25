@@ -64,7 +64,7 @@ namespace FenUISharp.Objects
         {
             InteractiveSurface.OnMouseEnter -= MouseEnter;
             InteractiveSurface.OnMouseExit -= MouseExit;
-            
+
             base.Dispose();
         }
 
@@ -85,18 +85,22 @@ namespace FenUISharp.Objects
 
         void OnDrag(Vector2 delta)
         {
-            var thumbSize = GetThumbRect(Shape.LocalBounds);
-            float availableTrackSize = HorizontalOrientation.CachedValue ? Layout.ClampSize(Transform.Size.CachedValue).x - thumbSize.Width : Layout.ClampSize(Transform.Size.CachedValue).y - thumbSize.Height;
+            // 1. Consistently use Shape.LocalBounds to perfectly match visual rendering
+            var scrollArea = Shape.LocalBounds;
+            var thumbSize = GetThumbRect(scrollArea);
+
+            float availableTrackSize = HorizontalOrientation.CachedValue
+                ? scrollArea.Width - thumbSize.Width
+                : scrollArea.Height - thumbSize.Height;
+
+            // Prevent division by zero if the thumb fills the entire track
+            if (availableTrackSize <= 0) return;
+
             float mouseDelta = HorizontalOrientation.CachedValue
-                ? (delta.x)
-                : (delta.y);
+                ? -delta.x
+                : -delta.y;
 
-            // Calculate the ratio of page size to content size for proper sensitivity
-            float contentRatio = ContentSize > 0 ? PageSize / ContentSize : 1.0f;
-            contentRatio = RMath.Clamp(contentRatio, 0.01f, 1.0f); // Prevent division issues
-
-            // Convert pixel movement to scroll range movement, adjusted by content ratio
-            float deltaScroll = (mouseDelta / availableTrackSize) * (ScrollMax - ScrollMin) * contentRatio;
+            float deltaScroll = (mouseDelta / availableTrackSize) * (ScrollMax - ScrollMin);
 
             _scrollDragPosition = RMath.Clamp(_mouseStartScrollPos + deltaScroll, ScrollMin, ScrollMax);
 
@@ -114,7 +118,7 @@ namespace FenUISharp.Objects
 
             var interactionRect = lastThumbInteractionRect;
             interactionRect.Inflate(InteractiveSurface.ExtendInteractionRadius.CachedValue, InteractiveSurface.ExtendInteractionRadius.CachedValue);
-                    
+
             _mouseStartScrollPos = ScrollPosition;
         }
 
@@ -150,7 +154,6 @@ namespace FenUISharp.Objects
             // Draw the scroll track
             SkPaint.Color = ScrollAreaColor.CachedValue.WithAlpha((byte)(255 * RMath.Clamp(Alpha, 0, (InteractiveSurface.IsMouseHovering || InteractiveSurface.IsDragging) ? 1f : 0.4f)));
             canvas.DrawRoundRect(scrollArea, 5, 5, SkPaint);
-
             canvas.ClipRoundRect(new SKRoundRect(scrollArea, 5, 5), antialias: true);
 
             SKRect thumbRect = GetThumbRect(scrollArea);
@@ -175,7 +178,7 @@ namespace FenUISharp.Objects
                     ? (ScrollPosition - ScrollMin) / (ScrollMax - ScrollMin)
                     : 0;
 
-                float thumbPos = scrollArea.Left + (availableLength * (1 - fraction));
+                float thumbPos = scrollArea.Left + (availableLength * (1f - fraction));
                 thumbRect = new SKRect(thumbPos, scrollArea.Top, thumbPos + thumbLength, scrollArea.Bottom);
             }
             else
@@ -189,7 +192,7 @@ namespace FenUISharp.Objects
                     ? (ScrollPosition - ScrollMin) / (ScrollMax - ScrollMin)
                     : 0;
 
-                float thumbTop = scrollArea.Top + (availableLength * (1 - fraction));
+                float thumbTop = scrollArea.Top + (availableLength * (1f - fraction));
                 thumbRect = new SKRect(scrollArea.Left, thumbTop, scrollArea.Right, thumbTop + thumbLength);
             }
 

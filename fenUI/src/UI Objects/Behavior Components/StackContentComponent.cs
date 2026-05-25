@@ -325,16 +325,15 @@ namespace FenUISharp.Behavior
 
         public void ComponentSetup()
         {
-            scrollBar = new FScrollBar(() => new Vector2(0, 0), () => new Vector2(4f, 4f));
+            scrollBar = new FScrollBar(() => new Vector2(0, 0), () => new Vector2(3f, 3f));
             scrollBar.Layout.MarginHorizontal.SetStaticState(8);
             scrollBar.Layout.MarginVertical.SetStaticState(8);
 
             // Exclude scrollbar from being affected by layout
             new LayoutObject(scrollBar).IgnoreParentLayout.SetStaticState(true);
 
-            scrollBar.Visible.SetStaticState(false);
             scrollBar.HorizontalOrientation.SetResponsiveState(() => StackType == ContentStackType.Horizontal);
-            scrollBar.Visible.Value = () => (StackBehavior == ContentStackBehavior.Scroll && (_pageSize < _contentSize));
+            scrollBar.Enabled.SetResponsiveState(() => StackBehavior == ContentStackBehavior.Scroll && (_pageSize < _contentSize));
             scrollBar.onPositionChanged += OnScrollbarUpdate;
             scrollBar.SetParent(Owner);
 
@@ -371,6 +370,8 @@ namespace FenUISharp.Behavior
                     scrollBar.Layout.Alignment.SetStaticState(new Vector2(1, 0.5f));
                     scrollBar.Layout.StretchHorizontal.SetStaticState(false);
                     scrollBar.Layout.StretchVertical.SetStaticState(true);
+                    scrollBar.Layout.MarginHorizontal.SetStaticState(0f);
+                    scrollBar.Layout.MarginVertical.SetStaticState(20f);
                 }
                 else if (StackType == ContentStackType.Horizontal)
                 {
@@ -378,6 +379,8 @@ namespace FenUISharp.Behavior
                     scrollBar.Layout.Alignment.SetStaticState(new Vector2(0.5f, 1));
                     scrollBar.Layout.StretchHorizontal.SetStaticState(true);
                     scrollBar.Layout.StretchVertical.SetStaticState(false);
+                    scrollBar.Layout.MarginHorizontal.SetStaticState(20f);
+                    scrollBar.Layout.MarginVertical.SetStaticState(0f);
                 }
             }
         }

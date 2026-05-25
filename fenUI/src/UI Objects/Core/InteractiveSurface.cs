@@ -152,27 +152,24 @@ namespace FenUISharp.Objects
 
         internal static void CacheTopmostMouseScroll()
         {
-            List<UIObject> ordered = 
-                Compositor.GetZOrderedListOfEnabled();
+            var ordered = Compositor.GetZOrderedListOfEnabled();
 
             _topmostSurfaceMouseScroll = null;
 
-            // Goes in reverse Z-order (front to back)
-            for (int i = ordered.Count - 1; i >= 0; i--)
+            foreach (var obj in ordered)
             {
-                var obj = ordered[i];
-                var surfaces = _surfaces.Where(s =>
+                var surface = _surfaces.FirstOrDefault(s =>
                     s.owner == obj &&
                     s.owner.GlobalEnabled &&
                     !s.IgnoreInteractions.CachedValue &&
                     !s.ParentIgnoreChild &&
                     s.EnableMouseScrolling.CachedValue &&
-                    s.TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition) // <- Important!
-                ).ToList();
+                    s.TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition)
+                );
 
-                if (surfaces.Count > 0)
+                if (surface != null)
                 {
-                    _topmostSurfaceMouseScroll = surfaces[0];
+                    _topmostSurfaceMouseScroll = surface;
                     break;
                 }
             }
@@ -227,7 +224,7 @@ namespace FenUISharp.Objects
 
             if (capturedOwner == null) return;
             if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
-            if (!FContext.GetCurrentWindow().Properties.IsWindowFocused || !TestIfTopMost_MouseScrolling() || !TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition)) return;
+            if (!TestIfTopMost_MouseScrolling()) return;
 
             OnMouseScroll?.Invoke(_lastDelta);
             _lastDelta = 0;
@@ -242,7 +239,7 @@ namespace FenUISharp.Objects
 
             if (capturedOwner == null) return;
             if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
-            
+
             OnMouseMove?.Invoke(FContext.GetCurrentWindow().ClientMousePosition);
 
             FuncProcessDrag();
@@ -343,7 +340,7 @@ namespace FenUISharp.Objects
             if (code.state == MouseInputState.Up && code.button == MouseInputButton.Left)
             {
                 IsMouseDown = false;
-                if(IsDragging) StopDragging();
+                if (IsDragging) StopDragging();
             }
 
             if (!TestIfTopMost_MouseInteraction() || !TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition)) return;
@@ -387,10 +384,10 @@ namespace FenUISharp.Objects
         public bool TestForGlobalPoint(in Vector2 point)
         {
             if (owner == null) return false;
-        
+
             // Check if this object is enabled and visible
             if (!owner.GlobalEnabled || !owner.GlobalVisible) return false;
-            
+
             // return GetGlobalInteractionRect().Contains(point.x, point.y);
             return GetGlobalInteractionRect().Contains(point.x, point.y) && (owner.Parent != null ? owner.Parent.InteractiveSurface.TestForGlobalPoint(point) : true);
         }
@@ -428,7 +425,7 @@ namespace FenUISharp.Objects
 
         public void Dispose()
         {
-            if(_surfaces != null)
+            if (_surfaces != null)
                 _surfaces.Remove(this);
             Owner = null;
 
