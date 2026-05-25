@@ -128,11 +128,17 @@ namespace FenUISharp
             return vkCode;
         }
 
-        public void RegisterKeybind(KeyBind keybind) =>
+        public void RegisterKeybind(KeyBind keybind)
+        {
+            if (keybinds.Contains(keybind)) return;
             keybinds.Add(keybind);
+        }
 
-        public void UnregisterKeybind(KeyBind keybind) =>
+        public void UnregisterKeybind(KeyBind keybind)
+        {
+            if (!keybinds.Contains(keybind)) return;
             keybinds.Remove(keybind);
+        }
 
         public void Dispose()
         {

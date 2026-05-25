@@ -36,6 +36,11 @@ namespace FenUISharp.Objects
         public State<float> Rotation { get; init; }
         public State<Vector2> Anchor { get; init; }
 
+        public bool HasLocalRotation => !RMath.Approximately(Rotation.CachedValue, 0f, 2);
+        public bool HasLocalScale => !RMath.Approximately(Scale.CachedValue.x, 1f, 3) || !RMath.Approximately(Scale.CachedValue.y, 1f, 3);
+
+        public bool HasAnyRotationOrScale => HasAnyRotationOrScaleInternal();
+
         public TransformMatrixProcessor? MatrixProcessor { get; set; }
         
         public SKMatrix DrawMatrix { get; internal set; }
@@ -100,6 +105,24 @@ namespace FenUISharp.Objects
             // Cache matrices
             DrawMatrix = matrix;
             RecursiveDrawMatrix = GetRecursiveDrawMatrix();
+        }
+
+        private bool HasAnyRotationOrScaleInternal()
+        {
+            if (HasLocalRotation || HasLocalScale)
+                return true;
+
+            var p = Owner?.Parent;
+            while (p != null)
+            {
+                var t = p.Transform;
+                if (t.HasLocalRotation || t.HasLocalScale)
+                    return true;
+
+                p = p.Parent;
+            }
+
+            return false;
         }
 
         public SKMatrix GetRecursiveDrawMatrix()

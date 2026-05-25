@@ -16,6 +16,7 @@ namespace FenUISharp.Objects
         private float quality = 1;
 
         public bool LockInvalidation { get; set; } = false;
+        public bool UseSnapshotBlit { get; set; } = false;
 
         private readonly object _drawLock = new();
 
@@ -75,7 +76,8 @@ namespace FenUISharp.Objects
                     _cachedSnapshot?.Dispose();
                     _cachedSnapshot = null;
 
-                    _cachedSnapshot = surface?.Snapshot();
+                    if (UseSnapshotBlit)
+                        _cachedSnapshot = surface?.Snapshot();
 
                     return surface;
                 }
@@ -88,19 +90,14 @@ namespace FenUISharp.Objects
             Draw(effectChain);
 
             // Draw to screen
-            if (_cachedSnapshot != null) target.DrawImage(_cachedSnapshot, targetRect, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
-
-            // Direct drawing, introduces heavy aliasing. Might be good as an optional choice
-            // var sourceRect = SKRect.Create(0, 0, _cachedImageInfo?.Width ?? 1, _cachedImageInfo?.Height ?? 1);
-            // var transformations = GetTransformationsForTargetRect(sourceRect, targetRect, false);
-
-            // int save = target.Save();
-            // target.Scale(transformations.scale);
-
-            // if (surface != null)
-            //     target.DrawSurface(surface, transformations.offset, paint);
-
-            // target.RestoreToCount(save);
+            if (_cachedSnapshot != null) 
+            {
+                target.DrawImage(_cachedSnapshot, targetRect, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
+            }
+            else if (_cachedSurface != null)
+            {
+                target.DrawSurface(_cachedSurface.SkiaSurface, new SKPoint(targetRect.Left, targetRect.Top), paint);
+            }
         }
 
         public static (SKPoint scale, SKPoint offset) GetTransformationsForTargetRect(

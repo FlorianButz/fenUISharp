@@ -66,6 +66,7 @@ namespace FenUISharp.Objects
         public bool WindowRedrawThisObject { get; internal set; }
         public bool LayoutChangedThisFrame { get; internal set; }
         public bool LockInvalidation { get; set; }
+        public bool SurfaceBlitFallback { get; set; } = true;
 
         /// <summary>
         /// Will lock the invalidation of this object and all children
@@ -332,6 +333,9 @@ namespace FenUISharp.Objects
             {
                 lateLayoutUpdate = true;
 
+                // Make sure to only use the snapshot route if necessary
+                ObjectSurface.UseSnapshotBlit = !SurfaceBlitFallback || Transform.HasAnyRotationOrScale;
+
                 if (InvalidationState.HasFlag(Invalidation.TransformDirty) ||
                     InvalidationState.HasFlag(Invalidation.LayoutDirty))
                 {
@@ -486,20 +490,55 @@ namespace FenUISharp.Objects
 
         public virtual void DrawChildren(SKCanvas? canvas)
         {
-            if (IsDisposed) return;
+            if (IsDisposed || !HasVisibleChildren() || canvas == null) return;
             
-            DispatchBehaviorEvent(BehaviorEventType.BeforeDrawChildren, canvas);
+            object layoutInstruction = (TargetCanvas: canvas, RenderChildren: true);
+            DispatchBehaviorEvent(BehaviorEventType.BeforeDrawChildren, out layoutInstruction, layoutInstruction);
+            
+            var choice = ((SKCanvas TargetCanvas, bool RenderChildren))layoutInstruction;
 
-            // Iterate through children for rendering.
-            Composition.GetZOrderedListOfChildren(this).ForEach(x =>
+            if (choice.RenderChildren)
             {
-                DispatchBehaviorEvent(BehaviorEventType.BeforeDrawChild, canvas);
-                x.DrawToSurface(canvas);
-                DispatchBehaviorEvent(BehaviorEventType.AfterDrawChild, (canvas, x));
+                Composition.GetZOrderedListOfChildren(this).ForEach(x =>
+                {
+                    object layoutInstructionIndividual = (TargetCanvas: canvas, child: x, RenderChild: true);
+                    DispatchBehaviorEvent(BehaviorEventType.BeforeDrawChild, out layoutInstructionIndividual, layoutInstructionIndividual);
+
+                    var choiceIndividual = ((SKCanvas TargetCanvas, UIObject Child, bool RenderChild))layoutInstructionIndividual;
+
+                    if (choiceIndividual.RenderChild)
+                        choiceIndividual.Child.DrawToSurface(choice.TargetCanvas);
+                });
+            }
+
+            DispatchBehaviorEvent(BehaviorEventType.AfterDrawChildren, choice.TargetCanvas);
+        }
+
+        public SKRect GetBoundsWithChildren()
+        {
+            float left = 0f, top = 0f, right = 0f, bottom = 0f;            
+
+            var addBounds = (SKRect bounds) => {
+                if (left > bounds.Left)
+                    left = bounds.Left;
+                if (top > bounds.Top)
+                    top = bounds.Top;
+                if (right < bounds.Right)
+                    right = bounds.Right;
+                if (bottom < bounds.Bottom)
+                    bottom = bounds.Bottom;
+            };
+
+            addBounds(Shape.SurfaceDrawRect);
+            Children.Where(x => x.GlobalEnabled && x.GlobalVisible).ToList().ForEach(x => {
+                addBounds(Shape.SurfaceDrawRect);
             });
 
-            DispatchBehaviorEvent(BehaviorEventType.AfterDrawChildren, canvas);
+            return new SKRect(left, top, right, bottom);
         }
+
+        public bool HasVisibleChildren() 
+            => Children.Count != 0 && Children.Count(x => x.GlobalVisible && x.GlobalEnabled) != 0;
 
         public bool RenderThisFrame()
         {
@@ -548,13 +587,19 @@ namespace FenUISharp.Objects
 
         internal void DispatchBehaviorEvent(BehaviorEventType type, object? data = null)
         {
+            DispatchBehaviorEvent(type, out _, data);
+        }
+
+        internal void DispatchBehaviorEvent(BehaviorEventType type, out object outData, object? data = null)
+        {
+            outData = data;
             if (IsDisposed) return;
             
             foreach (var behavior in BehaviorComponents.ToList())
             {
                 if (behavior.Enabled)
                 {
-                    behavior.HandleEvent(type, data);
+                    behavior.HandleEvent(type, out data, data);
                 }
             }
         }

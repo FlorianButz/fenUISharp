@@ -22,7 +22,7 @@ namespace FenUISharp.Behavior
             Owner?.BehaviorComponents.Add(this);
         }
 
-        public virtual void HandleEvent(BehaviorEventType type, object? data = null) { }
+        public virtual void HandleEvent(BehaviorEventType type, out object outData, object? data = null) { outData = data; }
         public virtual void ComponentDestroy() { }
 
         public void Dispose()

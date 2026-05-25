@@ -7,20 +7,14 @@ namespace FenUISharp.Behavior.RuntimeEffects
 {
     public class ImageEffects : BehaviorComponent, IStateListener
     {
-        public State<float> SelfOpacity { get; init; }
         public State<float> Opacity { get; init; }
         public State<float> BlurRadius { get; init; }
 
         public State<float> Saturation { get; init; }
         public State<float> Brightness { get; init; }
 
-        public State<bool> InheritFromParent { get; init; }
-
         public ImageEffects(UIObject owner) : base(owner)
         {
-            SelfOpacity = new(() => 1f, Owner, this);
-            SelfOpacity.SetResolver(StateResolverTemplates.SmallestFloatResolver);
-            SelfOpacity.SetProcessor((x) => RMath.Clamp(x, 0, 1));
             Opacity = new(() => 1f, Owner, this);
             Opacity.SetResolver(StateResolverTemplates.SmallestFloatResolver);
             Opacity.SetProcessor((x) => RMath.Clamp(x, 0, 1));
@@ -35,54 +29,102 @@ namespace FenUISharp.Behavior.RuntimeEffects
             BlurRadius.SetResolver(StateResolverTemplates.BiggestFloatResolver);
             BlurRadius.SetProcessor((x) => Math.Abs(x));
 
-            InheritFromParent = new(() => true, Owner, this);
             Owner.Padding.SetResponsiveState(GetPadding, 10);
         }
 
-        public override void HandleEvent(BehaviorEventType type, object? data = null)
+        private bool _valuesChanged = true;
+        private int? _savedLayer;
+        private SKPaint? _filterPaint;
+
+        public override void HandleEvent(BehaviorEventType type, out object outData, object? data = null)
         {
-            base.HandleEvent(type, data);
+            base.HandleEvent(type, out outData, data);
 
             var capturedOwner = Owner;
-            if (capturedOwner == null) return;
+            if (capturedOwner == null)
+                return;
 
-            switch (type)
+            if (_valuesChanged)
             {
-                case BehaviorEventType.AfterRender:
-                    if (capturedOwner.ObjectSurface.TryGetSurface(out SKSurface surfaceO))
-                        ApplyImageEffects(surfaceO, capturedOwner.Shape.SurfaceDrawRect);
-                    break;
+                _valuesChanged = false;
+                _filterPaint = CreateLayerPaint();
+            }
+
+            _filterPaint ??= CreateLayerPaint();
+
+            if (capturedOwner.HasVisibleChildren())
+            {
+                capturedOwner.ObjectSurface.TryGetSurface(out SKSurface surfaceO);
+                switch (type)
+                {
+                    case BehaviorEventType.BeforeSurfaceDraw:
+                        if (data == null || !AreEffectsApplied()) return;
+                        SKCanvas beforeDraw = (SKCanvas)data;
+                        _savedLayer = beforeDraw.SaveLayer(_filterPaint);
+                        break;
+                    case BehaviorEventType.AfterSurfaceDraw:
+                        if (data == null || !AreEffectsApplied()) return;
+                        SKCanvas afterDraw = (SKCanvas)data;
+                        if (_savedLayer != null)
+                            afterDraw.RestoreToCount(_savedLayer.Value);
+                        _savedLayer = null;
+                        break;
+                }
+            }
+            else
+            {
+                switch (type)
+                {
+                    case BehaviorEventType.BeforeRender:
+                        if (data == null || !AreEffectsApplied()) return;
+                        SKCanvas beforeDraw = (SKCanvas)data;
+                        _savedLayer = beforeDraw.SaveLayer(_filterPaint);
+                        break;
+                    case BehaviorEventType.AfterRender:
+                        if (data == null || !AreEffectsApplied()) return;
+                        SKCanvas afterDraw = (SKCanvas)data;
+                        if (_savedLayer != null)
+                            afterDraw.RestoreToCount(_savedLayer.Value);
+                        _savedLayer = null;
+                        break;
+                }
             }
         }
-
-        public void ApplyImageEffects(SKSurface surface, SKRect bounds)
+        public SKPaint? CreateLayerPaint()
         {
-            if (!AreEffectsApplied()) return;
-            GetValues(out var values, false);
+            if (!AreEffectsApplied()) return null;
+            var paint = new SKPaint();
 
-            using var snapshot = surface.Snapshot();
-            using var paint = new SKPaint();
+            float blurRadius = BlurRadius.CachedValue;
+            float saturation = Saturation.CachedValue;
+            float brightness = Brightness.CachedValue;
+            float opacity = Opacity.CachedValue;
 
-            surface.Canvas.Clear(SKColors.Transparent);
-
-            if (values.blurRadius != 0)
+            if (blurRadius != 0 && opacity != 0)
             {
-                using var blur = SKImageFilter.CreateBlur(values.blurRadius, values.blurRadius);
-                paint.ImageFilter = blur;
+                var blurQuality = RMath.Clamp(1f - ((blurRadius - 5f) / 12f), 0.25f, 1f);
+
+                var scaleMatrix = SKMatrix.CreateScale(blurQuality, blurQuality);
+                using var scaleFilter = SKImageFilter.CreateMatrix(scaleMatrix);
+                var blurFilter = SKImageFilter.CreateBlur(blurRadius, blurRadius, scaleFilter);
+                var inverseScaleMatrix = SKMatrix.CreateScale(1f / blurQuality, 1f / blurQuality);
+                using var inverseScaleFilter = SKImageFilter.CreateMatrix(inverseScaleMatrix, SKSamplingOptions.Default, blurFilter);
+
+                paint.ImageFilter = inverseScaleFilter;
             }
 
-            if (values.saturation != 1)
+            if (saturation != 1 && opacity != 0)
             {
-                float invSat = 1 - values.saturation;
+                float invSat = 1 - saturation;
                 float R = 0.2126f * invSat;
                 float G = 0.7152f * invSat;
                 float B = 0.0722f * invSat;
 
                 float[] colorMatrix = new float[]
                 {
-                    R + values.saturation, G, B, 0, 0,
-                    R, G + values.saturation, B, 0, 0,
-                    R, G, B + values.saturation, 0, 0,
+                    R + saturation, G, B, 0, 0,
+                    R, G + saturation, B, 0, 0,
+                    R, G, B + saturation, 0, 0,
                     0, 0, 0, 1, 0
                 };
 
@@ -96,14 +138,14 @@ namespace FenUISharp.Behavior.RuntimeEffects
                     paint.ImageFilter = compose;
                 }
             }
-            
-            if (values.brightness != 1)
+
+            if (brightness != 1 && opacity != 0)
             {
                 float[] colorMatrix = new float[]
                 {
-                    1 * values.brightness, 0, 0, 0, 0,
-                    0, 1 * values.brightness, 0, 0, 0,
-                    0, 0, 1 * values.brightness, 0, 0,
+                    1 * brightness, 0, 0, 0, 0,
+                    0, 1 * brightness, 0, 0, 0,
+                    0, 0, 1 * brightness, 0, 0,
                     0, 0, 0, 1, 0
                 };
 
@@ -118,44 +160,22 @@ namespace FenUISharp.Behavior.RuntimeEffects
                 }
             }
 
-            paint.Color = SKColors.White.WithAlpha((byte)(values.opacity * 255));
-
-            surface.Canvas.DrawImage(snapshot, bounds, paint);
+            paint.Color = SKColors.White.WithAlpha((byte)(opacity * 255));
+            return paint;
         }
 
         public bool AreEffectsApplied()
         {
-            GetValues(out var values, false);
+            float blurRadius = BlurRadius.CachedValue;
+            float saturation = Saturation.CachedValue;
+            float brightness = Brightness.CachedValue;
+            float opacity = Opacity.CachedValue;
+
             return
-                values.opacity != 1f ||
-                values.blurRadius != 0f ||
-                values.saturation != 1f ||
-                values.brightness != 1f;
-        }
-
-        public void GetValues(out (float opacity, float blurRadius, float saturation, float brightness) values, bool isChild)
-        {
-            var capturedOwner = Owner;
-            
-            if (capturedOwner?.Parent == null || !InheritFromParent.CachedValue)
-            {
-                values = (
-                    Opacity.CachedValue * (!isChild ? SelfOpacity.CachedValue : 1f),
-                    BlurRadius.CachedValue,
-                    Saturation.CachedValue,
-                    Brightness.CachedValue
-                );
-                return;
-            }
-            
-            capturedOwner.Parent.ImageEffects.GetValues(out var vals, true);
-
-            values = (
-                Opacity.CachedValue * (InheritFromParent.CachedValue ? vals.opacity : 1f) * (!isChild ? SelfOpacity.CachedValue : 1f),
-                Math.Max(BlurRadius.CachedValue, InheritFromParent.CachedValue ? vals.blurRadius : 0f),
-                Saturation.CachedValue * (InheritFromParent.CachedValue ? vals.saturation : 1f),
-                Brightness.CachedValue * (InheritFromParent.CachedValue ? vals.brightness : 1f)
-            );
+                opacity != 1f ||
+                blurRadius != 0f ||
+                saturation != 1f ||
+                brightness != 1f;
         }
 
         public int GetPadding()
@@ -165,12 +185,10 @@ namespace FenUISharp.Behavior.RuntimeEffects
 
         public void OnInternalStateChanged<T>(T value)
         {
-            Owner?.Invalidate(UIObject.Invalidation.SurfaceDirty);
+            _valuesChanged = true;
 
-            Owner?.Children.ForEach(x =>
-            {
-                x.ImageEffects.OnInternalStateChanged<T>(value);
-            });
+            if (!(Owner?.HasVisibleChildren() ?? true))
+                Owner.Invalidate(UIObject.Invalidation.SurfaceDirty);
         }
     }
 }

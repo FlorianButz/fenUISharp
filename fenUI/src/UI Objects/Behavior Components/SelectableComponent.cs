@@ -93,8 +93,8 @@ namespace FenUISharp.Behavior
                 currentlySelected.OnSelectionLost?.Invoke();
                 currentlySelected.Owner?.Invalidate(UIObject.Invalidation.SurfaceDirty);
 
-                FContext.GetKeyboardInputManager().UnregisterKeybind(currentlySelected.tabKeybind);
-                FContext.GetKeyboardInputManager().UnregisterKeybind(currentlySelected.reverseTabKeybind);
+                FContext.GetKeyboardInputManager()?.UnregisterKeybind(currentlySelected.tabKeybind);
+                FContext.GetKeyboardInputManager()?.UnregisterKeybind(currentlySelected.reverseTabKeybind);
             }
 
             currentlySelected = selectableComponent;
@@ -104,8 +104,8 @@ namespace FenUISharp.Behavior
             currentlySelected.IsSelected = true;
             currentlySelected.OnSelectionGained?.Invoke();
             currentlySelected.Owner?.Invalidate(UIObject.Invalidation.SurfaceDirty);
-            FContext.GetKeyboardInputManager().RegisterKeybind(currentlySelected.tabKeybind);
-            FContext.GetKeyboardInputManager().RegisterKeybind(currentlySelected.reverseTabKeybind);
+            FContext.GetKeyboardInputManager()?.RegisterKeybind(currentlySelected.tabKeybind);
+            FContext.GetKeyboardInputManager()?.RegisterKeybind(currentlySelected.reverseTabKeybind);
 
             if (lastSelected == null) lastSelected = currentlySelected;
         }
@@ -149,9 +149,9 @@ namespace FenUISharp.Behavior
             SetSelected(selectableComponents[currentIndex]);
         }
 
-        public override void HandleEvent(BehaviorEventType type, object? data = null)
+        public override void HandleEvent(BehaviorEventType type, out object outData, object? data = null)
         {
-            base.HandleEvent(type, data);
+            base.HandleEvent(type, out outData, data);
 
             switch (type)
             {

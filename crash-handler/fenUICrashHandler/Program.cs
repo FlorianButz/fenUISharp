@@ -74,7 +74,6 @@ namespace FenUISharpCrashHandler
             bottom.Layout.Alignment.SetStaticState(new(0.5f, 1f));
             bottom.Layout.AlignmentAnchor.SetStaticState(new(0.5f, 1f));
             bottom.Layout.StretchHorizontal.SetStaticState(true);
-            bottom.ImageEffects.SelfOpacity.SetStaticState(0.4f);
             returnList.Add(bottom);
 
             var prog = new FProgressBar(height: 7.5f);

@@ -111,17 +111,21 @@ namespace FenUISharp.Behavior
             return i + ChildrenOffset;
         }
 
-        public override void HandleEvent(BehaviorEventType type, object? data = null)
+        public override void HandleEvent(BehaviorEventType type, out object outData, object? data = null)
         {
-            base.HandleEvent(type, data);
+            base.HandleEvent(type, out outData, data);
 
             switch (type)
             {
                 case BehaviorEventType.BeforeDrawChildren:
-                    OnBeforeRenderChildren((SKCanvas)data);
+                    if (data == null) return;
+                    var canvas = ((SKCanvas TargetCanvas, bool RenderChildren))data;
+                    OnBeforeRenderChildren(canvas.TargetCanvas);
                     break;
-                case BehaviorEventType.AfterDrawChildren:
-                    OnAfterRenderChildren((SKCanvas)data);
+                case BehaviorEventType.AfterDrawChildren:        
+                    if (data == null) return;
+                    var canvas2 = (SKCanvas)data;
+                    OnAfterRenderChildren(canvas2);
                     break;
                 case BehaviorEventType.BeforeBegin:
                     ComponentSetup();

@@ -87,9 +87,9 @@ namespace FenUISharp.Behavior
             IsRunning = false;
         }
 
-        public override void HandleEvent(BehaviorEventType type, object? data = null)
+        public override void HandleEvent(BehaviorEventType type, out object outData, object? data = null)
         {
-            base.HandleEvent(type, data);
+            base.HandleEvent(type, out outData, data);
 
             if (type == BehaviorEventType.BeforeUpdate)
             {

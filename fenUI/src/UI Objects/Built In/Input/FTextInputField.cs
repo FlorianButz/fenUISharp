@@ -59,7 +59,7 @@ namespace FenUISharp.Objects
             get => _caretIndex; set
             {
                 _caretIndex = RMath.Clamp(value, 0, text.Length);
-                if (!FContext.GetKeyboardInputManager().IsShiftPressed) _selectionIndex = _caretIndex;
+                if (!FContext.GetKeyboardInputManager()?.IsShiftPressed ?? false) _selectionIndex = _caretIndex;
             }
         }
 
@@ -125,8 +125,11 @@ namespace FenUISharp.Objects
             InteractiveSurface.OnDrag += OnDrag;
             InteractiveSurface.OnDoubleMouseAction += OnDoubleMouseAction;
 
-            FContext.GetKeyboardInputManager().OnTextTyped += OnKeyTyped;
-            FContext.GetKeyboardInputManager().OnKeyTyped += OnKeyPressed;
+            if(FContext.GetKeyboardInputManager() != null)
+            {
+                FContext.GetKeyboardInputManager().OnTextTyped += OnKeyTyped;
+                FContext.GetKeyboardInputManager().OnKeyTyped += OnKeyPressed;
+            }
         }
 
         public override void OnInternalStateChanged<T>(T value)
@@ -164,8 +167,11 @@ namespace FenUISharp.Objects
         {
             base.Dispose();
 
-            FContext.GetKeyboardInputManager().OnTextTyped -= OnKeyTyped;
-            FContext.GetKeyboardInputManager().OnKeyTyped -= OnKeyPressed;
+            if(FContext.GetKeyboardInputManager() != null)
+            {
+                FContext.GetKeyboardInputManager().OnTextTyped -= OnKeyTyped;
+                FContext.GetKeyboardInputManager().OnKeyTyped -= OnKeyPressed;
+            }
         }
 
         private void OnKeyPressed(char obj)
@@ -177,7 +183,7 @@ namespace FenUISharp.Objects
                 case ARROW_LEFT:
                     CaretIndex--;
 
-                    if (FContext.GetKeyboardInputManager().IsControlPressed)
+                    if (FContext.GetKeyboardInputManager()?.IsControlPressed ?? false)
                     {
                         while (CaretIndex > 0 && !char.IsLetterOrDigit(_Text[CaretIndex]))
                             CaretIndex--;
@@ -191,7 +197,7 @@ namespace FenUISharp.Objects
                 case ARROW_RIGHT:
                     CaretIndex++;
 
-                    if (FContext.GetKeyboardInputManager().IsControlPressed)
+                    if (FContext.GetKeyboardInputManager()?.IsControlPressed ?? false)
                     {
                         while (CaretIndex < _Text.Length && !char.IsLetterOrDigit(_Text[CaretIndex - 1]))
                             CaretIndex++;

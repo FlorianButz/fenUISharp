@@ -29,11 +29,11 @@ namespace FenUISharp
 
         public static double CurrentFrameTimeMillis { get => (DateTime.Now - frameStartTime).TotalMilliseconds; }
 
-        public static FWindow GetCurrentWindow() => CurrentWindow ?? null!;
+        public static FWindow GetCurrentWindow() => CurrentWindow!;
         public static Dispatcher GetCurrentDispatcher() => CurrentDispatcher ?? throw new Exception("GetCurrentDispatcher() cannot be called in an invalid FenUI context");
         public static ModelViewPane? GetRootViewPane() => RootViewPane;
-        public static KeyboardInputManager GetKeyboardInputManager() => CurrentWindow?.WindowKeyboardInput ?? throw new Exception("GetKeyboardInputManager() cannot be called in an invalid FenUI context");
-        public static ThemeManager GetCurrentThemeManager() => CurrentWindow?.WindowThemeManager ?? throw new Exception("GetCurrentWindow() cannot be called in an invalid FenUI context");
+        public static KeyboardInputManager GetKeyboardInputManager() => CurrentWindow?.WindowKeyboardInput!;
+        public static ThemeManager GetCurrentThemeManager() => CurrentWindow?.WindowThemeManager!;
 
         internal static void WithWindow(FWindow window)
         {

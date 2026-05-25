@@ -36,7 +36,7 @@ namespace FenUISharp.Objects
             ScaleAnimationFromZero = scaleAnimationFromZero;
 
             closeKeybind = new() { VKCode = 0x1B, OnKeybindExecuted = () => { if (AllowEscapeClosing) Close(); } };
-            FContext.GetKeyboardInputManager().RegisterKeybind(closeKeybind);
+            FContext.GetKeyboardInputManager()?.RegisterKeybind(closeKeybind);
 
             if (addLayout)
             {
@@ -381,7 +381,7 @@ namespace FenUISharp.Objects
             if (!FContext.IsDisposingWindow)
             {
                 WindowFeatures.GlobalHooks.OnMouseAction -= OnGlobalMouseAction;
-                FContext.GetKeyboardInputManager().UnregisterKeybind(closeKeybind);
+                FContext.GetKeyboardInputManager()?.UnregisterKeybind(closeKeybind);
             }
         }
     }

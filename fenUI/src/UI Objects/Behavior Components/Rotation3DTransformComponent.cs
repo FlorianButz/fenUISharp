@@ -21,9 +21,9 @@ namespace FenUISharp.Behavior
             DepthScale = new(() => 1, Owner, Owner);
         }
 
-        public override void HandleEvent(BehaviorEventType type, object? data = null)
+        public override void HandleEvent(BehaviorEventType type, out object outData, object? data = null)
         {
-            base.HandleEvent(type, data);
+            base.HandleEvent(type, out outData, data);
 
             if (RMath.Approximately(RotationX.CachedValue, 0) && RMath.Approximately(RotationY.CachedValue, 0) && RMath.Approximately(RotationZ.CachedValue, 0))
                 return;

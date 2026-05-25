@@ -45,11 +45,6 @@ namespace FenUISharp.Objects
             increment = new() { VKCode = 39, AliasVKCodes = new[] { 0x26 }, OnKeybindExecuted = () => { OpenPopup(true); Increment(); } };
             decrement = new() { VKCode = 37, AliasVKCodes = new[] { 0x28 }, OnKeybindExecuted = () => { OpenPopup(true); Decrement(); } };
 
-            selectableComponent.OnSelectionGained += () => FContext.GetKeyboardInputManager().RegisterKeybind(increment);
-            selectableComponent.OnSelectionLost += () => FContext.GetKeyboardInputManager().UnregisterKeybind(increment);
-            selectableComponent.OnSelectionGained += () => FContext.GetKeyboardInputManager().RegisterKeybind(decrement);
-            selectableComponent.OnSelectionLost += () => FContext.GetKeyboardInputManager().UnregisterKeybind(decrement);
-
             RenderMaterial.Value = FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.TransparentInteractableMaterial;
 
             label.Layout.StretchHorizontal.SetStaticState(true);
@@ -128,6 +123,21 @@ namespace FenUISharp.Objects
                 activePopup?.Show(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
             else
                 activePopup?.ToggleShow(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
+
+            if (activePopup?.IsShowing ?? false)
+            {
+                FContext.GetKeyboardInputManager()?.RegisterKeybind(increment);
+                FContext.GetKeyboardInputManager()?.RegisterKeybind(decrement);
+                activePopup.OnObjectDisposed += () =>
+                {
+                    FContext.GetKeyboardInputManager()?.UnregisterKeybind(increment);
+                    FContext.GetKeyboardInputManager()?.UnregisterKeybind(decrement);
+                };
+            } else
+            {
+                FContext.GetKeyboardInputManager()?.UnregisterKeybind(increment);
+                FContext.GetKeyboardInputManager()?.UnregisterKeybind(decrement);
+            }
         }
 
         private void CreatePopup()
@@ -177,6 +187,10 @@ namespace FenUISharp.Objects
         public override void Dispose()
         {
             base.Dispose();
+
+            FContext.GetKeyboardInputManager()?.UnregisterKeybind(increment);
+            FContext.GetKeyboardInputManager()?.UnregisterKeybind(decrement);
+
             if (activePopup != null && !activePopup.IsDisposed)
                 activePopup.Dispose();
         }

@@ -23,7 +23,7 @@ namespace FenUISharp.Objects
             BaseColor = new(() => FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.Primary.Multiply(0.9f).Saturate(0.35f), this, this);
             SelectedBorderThickness = new(() => 4, this, this);
 
-            ImageEffects.SelfOpacity.SetStaticState(0.38f);
+            ImageEffects.Opacity.SetStaticState(0.38f);
 
             Display = display;
             display.SetParent(this);

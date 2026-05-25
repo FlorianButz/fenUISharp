@@ -16,7 +16,7 @@ namespace FenUISharp.Objects
 
         private AnimatorComponent _viewTransitionComponent;
 
-        public float AnimOutDuration { get; set; } = 0.15f;
+        public float AnimOutDuration { get; set; } = 0.4f;
         public float AnimInDuration { get; set; } = 0.1f;
 
         public AnimatorComponent Animator => _viewTransitionComponent;
@@ -36,6 +36,7 @@ namespace FenUISharp.Objects
                 // Transform.LocalPosition.SetStaticState(new(0, x * (_viewTransitionComponent.Inverse ? -10 : 10)));
                 Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(x, 0, 1, 1, 0.99f));
                 ImageEffects.Opacity.SetStaticState(1 - x);
+                ImageEffects.BlurRadius.SetStaticState(x * 3);
             };
         }
 
@@ -56,12 +57,12 @@ namespace FenUISharp.Objects
 
                 _viewTransitionComponent.OnComplete = () =>
                 {
-                    _viewTransitionComponent.Duration = AnimateViewModelSwap ? AnimInDuration : 0f;
                     _viewTransitionComponent.OnComplete = null;
                     OnAnimationComplete?.Invoke();
                     RecursiveInvalidate(Invalidation.All);
                 };
 
+                _viewTransitionComponent.Duration = AnimateViewModelSwap ? AnimOutDuration : 0f;
                 _viewTransitionComponent.Inverse = true;
                 _viewTransitionComponent.Restart();
             };
@@ -70,7 +71,7 @@ namespace FenUISharp.Objects
                 onComplete.Invoke();
             else
             {
-                _viewTransitionComponent.Duration = AnimateViewModelSwap ? AnimOutDuration : 0f;
+                _viewTransitionComponent.Duration = AnimateViewModelSwap ? AnimInDuration : 0f;
                 _viewTransitionComponent.Inverse = false;
                 _viewTransitionComponent.OnComplete = onComplete;
                 _viewTransitionComponent.Restart();
