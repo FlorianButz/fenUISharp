@@ -38,14 +38,15 @@ namespace FenUISharp
             this._window = window;
             keybinds = new();
 
-            WindowFeatures.GlobalHooks.OnKeyTyped += KeyTyped;
-            WindowFeatures.GlobalHooks.OnKeyPressed += KeyPressed;
-            WindowFeatures.GlobalHooks.OnKeyReleased += KeyReleased;
+            FContext.GetCurrentWindow().Callbacks.OnKeyPressed += KeyTyped;
+            FContext.GetCurrentWindow().Callbacks.OnKeyPressed += KeyPressed;
+            FContext.GetCurrentWindow().Callbacks.OnKeyReleased += KeyReleased;
             FContext.GetCurrentWindow().Callbacks.OnKeyboardInputTextReceived += TextTyped;
         }
 
         private void KeyTyped(int obj)
         {
+            if (!_window.Properties.IsWindowFocused) return;
             _window.LogicDispatcher.Invoke(() => OnKeyTyped?.Invoke((char)obj));
         }
 
@@ -142,8 +143,12 @@ namespace FenUISharp
 
         public void Dispose()
         {
-            WindowFeatures.GlobalHooks.OnKeyPressed -= KeyPressed;
-            WindowFeatures.GlobalHooks.OnKeyReleased -= KeyReleased;
+            if (!FContext.IsValidContext() || FContext.IsDisposingWindow) return;
+
+            FContext.GetCurrentWindow().Callbacks.OnKeyPressed -= KeyTyped;
+            FContext.GetCurrentWindow().Callbacks.OnKeyPressed -= KeyPressed;
+            FContext.GetCurrentWindow().Callbacks.OnKeyReleased -= KeyReleased;
+            FContext.GetCurrentWindow().Callbacks.OnKeyboardInputTextReceived -= TextTyped;
         }
     }
 

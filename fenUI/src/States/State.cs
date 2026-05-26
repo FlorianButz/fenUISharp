@@ -1,3 +1,4 @@
+using FenUISharp.Mathematics;
 using FenUISharp.Objects;
 
 namespace FenUISharp.States
@@ -83,7 +84,7 @@ namespace FenUISharp.States
         /// <param name="resolver"></param>
         public void SetResolver(Func<List<StateEntry<T>>, StateEntry<T>>? resolver)
         {
-            if(resolver == null)
+            if (resolver == null)
                 _resolver = entries => entries.OrderBy(x => x.Priority).Last();
             else
                 _resolver = resolver;
@@ -206,6 +207,32 @@ namespace FenUISharp.States
 
         public static Func<List<StateEntry<int>>, StateEntry<int>> SmallestIntResolver =>
             entries => entries.OrderByDescending(e => e.Value()).Last();
+
+        public static Func<List<StateEntry<float>>, StateEntry<float>> MultiplyFloatResolver
+        {
+            get
+            {
+                return entries =>
+                {
+                    float result = 1f;
+                    entries.ForEach(x => result *= x.Value());
+                    return new StateEntry<float>() { Value = () => result, IsStatic = true, Priority = 999 };
+                };
+            }
+        }
+
+        public static Func<List<StateEntry<Vector2>>, StateEntry<Vector2>> MultiplyVectorResolver
+        {
+            get
+            {
+                return entries =>
+                {
+                    Vector2 result = Vector2.One;
+                    entries.ForEach(x => result *= x.Value());
+                    return new StateEntry<Vector2>() { Value = () => result, IsStatic = true, Priority = 999 };
+                };
+            }
+        }
     }
 
     public struct StateEntry<T>

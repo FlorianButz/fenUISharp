@@ -60,14 +60,6 @@ namespace FenUISharp.Objects
             Invalidate(Invalidation.All);
         }
 
-        public override void Dispose()
-        {
-            InteractiveSurface.OnMouseEnter -= MouseEnter;
-            InteractiveSurface.OnMouseExit -= MouseExit;
-
-            base.Dispose();
-        }
-
         protected override void Update()
         {
             base.Update();

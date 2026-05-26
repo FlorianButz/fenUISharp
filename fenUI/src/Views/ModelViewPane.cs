@@ -107,9 +107,9 @@ namespace FenUISharp.Objects
             _modelItems?.Clear();
         }
 
-        public override void Dispose()
+        protected override void OnDispose()
         {
-            base.Dispose();
+            base.OnDispose();
             DisposeItems();
         }
     }

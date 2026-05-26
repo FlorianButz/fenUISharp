@@ -19,6 +19,7 @@ namespace FenUISharp.Objects
 
         public bool DisposeOnClose { get; set; } = false;
         public bool AllowEscapeClosing { get; set; } = true;
+        public bool AutoClose { get; set; } = true;
 
         public State<Vector2> GlobalTargetPoint { get; init; }
         public SKRect GlobalBounds { get; set; }
@@ -67,12 +68,20 @@ namespace FenUISharp.Objects
             Composition.LocalZIndex.SetStaticState(99);
             dispatcher = FContext.GetCurrentDispatcher();
 
-            FContext.GetCurrentWindow().Callbacks.ClientMouseAction += OnGlobalMouseAction;
+            FContext.GetCurrentWindow().Callbacks.ClientMouseAction += OnClientMouseAction;
+            FContext.GetCurrentWindow().Callbacks.OnFocusLost += OnWindowFocusLost;
+        }
+
+        private void OnWindowFocusLost()
+        {
+            if (!AutoClose) return;
+            Close(); // Close this pop-up
         }
 
         private Dispatcher dispatcher;
-        private void OnGlobalMouseAction(MouseInputCode code)
+        private void OnClientMouseAction(MouseInputCode code)
         {
+            if (!AutoClose) return;
             dispatcher.Invoke(() =>
             {
                 if (code.state != MouseInputState.Down) return;
@@ -374,13 +383,14 @@ namespace FenUISharp.Objects
             return path;
         }
 
-        public override void Dispose()
+        protected override void OnDispose()
         {
-            base.Dispose();
+            base.OnDispose();
 
             if (!FContext.IsDisposingWindow)
             {
-                WindowFeatures.GlobalHooks.OnMouseAction -= OnGlobalMouseAction;
+                FContext.GetCurrentWindow().Callbacks.ClientMouseAction -= OnClientMouseAction;
+                FContext.GetCurrentWindow().Callbacks.OnFocusLost -= OnWindowFocusLost;
                 FContext.GetKeyboardInputManager()?.UnregisterKeybind(closeKeybind);
             }
         }

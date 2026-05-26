@@ -475,9 +475,10 @@ namespace FenUISharp
                 Fence?.SetEventOnCompletion(_fenceValue, FenceEvent);
 
                 // Fence timeout
-                if (!FenceEvent?.WaitOne(TimeSpan.FromSeconds(5)) ?? throw new InvalidOperationException("FenceEvent is null"))
+                if (!FenceEvent?.WaitOne(TimeSpan.FromSeconds(1)) ?? throw new InvalidOperationException("FenceEvent is null"))
                 {
-                    FLogger.Log<DirectCompositionContext>($"GPU TIMEOUT! Fence never completed");
+                    var reason = Device?.DeviceRemovedReason;
+                    FLogger.Log<DirectCompositionContext>($"GPU TIMEOUT! Fence never completed. DeviceRemovedReason: {reason}");
                     return;
                 }
             }
@@ -523,15 +524,25 @@ namespace FenUISharp
                 CommandList?.Close();
                 CommandQueue?.ExecuteCommandLists(new ID3D12CommandList[] { CommandList });
 
-                // Present
-                SwapChain.Present(1, flags);
+                // Present and check the result!
+                var presentResult = SwapChain.Present(1, flags);
+                if (presentResult.Failure)
+                {
+                    var reason = Device?.DeviceRemovedReason;
+                    FLogger.Error($"SwapChain Present failed! Code: {presentResult.Code}, DeviceRemovedReason: {reason}");
+                }
 
                 // Commit composition
                 DCompDevice?.Commit();
             }
+            catch (ThreadInterruptedException ex)
+            {
+                FLogger.Error($"Thread interrupted from waiting state. Continuing.");
+                return;
+            }
             catch (Exception ex)
             {
-                FLogger.Log<DirectCompositionContext>($"Exception in Present: {ex}");
+                FLogger.Error($"Exception in Present: {ex}");
                 throw;
             }
         }

@@ -74,8 +74,12 @@ namespace FenUISharp.Objects
         public bool LockInvalidationAll { get; set; } = false;
         public bool GlobalLockInvalidation { get => LockInvalidationAll || (Parent?.GlobalLockInvalidation ?? false); }
 
+        public bool GlobalSurfaceBlitFallback { get => SurfaceBlitFallback && (Parent?.GlobalSurfaceBlitFallback ?? true); }
+
         public State<float> Quality { get; init; }
         public State<int> Padding { get; init; }
+
+        public float GlobalQuality { get => Quality.CachedValue * (Parent?.GlobalQuality ?? 1f); }
 
         public CachedSurface ObjectSurface { get; protected set; }
 
@@ -102,7 +106,7 @@ namespace FenUISharp.Objects
             PostProcessChain = new(this);
 
             Quality = new(() => 1f, this, (x) => Invalidate(Invalidation.SurfaceDirty));
-            Quality.SetResolver(StateResolverTemplates.SmallestFloatResolver);
+            Quality.SetResolver(StateResolverTemplates.MultiplyFloatResolver);
 
             Padding = new(() => 2, this, (x) => Invalidate(Invalidation.SurfaceDirty)); // Default to use 2 padding. Helps to reduce sharp edges on lower quality settings
             Padding.SetResolver(StateResolverTemplates.BiggestIntResolver);
@@ -334,7 +338,7 @@ namespace FenUISharp.Objects
                 lateLayoutUpdate = true;
 
                 // Make sure to only use the snapshot route if necessary
-                ObjectSurface.UseSnapshotBlit = !SurfaceBlitFallback || Transform.HasAnyRotationOrScale;
+                ObjectSurface.UseSnapshotBlit = !GlobalSurfaceBlitFallback || Transform.HasAnyRotationOrScale;
 
                 if (InvalidationState.HasFlag(Invalidation.TransformDirty) ||
                     InvalidationState.HasFlag(Invalidation.LayoutDirty))
@@ -357,7 +361,7 @@ namespace FenUISharp.Objects
                 if (InvalidationState.HasFlag(Invalidation.SurfaceDirty))
                 {
                     ClearInvalidation(Invalidation.SurfaceDirty);
-                    ObjectSurface.InvalidateSurface(Shape.LocalBounds, Quality.CachedValue, Padding.CachedValue); // Make sure to use LocalBounds since those don't include padding
+                    ObjectSurface.InvalidateSurface(Shape.LocalBounds, GlobalQuality, Padding.CachedValue); // Make sure to use LocalBounds since those don't include padding
                 }
             }
 
@@ -611,7 +615,7 @@ namespace FenUISharp.Objects
             // WindowRedrawThisObject = false; // Already done by FWindowSurface
         }
 
-        public virtual void Dispose()
+        public void Dispose()
         {
             if (IsDisposed)
             {
@@ -649,7 +653,10 @@ namespace FenUISharp.Objects
             Compositor._zOrderCacheValid = false;
 
             IsDisposed = true;
+            OnDispose();
         }
+
+        protected virtual void OnDispose() { }
 
         void CheckIfSurfaceCanBeDisposed()
         {

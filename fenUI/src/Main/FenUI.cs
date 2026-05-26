@@ -183,25 +183,6 @@ namespace FenUISharp
             debugEnabled = true;
 
             AllowDebugOutput(true);
-
-            WindowFeatures.GlobalHooks.OnKeyPressed += (x) =>
-            {
-                if (x == 0x77)
-                { // F8
-                    activeInstances.ForEach(x => x.DebugDisplayAreaCache = !x.DebugDisplayAreaCache);
-                    activeInstances.ForEach(x => x.FullRedraw());
-                }
-                else if (x == 0x76)
-                { // F7
-                    activeInstances.ForEach(x => x.DebugDisplayBounds = !x.DebugDisplayBounds);
-                    activeInstances.ForEach(x => x.FullRedraw());
-                }
-                else if (x == 0x75)
-                { // F6
-                    activeInstances.ForEach(x => x.DebugDisplayObjectIDs = !x.DebugDisplayObjectIDs);
-                    activeInstances.ForEach(x => x.FullRedraw());
-                }
-            };
         }
 
         public static void Demo()

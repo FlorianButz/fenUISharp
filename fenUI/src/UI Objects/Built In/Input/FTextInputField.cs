@@ -128,7 +128,7 @@ namespace FenUISharp.Objects
             if(FContext.GetKeyboardInputManager() != null)
             {
                 FContext.GetKeyboardInputManager().OnTextTyped += OnKeyTyped;
-                FContext.GetKeyboardInputManager().OnKeyTyped += OnKeyPressed;
+                FContext.GetKeyboardInputManager().OnKeyPressed += OnKeyPressed;
             }
         }
 
@@ -163,9 +163,9 @@ namespace FenUISharp.Objects
             }
         }
 
-        public override void Dispose()
+        protected override void OnDispose()
         {
-            base.Dispose();
+            base.OnDispose();
 
             if(FContext.GetKeyboardInputManager() != null)
             {

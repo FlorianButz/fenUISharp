@@ -83,6 +83,7 @@ namespace FenUISharp.Native
         WM_GETMINMAXINFO = 0x24,
         WM_ACTIVATE = 0x0006,
         WM_KEYDOWN = 0x0100,
+        WM_KEYUP = 0x0101,
         WM_MOUSEMOVE = 0x0200,
         WM_LBUTTONDOWN = 0x0201,
         WM_LBUTTONUP = 0x0202,

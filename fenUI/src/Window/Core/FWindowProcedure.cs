@@ -157,6 +157,11 @@ namespace FenUISharp
 
                 // Client area & focused keyboard and mouse callbacks
                 case (int)WindowMessages.WM_KEYDOWN:
+                    Window.Callbacks.OnKeyPressed?.Invoke((int)wParam);
+                    return IntPtr.Zero;
+                    
+                case (int)WindowMessages.WM_KEYUP:
+                    Window.Callbacks.OnKeyReleased?.Invoke((int)wParam);
                     return IntPtr.Zero;
 
                 case (int)WindowMessages.WM_LBUTTONDOWN:
@@ -232,14 +237,10 @@ namespace FenUISharp
                     FLogger.Log<FWindowProcedure>($"WM_NCDESTROY: {Window.hWnd}");
 
                     FLogger.Log<FWindow>($"Cleaning up GCHandle...");
-                    IntPtr ptr = Win32APIs.GetWindowLongPtrA(hWnd, -21);
-                    if (ptr != IntPtr.Zero)
-                    {
-                        GCHandle.FromIntPtr(ptr).Free();
 
-                        FLogger.Log<FWindow>($"Resetting userdata (-21) for window {hWnd}...");
-                        Win32APIs.SetWindowLongPtrA(hWnd, -21, IntPtr.Zero);
-                    }
+                    FLogger.Log<FWindow>($"Resetting userdata (-21) for window {hWnd}...");
+                    Win32APIs.SetWindowLongPtrA(hWnd, -21, IntPtr.Zero);
+                    Window.gch.Free();
 
                     // Set running flag to false
                     FLogger.Log<FWindow>($"Disabling running flag");
@@ -265,13 +266,9 @@ namespace FenUISharp
                         // Initiate window destruction and disposal
                         FLogger.Log<FWindowProcedure>($"Disposing window {Window.hWnd}...");
                         Window.Dispose();
-                    }
+                    } 
                     else
-                    {
-                        // The window should always hide first, even if the HideWindowOnClose is false
-                        // Hiding the window first is much faster than waiting for the destruction
                         Window.Properties.IsWindowVisible = false;
-                    }
 
                     return IntPtr.Zero;
 

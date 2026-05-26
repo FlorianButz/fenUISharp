@@ -127,9 +127,9 @@ namespace FenUISharp.Objects
             OnUserColorUpdated?.Invoke(PickedColor);
         }
 
-        public override void Dispose()
+        protected override void OnDispose()
         {
-            base.Dispose();
+            base.OnDispose();
             pickerSurface.Dispose();
         }
 

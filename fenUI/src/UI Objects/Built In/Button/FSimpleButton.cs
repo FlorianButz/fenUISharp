@@ -44,9 +44,9 @@ namespace FenUISharp.Objects.Buttons
             Transform.Size.SetStaticState(new Vector2(width + padding * 2.5f, height + padding * 0.5f));
         }
 
-        public override void Dispose()
+        protected override void OnDispose()
         {
-            base.Dispose();
+            base.OnDispose();
             Label.Dispose();
         }
     }

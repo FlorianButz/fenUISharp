@@ -95,7 +95,7 @@ namespace FenUISharp.Objects.Buttons
 
         protected virtual void MouseEnter()
         {
-            if (GlobalHooks.MouseDown) return;
+            if (InteractiveSurface.IsMouseDown) return;
 
             animatorComponent.Inverse = false;
             animatorComponent.Start();
@@ -103,7 +103,7 @@ namespace FenUISharp.Objects.Buttons
 
         protected virtual void MouseExit()
         {
-            if (GlobalHooks.MouseDown) return;
+            if (InteractiveSurface.IsMouseDown) return;
 
             animatorComponent.Inverse = true;
             animatorComponent.Start();

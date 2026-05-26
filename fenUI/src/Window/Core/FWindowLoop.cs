@@ -24,6 +24,8 @@ namespace FenUISharp
         public Func<bool>? _windowIsRunning { get; set; }
         private Thread? LogicThread { get; set; }
 
+        private volatile bool _shutdownRequested;
+
         public FWindowLoop(FWindow window)
         {
             this.window = new WeakReference<FWindow>(window);
@@ -45,7 +47,7 @@ namespace FenUISharp
 
             LogicThread.Name = "Logic Thread";
             LogicThread.IsBackground = false;
-            LogicThread.Priority = ThreadPriority.Highest;
+            LogicThread.Priority = ThreadPriority.Lowest;
             LogicThread.SetApartmentState(ApartmentState.STA); // Very important for DC and DX
             LogicThread.Start();
 
@@ -69,6 +71,19 @@ namespace FenUISharp
             }
         }
 
+        internal void InterruptThread()
+        {
+            _shutdownRequested = true;
+
+            if (LogicThread != null && LogicThread.IsAlive)
+            {
+                if (!LogicThread.Join(500))
+                {
+                    FLogger.Log<FWindowLoop>("Logic thread did not exit in time.");
+                }
+            }
+        }
+
         protected virtual void SetupLogic()
         {
 
@@ -84,7 +99,7 @@ namespace FenUISharp
             double nextFrameTime = 0;
             double previousFrameTime = 0;
 
-            while (_logicIsRunning?.Invoke() ?? false)
+            while ((_logicIsRunning?.Invoke() ?? false) && !_shutdownRequested)
             {
                 // Getting the current time and calculating the time until the next frame
                 double currentTime = stopwatch.Elapsed.TotalMilliseconds;
@@ -104,7 +119,7 @@ namespace FenUISharp
                     if (!_logicIsRunning.Invoke()) return;
 
                     // Sleep longer if unfocused or minimized
-                    Thread.Sleep(!Window.Properties.IsWindowVisible ? 300 : 100); continue;
+                    Thread.Sleep(!Window.Properties.IsWindowVisible ? 1000 : 250); continue;
                 }
 
                 if (timeUntilNextFrame <= 0)
@@ -182,7 +197,7 @@ namespace FenUISharp
             {
                 // Area hit test
                 bool areaClickable = Window.IsAreaClickable(Window.ClientMousePosition);
-                if(_lastFrameClickable != areaClickable)
+                if (_lastFrameClickable != areaClickable)
                 {
                     _lastFrameClickable = areaClickable;
                     Window.Properties.ToggleClickability(areaClickable);
@@ -190,10 +205,10 @@ namespace FenUISharp
 
                 // Mouse position update
                 Window.ClientMousePosition = Win32APIs.GetClientCursorPosition(Window.hWnd);
-                if(_cursorPosLastFrame != Window.ClientMousePosition)
+                if (_cursorPosLastFrame != Window.ClientMousePosition)
                 {
                     Window.Callbacks.OnMouseMove?.Invoke(Window.ClientMousePosition);
-                    _cursorPosLastFrame = Window.ClientMousePosition;   
+                    _cursorPosLastFrame = Window.ClientMousePosition;
                 }
 
                 Window.Callbacks.OnPreUpdate?.Invoke();

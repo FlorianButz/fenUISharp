@@ -184,9 +184,9 @@ namespace FenUISharp.Objects
             OnUserValueChanged?.Invoke(Value);
         }
 
-        public override void Dispose()
+        protected override void OnDispose()
         {
-            base.Dispose();
+            base.OnDispose();
 
             FContext.GetKeyboardInputManager()?.UnregisterKeybind(increment);
             FContext.GetKeyboardInputManager()?.UnregisterKeybind(decrement);

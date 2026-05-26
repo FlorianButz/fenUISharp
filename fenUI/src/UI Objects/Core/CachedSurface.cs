@@ -34,14 +34,31 @@ namespace FenUISharp.Objects
                 FLogger.Error("InvalidateSurface has to be called before surface is created");
                 return null;
             }
-            if (!FContext.IsValidContext()) throw new Exception("Invalid FenUISharp window context.");
+            
+            if (!FContext.IsValidContext())
+            {
+                FLogger.Error("Invalid FenUISharp window context.");
+                return null;
+            }
+
+            if (_cachedImageInfo.Value.Width == 0 || _cachedImageInfo.Value.Height == 0)
+            {
+                FLogger.Error("Invalid surface size.");
+                return null;
+            }
 
             _cachedSurface = FContext.GetCurrentWindow()?.SkiaDirectCompositionContext?.CreateAdditional(_cachedImageInfo.Value);
 
-            _cachedSurface?.SkiaSurface.Canvas.Scale(quality, quality);
-            _cachedSurface?.SkiaSurface.Canvas.Translate(padding, padding);
+            if (_cachedSurface != null && _cachedSurface.SkiaSurface != null)
+                FinalizeSurface(_cachedSurface.SkiaSurface);
 
             return _cachedSurface?.SkiaSurface;
+        }
+
+        private void FinalizeSurface(SKSurface surface)
+        {
+            surface.Canvas.Scale(quality, quality);
+            surface.Canvas.Translate(padding, padding);
         }
 
         /// <summary>
@@ -53,11 +70,28 @@ namespace FenUISharp.Objects
         {
             lock (_drawLock)
             {
-                if (_cachedSurface != null)
+                if (_cachedSurface != null && _cachedSurface.IsValid() && !_cachedSurface.WasRebuilt)
                     return _cachedSurface.SkiaSurface;
                 else
                 {
-                    var surface = CreateSurface();
+                    if (_cachedImageInfo?.Width == 0 || _cachedImageInfo?.Height == 0)
+                        return null;
+
+                    SKSurface? surface = _cachedSurface?.SkiaSurface;
+                    if (_cachedSurface == null || !_cachedSurface.IsValid())
+                    {
+                        _cachedSurface?.Dispose();
+
+                        surface = CreateSurface();
+                        if (surface == null)
+                            return null;
+                    }
+                    else
+                    {
+                        // The surface has been rebuilt and is blank
+                        FinalizeSurface(_cachedSurface.SkiaSurface);
+                        _cachedSurface.RemoveRebuiltFlag();
+                    }
 
                     var ppInfo = new PPInfo()
                     {
@@ -94,7 +128,7 @@ namespace FenUISharp.Objects
             {
                 target.DrawImage(_cachedSnapshot, targetRect, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), paint);
             }
-            else if (_cachedSurface != null)
+            else if (_cachedSurface != null && _cachedSurface.IsValid())
             {
                 target.DrawSurface(_cachedSurface.SkiaSurface, new SKPoint(targetRect.Left, targetRect.Top), paint);
             }
@@ -156,7 +190,7 @@ namespace FenUISharp.Objects
                     _cachedSurface = null;
                 }
 
-                quality = RMath.Clamp(quality, 0, 1);
+                quality = RMath.Clamp(quality, 0.01f, 4f);
 
                 float w = Math.Max(0, dimensions.Width);
                 float h = Math.Max(0, dimensions.Height);

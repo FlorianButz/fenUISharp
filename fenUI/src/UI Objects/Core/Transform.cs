@@ -36,8 +36,8 @@ namespace FenUISharp.Objects
         public State<float> Rotation { get; init; }
         public State<Vector2> Anchor { get; init; }
 
-        public bool HasLocalRotation => !RMath.Approximately(Rotation.CachedValue, 0f, 2);
-        public bool HasLocalScale => !RMath.Approximately(Scale.CachedValue.x, 1f, 3) || !RMath.Approximately(Scale.CachedValue.y, 1f, 3);
+        public bool HasLocalRotation => !RMath.Approximately(Rotation.CachedValue, 0f, 6);
+        public bool HasLocalScale => !RMath.Approximately(Scale.CachedValue.x, 1f, 4) || !RMath.Approximately(Scale.CachedValue.y, 1f, 4);
 
         public bool HasAnyRotationOrScale => HasAnyRotationOrScaleInternal();
 

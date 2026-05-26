@@ -43,9 +43,9 @@ namespace FenUISharp.Objects
             // base.Render(canvas);
         }
 
-        public override void Dispose()
+        protected override void OnDispose()
         {
-            base.Dispose();
+            base.OnDispose();
             Label.Dispose();
         }
     }

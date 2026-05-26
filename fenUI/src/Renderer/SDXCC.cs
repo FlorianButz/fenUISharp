@@ -170,6 +170,8 @@ namespace FenUISharp
         {
             if (grContext == null) return;
 
+            FLogger.Log<SkiaDirectCompositionContext>("Disposing GRContext...");
+
             // Try normal dispose first — at this early stage (called right
             // when device loss is detected in Draw()) the driver DLL should
             // still be loaded and AbandonContext should succeed.
@@ -181,8 +183,7 @@ namespace FenUISharp
             }
             catch
             {
-                // Normal dispose failed, fall back to reflection-based
-                // disposal to avoid the uncatchable 0xC000001D crash.
+                FLogger.Log<SkiaDirectCompositionContext>("Disposing GRContext normally failed.");
             }
 
             DisposeGrContextSafely();
@@ -191,6 +192,8 @@ namespace FenUISharp
         private void DisposeGrContextSafely()
         {
             if (grContext == null) return;
+
+            FLogger.Log<SkiaDirectCompositionContext>("Disposing GRContext safely...");
 
             try
             {
@@ -229,7 +232,7 @@ namespace FenUISharp
             }
             catch
             {
-                // Manual release failed — leak native handles rather than crash
+                FLogger.Error("Manual GR release failed.");
             }
 
             grContext = null;
@@ -397,73 +400,46 @@ namespace FenUISharp
 
         internal void Draw()
         {
-            // Don't draw if we're in an invalid state
-            if (_deviceLost || _isDisposed)
+            if (_deviceLost || _isDisposed) return;
+
+            // Skip this frame if a resize holds the lock.
+            // This prevents racing GPU resources and fence counter corruption.
+            if (!Monitor.TryEnter(resourceLock, 0))
                 return;
 
             try
             {
-                if (Window.Procedure._isSizeMoving && Method == ResizingMethod.Stretch)
-                    return;
-
-                lock (resourceLock)
-                {
-                    // Check device validity first
-                    if (!IsDeviceValid())
-                    {
-                        LogDeviceRemovedReason();
-                        DisposeGrContext();
-
-                        throw new InvalidOperationException("FenUI: Graphics device lost permanently. Process has to restart.");
-                    }
-
-                    // Ensure resources are created
+                if (!IsDeviceValid() || resourcesNeedRecreation)
                     EnsureResourcesCreated();
 
-                    if (Surface?.Canvas == null)
-                    {
-                        FLogger.Warn("Surface or Canvas is null, skipping draw");
-                        return;
-                    }
+                if (persistentRenderTarget == null || Surface?.Canvas == null)
+                    return;
 
-                    // Clear and prepare canvas
-                    Surface.Canvas.Save();
-                    Surface.Canvas.Scale(Window.Shape.WindowDPIScale, Window.Shape.WindowDPIScale);
-
-                    try
-                    {
-                        // Invoke the draw action
-                        DrawAction?.Invoke(Surface.Canvas);
-
-                        OnFrameDone?.Invoke(Surface);
-                    }
-                    finally
-                    {
-                        Surface.Canvas.Restore();
-                    }
-
-                    // Flush drawing commands to ensure they're queued
-                    Surface.Canvas.Flush();
-                    Surface.Flush();
-
-                    // Submit to GRContext synchronously and wait for GPU completion
-                    // Using true ensures GPU finishes processing before Present is called
-                    grContext?.Submit(true);
-
-                    // Present with proper error handling
-                    DirectCompositionContext?.Present(SwapFromPersistent, PresentFlags.None);
+                Surface.Canvas.Save();
+                Surface.Canvas.Scale(Window.Shape.WindowDPIScale, Window.Shape.WindowDPIScale);
+                try
+                {
+                    DrawAction?.Invoke(Surface.Canvas);
+                    OnFrameDone?.Invoke(Surface);
                 }
-            }
-            catch (SharpGenException ex) when (ex.ResultCode == Vortice.DXGI.ResultCode.DeviceRemoved ||
-                                               ex.ResultCode == Vortice.DXGI.ResultCode.DeviceReset ||
-                                               ex.ResultCode == Vortice.DXGI.ResultCode.DeviceHung)
-            {
-                FLogger.Warn($"Device lost during draw: {ex.Message}");
-                LogDeviceRemovedReason();
-                DisposeGrContext();
+                finally
+                {
+                    Surface.Canvas.Restore();
+                }
 
-                _deviceLost = true;   
-                throw new Exception("FenUI: Graphics device failed permanently. The GPU driver has entered an unrecoverable state. The application must restart.");
+                Surface.Canvas.Flush();
+                Surface.Flush();
+                grContext?.Submit(true);
+
+                DirectCompositionContext?.Present(SwapFromPersistent, PresentFlags.None);
+            }
+            catch (Exception ex)
+            {
+                FLogger.Error($"Exception in Draw: {ex.Message}");
+            }
+            finally
+            {
+                Monitor.Exit(resourceLock);
             }
         }
 
@@ -474,30 +450,33 @@ namespace FenUISharp
             if (!_wasResizing) OnResizeStart(size);
             _wasResizing = true;
 
-            if (Method == ResizingMethod.PerFrame)
+            lock (resourceLock)
             {
-                PerformBufferResize(size);
-            }
-            else if (Method == ResizingMethod.Stretch)
-            {
-                ResizeWithStretch(size);
-                return;
-            }
-            else if (Method == ResizingMethod.SmartSmoothing)
-            {
-                // Checking if the current size is bigger than the overflow size
-                // This is done in order to avoid resizing the buffers (which is damn expensive)
-                // every frame and archive an insanely smooth window resize
-                if (
-                    size.x >= (currentBufferSizeIncludingPad.x - 25 /* Trigger resize a bit early to avoid visible lag */) ||
-                    size.y >= (currentBufferSizeIncludingPad.y - 25 /* Trigger resize a bit early to avoid visible lag */)
-                    )
+                if (Method == ResizingMethod.PerFrame)
                 {
-                    // Resize using the bigger buffer
-                    currentBufferSizeIncludingPad = size + new Vector2(resizeOverflowPadding, resizeOverflowPadding);
-                    PerformBufferResize(currentBufferSizeIncludingPad);
+                    PerformBufferResize(size);
+                }
+                else if (Method == ResizingMethod.Stretch)
+                {
+                    ResizeWithStretch(size);
+                    return;
+                }
+                else if (Method == ResizingMethod.SmartSmoothing)
+                {
+                    // Checking if the current size is bigger than the overflow size
+                    // This is done in order to avoid resizing the buffers (which is damn expensive)
+                    // every frame and archive an insanely smooth window resize
+                    if (
+                        size.x >= (currentBufferSizeIncludingPad.x - 25 /* Trigger resize a bit early to avoid visible lag */) ||
+                        size.y >= (currentBufferSizeIncludingPad.y - 25 /* Trigger resize a bit early to avoid visible lag */)
+                        )
+                    {
+                        // Resize using the bigger buffer
+                        currentBufferSizeIncludingPad = size + new Vector2(resizeOverflowPadding, resizeOverflowPadding);
+                        PerformBufferResize(currentBufferSizeIncludingPad);
 
-                    FLogger.Log<SkiaDirectCompositionContext>("Resize including padding");
+                        FLogger.Log<SkiaDirectCompositionContext>("Resize including padding");
+                    }
                 }
             }
         }
@@ -715,12 +694,14 @@ namespace FenUISharp
             {
                 if (IsDeviceValid())
                 {
+                    FLogger.Log<SkiaDirectCompositionContext>("Device valid!");
                     try { DirectCompositionContext?.WaitForGpu(); } catch { }
                     DisposeSkiaResources();
                     try { grContext?.Dispose(); } catch { }
                 }
                 else
                 {
+                    FLogger.Log<SkiaDirectCompositionContext>("Device invalid!");
                     DisposeSkiaResources();
                     // Device is removed — normal grContext.Dispose() can trigger
                     // STATUS_ILLEGAL_INSTRUCTION (0xC000001D). Use reflection to
@@ -731,11 +712,17 @@ namespace FenUISharp
                 grContext = null!;
                 DrawAction = null!;
 
+                FLogger.Log<SkiaDirectCompositionContext>("Disposing DirectCompositionContext...");
+
                 try { DirectCompositionContext?.Dispose(); } catch { }
                 DirectCompositionContext = null!;
 
+                FLogger.Log<SkiaDirectCompositionContext>("Disposing Adapter...");
+
                 try { adapter?.Dispose(); } catch { }
                 adapter = null;
+
+                FLogger.Log<SkiaDirectCompositionContext>("Done Disposing!!");
             }
         }
 
@@ -758,24 +745,33 @@ namespace FenUISharp
 
         private void DisposeSkiaResources()
         {
+            FLogger.Log<SkiaDirectCompositionContext>("Disposing Skia Resources...");
+
+            FLogger.Log<SkiaDirectCompositionContext>("Disposing Surface...");
+
             // Dispose in reverse order of creation
             Surface?.Dispose();
             Surface = null;
 
+            FLogger.Log<SkiaDirectCompositionContext>("Disposing Backend Texture...");
+
             backendTexture?.Dispose();
             backendTexture = null;
+
+            FLogger.Log<SkiaDirectCompositionContext>("Disposing Resource Info...");
 
             resourceInfo?.Dispose();
             resourceInfo = null;
 
+            FLogger.Log<SkiaDirectCompositionContext>("Disposing Back Buffer...");
+
             backBuffer?.Dispose();
             backBuffer = null;
 
+            FLogger.Log<SkiaDirectCompositionContext>("Disposing Persistent Render Target...");
+
             persistentRenderTarget?.Dispose();
             persistentRenderTarget = null;
-
-            backendContext?.Dispose();
-            backendContext = null;
         }
     }
 }

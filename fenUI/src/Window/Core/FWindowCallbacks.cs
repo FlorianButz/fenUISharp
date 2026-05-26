@@ -48,6 +48,9 @@ namespace FenUISharp
         public Action? OnWindowDestroy { get; set; } // When the window is destroyed
 
         internal Action<char>? OnKeyboardInputTextReceived { get; set; } // When a character is typed in the window
+        // internal Action<char>? OnKeyTyped { get; set; } // After a key has been typed
+        internal Action<int>? OnKeyPressed { get; set; } // When a key is pressed
+        internal Action<int>? OnKeyReleased { get; set; } // When a key is released
 
         public FWindowCallbacks(FWindow window)
         {

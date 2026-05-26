@@ -117,7 +117,6 @@ namespace FenUISharp.Objects
             FContext.GetCurrentWindow().Callbacks.ClientMouseAction += FuncOnMouseAction;
             FContext.GetCurrentWindow().Callbacks.OnMouseScroll += Global_FuncOnMouseScroll;
             FContext.GetCurrentWindow().Callbacks.OnMouseMove += Global_FuncOnMouseMove;
-            WindowFeatures.GlobalHooks.OnMouseAction += FuncOnMouseActionGlobal;
 
             if (_surfaces == null) _surfaces = new();
             _surfaces.Add(this);
@@ -173,19 +172,6 @@ namespace FenUISharp.Objects
                     break;
                 }
             }
-        }
-
-        private void FuncOnMouseActionGlobal(MouseInputCode code)
-        {
-            if (owner == null || !owner.GlobalEnabled || !owner.GlobalVisible)
-                return;
-
-            var capturedOwner = owner;
-
-            if (capturedOwner == null) return;
-            if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
-
-            Dispatcher.InvokeWithID(() => FuncOnMouseMoveGlobal(code), $"{uniqueID}-globalmousemove");
         }
 
         private void Global_FuncOnMouseScroll(float obj)
@@ -301,27 +287,6 @@ namespace FenUISharp.Objects
             IsDragging = false;
         }
 
-        private void FuncOnMouseMoveGlobal(MouseInputCode code)
-        {
-            if (owner == null || !owner.GlobalEnabled || !owner.GlobalVisible)
-                return;
-
-            var capturedOwner = owner;
-
-            if (capturedOwner == null) return;
-            if (!capturedOwner.GlobalEnabled || !capturedOwner.GlobalVisible) return;
-
-            if (code.button == MouseInputButton.Left && code.state == MouseInputState.Up && IsMouseDown)
-            {
-                IsMouseDown = false;
-
-                if (IsDragging)
-                {
-                    StopDragging();
-                }
-            }
-        }
-
         private void FuncOnMouseAction(MouseInputCode code)
         {
             if (owner == null || !owner.GlobalEnabled || !owner.GlobalVisible)
@@ -434,7 +399,6 @@ namespace FenUISharp.Objects
                 FContext.GetCurrentWindow().Callbacks.ClientMouseAction -= FuncOnMouseAction;
                 FContext.GetCurrentWindow().Callbacks.OnMouseScroll -= Global_FuncOnMouseScroll;
                 FContext.GetCurrentWindow().Callbacks.OnMouseMove -= Global_FuncOnMouseMove;
-                WindowFeatures.GlobalHooks.OnMouseAction -= FuncOnMouseActionGlobal;
             }
         }
 

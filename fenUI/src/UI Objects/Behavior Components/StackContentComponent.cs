@@ -64,8 +64,8 @@ namespace FenUISharp.Behavior
             StackBehavior = behavior;
 
             owner.InteractiveSurface.EnableMouseActions.Value = () => true;
+            owner.InteractiveSurface.EnableMouseScrolling.SetResponsiveState(() => StackBehavior == ContentStackBehavior.Scroll && (_pageSize < _contentSize));
             owner.InteractiveSurface.OnDragDelta += OnDrag;
-            owner.InteractiveSurface.EnableMouseScrolling.Value = () => StackBehavior == ContentStackBehavior.Scroll;
             owner.InteractiveSurface.OnMouseScroll += OnScroll;
 
             Gap = new(() => 10, Owner, this);

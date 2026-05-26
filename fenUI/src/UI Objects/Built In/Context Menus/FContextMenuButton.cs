@@ -38,9 +38,9 @@ namespace FenUISharp.Objects.Buttons
             Invalidate(Invalidation.LayoutDirty);
         }
 
-        public override void Dispose()
+        protected override void OnDispose()
         {
-            base.Dispose();
+            base.OnDispose();
             Label.Dispose();
         }
     }

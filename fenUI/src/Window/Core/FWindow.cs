@@ -43,16 +43,6 @@ namespace FenUISharp
         public KeyboardInputManager? WindowKeyboardInput { get; private set; }
         public ThemeManager WindowThemeManager { get; private set; }
 
-        // public Vector2 ClientMousePosition
-        // {
-        //     get
-        //     {
-        //         POINT cursorPoint = new() { x = (int)GlobalHooks.MousePosition.x, y = (int)GlobalHooks.MousePosition.y };
-        //         Win32APIs.ScreenToClient(hWnd, ref cursorPoint);
-        //         return new Vector2(cursorPoint.x, cursorPoint.y);
-        //     }
-        // }
-
         public Vector2 ClientMousePosition { get; internal set; }
 
         public SkiaDirectCompositionContext? SkiaDirectCompositionContext { get; set; }
@@ -67,6 +57,8 @@ namespace FenUISharp
         internal bool _isDirty = false;
         internal bool _fullRedraw;
         private static readonly WndProcDelegate _wndProcDelegate = StaticWndProc;
+
+        internal GCHandle gch;
 
         public FWindow(string title, string className, Vector2? position = null, Vector2? size = null)
         {
@@ -120,7 +112,7 @@ namespace FenUISharp
             // Making sure every instance of the Window class has its own WndProc
             // Allocating this instance of the FWindow class to a GCHandle and using the IntPtr
             FLogger.Log<FWindow>($"Allocating this class and getting GCHandle");
-            GCHandle gch = GCHandle.Alloc(this);
+            gch = GCHandle.Alloc(this);
 
             FLogger.Log<FWindow>($"Allocating the GCHandle in GWLP_USERDATA");
             Win32APIs.SetWindowLongPtr(hWnd, -21 /* GWLP_USERDATA */, GCHandle.ToIntPtr(gch));
@@ -133,6 +125,25 @@ namespace FenUISharp
 
             FLogger.Log<FWindow>($"Window creation done!");
             FLogger.Log<FWindow>($"");
+            
+            Callbacks.OnKeyPressed += (x) =>
+            {
+                if (x == 0x77)
+                { // F8
+                    this.DebugDisplayAreaCache = !this.DebugDisplayAreaCache;
+                    this.FullRedraw();
+                }
+                else if (x == 0x76)
+                { // F7
+                    this.DebugDisplayBounds = !this.DebugDisplayBounds;
+                    this.FullRedraw();
+                }
+                else if (x == 0x75)
+                { // F6
+                    this.DebugDisplayObjectIDs = !this.DebugDisplayObjectIDs;
+                    this.FullRedraw();
+                }
+            };
         }
 
         protected virtual void OnAfterWindowCreation() { }
@@ -151,7 +162,7 @@ namespace FenUISharp
 
         public ScreenBuffer GetScreenBuffer()
         {
-            if(_screenBuffer == null)
+            if (_screenBuffer == null)
             {
                 _screenBuffer = new();
                 _screenBuffer.Initialize(Shape.CurrentMonitorIndex);
@@ -306,7 +317,7 @@ namespace FenUISharp
         internal void CallUpdate() => Update();
         protected virtual void Update()
         {
-            
+
         }
 
         public virtual bool IsAreaClickable(Vector2 mousePosition)
@@ -317,13 +328,16 @@ namespace FenUISharp
             if (_disposingOrDisposed) return;
             FContext.isDisposingWindow = true;
 
+            // The window should always hide first, even if the HideWindowOnClose is false
+            // Hiding the window first is much faster than waiting for the destruction
+            // Properties.IsWindowVisible = false;
+
             // Set disposed flag
             _disposingOrDisposed = true;
 
-            // The window should always hide first, even if the HideWindowOnClose is false
-            // Hiding the window first is much faster than waiting for the destruction
-            Properties.IsWindowVisible = false;
-
+            // Break thread
+            Loop?.InterruptThread();
+            
             // Disposing all components
             FLogger.Log<FWindow>($"Early cleanup of window components...");
             EarlyCleanUp();
@@ -372,7 +386,7 @@ namespace FenUISharp
             Loop = null!;
             Properties?.Dispose();
             Properties = null!;
-            
+
             Surface = null!;
 
             _screenBuffer?.Dispose();

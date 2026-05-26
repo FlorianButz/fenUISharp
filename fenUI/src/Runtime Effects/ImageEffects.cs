@@ -104,7 +104,7 @@ namespace FenUISharp.Behavior.RuntimeEffects
 
             if (blurRadius != 0 && opacity != 0)
             {
-                var blurQuality = RMath.Clamp(1f - ((blurRadius - 5f) / 12f), 0.25f, 1f);
+                var blurQuality = RMath.Clamp(1f - ((blurRadius - 5f) / 20f), 0.25f, 1f);
 
                 var scaleMatrix = SKMatrix.CreateScale(blurQuality, blurQuality);
                 using var scaleFilter = SKImageFilter.CreateMatrix(scaleMatrix);

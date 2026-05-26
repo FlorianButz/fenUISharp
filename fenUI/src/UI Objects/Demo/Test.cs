@@ -6,12 +6,6 @@ using SkiaSharp;
 
 public class TestObject : UIObject
 {
-
-    public override void Dispose()
-    {
-        base.Dispose();
-    }
-
     public override void Render(SKCanvas canvas)
     {
         var buffer = FContext.GetCurrentWindow().GetScreenBuffer();

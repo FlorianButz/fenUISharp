@@ -40,6 +40,11 @@ namespace FenUISharp.AnimatedVectors
 
             RenderMaterial.SetStaticState(new EmptyDefaultMaterial() { BaseColor = () => SKColors.White });
 
+            // A FAV can be highly dynamic and therefor should take the
+            // minor render cost to trade for a much higher quality
+            Transform.SnapPositionToPixelGrid.SetStaticState(false);
+            this.SurfaceBlitFallback = false;
+
             AnimatedVector.Subscribe((x) =>
             {
                 if (ignoreAnimSwap)

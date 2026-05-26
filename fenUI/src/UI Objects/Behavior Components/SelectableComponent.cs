@@ -24,21 +24,13 @@ namespace FenUISharp.Behavior
         [ThreadStatic]
         private static SelectableComponent? lastSelected;
 
-        private Dispatcher? dispatcher;
-
         [ThreadStatic]
         private static bool renderSelection;
 
         public SelectableComponent(UIObject owner, InteractiveSurface surface) : base(owner)
         {
             this.Surface = surface;
-            if (selectableComponents == null) selectableComponents = new();
-
-            if (selectableComponents.Count <= 0)
-            {
-                dispatcher = FContext.GetCurrentDispatcher();
-                WindowFeatures.GlobalHooks.OnMouseAction += OnGlobalClick;
-            }
+            selectableComponents ??= new();
             selectableComponents.Add(this);
 
             tabKeybind = new() { VKCode = 0x0009, OnKeybindExecuted = OnTabPressed };
@@ -57,15 +49,6 @@ namespace FenUISharp.Behavior
                 SetSelected(this);
                 renderSelection = false;
             }
-        }
-
-        void OnGlobalClick(MouseInputCode c)
-        {
-            if (c.button == MouseInputButton.Left)
-                renderSelection = false;
-
-            if (c.button == MouseInputButton.Left && c.state == MouseInputState.Down)
-                dispatcher?.Invoke(() => SetSelected(null));
         }
 
         public static void SetObjectSelected(UIObject? selectable)
@@ -121,9 +104,6 @@ namespace FenUISharp.Behavior
 
             selectableComponents.Remove(this);
             FContext.GetKeyboardInputManager().UnregisterKeybind(tabKeybind);
-
-            if (selectableComponents.Count <= 0)
-                WindowFeatures.GlobalHooks.OnMouseAction -= OnGlobalClick;
         }
 
         private void OnTabPressed()
