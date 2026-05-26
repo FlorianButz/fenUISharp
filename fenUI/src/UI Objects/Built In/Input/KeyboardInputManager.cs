@@ -44,10 +44,10 @@ namespace FenUISharp
             FContext.GetCurrentWindow().Callbacks.OnKeyboardInputTextReceived += TextTyped;
         }
 
-        private void KeyTyped(int obj)
+        public void KeyTyped(int vkCode)
         {
             if (!_window.Properties.IsWindowFocused) return;
-            _window.LogicDispatcher.Invoke(() => OnKeyTyped?.Invoke((char)obj));
+            _window.LogicDispatcher.Invoke(() => OnKeyTyped?.Invoke((char)vkCode));
         }
 
         private void TextTyped(char c)
@@ -55,7 +55,7 @@ namespace FenUISharp
             _window.LogicDispatcher.Invoke(() => OnTextTyped?.Invoke(c));
         }
 
-        private void KeyReleased(int vkCode)
+        public void KeyReleased(int vkCode)
         {
             vkCode = NormalizeVKCode(vkCode);
 
@@ -78,7 +78,7 @@ namespace FenUISharp
             _window.LogicDispatcher.Invoke(() => OnKeyReleased?.Invoke(c));
         }
 
-        private void KeyPressed(int vkCode)
+        public void KeyPressed(int vkCode)
         {
             vkCode = NormalizeVKCode(vkCode);
 
