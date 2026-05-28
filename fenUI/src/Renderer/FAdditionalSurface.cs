@@ -12,7 +12,7 @@ namespace FenUISharp
         public SKImageInfo Info { get; private set; }
         public bool WasRebuilt { get; private set; }
 
-        private SkiaDirectCompositionContext SkiaDirectCompositionContext { get; set; }
+        private WindowRenderResources WindowResources { get; set; }
         private bool _disposed;
 
         public FAdditionalSurface(
@@ -21,7 +21,7 @@ namespace FenUISharp
             GRD3DTextureResourceInfo r,
             GRBackendTexture t,
             SKImageInfo info,
-            SkiaDirectCompositionContext skiaDirectCompositionContext)
+            WindowRenderResources windowResources)
         {
             this.SkiaSurface = s;
             this.Texture = d;
@@ -30,27 +30,24 @@ namespace FenUISharp
 
             this.Info = info;
 
-            this.SkiaDirectCompositionContext = skiaDirectCompositionContext;
-            this.SkiaDirectCompositionContext.OnRebuildAdditionals += RebuildSurface;
-            this.SkiaDirectCompositionContext.OnDisposeAdditionals += Dispose;
+            this.WindowResources = windowResources;
+            this.WindowResources.OnRebuildAdditionals += RebuildSurface;
+            this.WindowResources.OnDisposeAdditionals += Dispose;
         }
 
         private void RebuildSurface()
         {
             Dispose();
-            this.SkiaDirectCompositionContext.OnRebuildAdditionals += RebuildSurface;
-            this.SkiaDirectCompositionContext.OnDisposeAdditionals += Dispose;
+            this.WindowResources.OnRebuildAdditionals += RebuildSurface;
+            this.WindowResources.OnDisposeAdditionals += Dispose;
 
-            // Get new surface with new resources
-            var newResources = SkiaDirectCompositionContext.CreateAdditional(Info);
-            
-            // Set resources
+            var newResources = WindowResources.CreateAdditional(Info);
+
             SkiaSurface = newResources.SkiaSurface;
             Texture = newResources.Texture;
             ResourceInfo = newResources.ResourceInfo;
             BackendTexture = newResources.BackendTexture;
 
-            // Reset disposed flag, if this is not done surfaces will break
             _disposed = false;
 
             WasRebuilt = true;
@@ -88,8 +85,8 @@ namespace FenUISharp
             BackendTexture?.Dispose();
             BackendTexture = null!;
 
-            this.SkiaDirectCompositionContext.OnRebuildAdditionals -= RebuildSurface;
-            this.SkiaDirectCompositionContext.OnDisposeAdditionals -= Dispose;
+            this.WindowResources.OnRebuildAdditionals -= RebuildSurface;
+            this.WindowResources.OnDisposeAdditionals -= Dispose;
         }
     }
 }

@@ -63,8 +63,8 @@ namespace FenUISharp
                 Window.DrawBackdrop(canvas);
 
                 // Trigger callback
-                if (Window.SkiaDirectCompositionContext?.Surface != null)
-                    Window.Callbacks.OnWindowBeforeDraw?.Invoke(Window.SkiaDirectCompositionContext.Surface);
+                if (Window.RenderResources?.Surface != null)
+                    Window.Callbacks.OnWindowBeforeDraw?.Invoke(Window.RenderResources.Surface);
 
                 // Draw all ui objects
                 RootViewPane?.DrawToSurface(canvas);
@@ -144,8 +144,8 @@ namespace FenUISharp
                 }
 
                 // Trigger callback
-                if (Window.SkiaDirectCompositionContext?.Surface != null)
-                    Window.Callbacks.OnWindowAfterDraw?.Invoke(Window.SkiaDirectCompositionContext.Surface);
+                if (Window.RenderResources?.Surface != null)
+                    Window.Callbacks.OnWindowAfterDraw?.Invoke(Window.RenderResources.Surface);
             }
         }
 
@@ -157,18 +157,8 @@ namespace FenUISharp
             // If no root view pane exist, skip rendering
             if (RootViewPane == null) return false;
 
-            // Check if any active and visible object wants to be redrawn
-            var doesAnyObjectRequireRedraw = GetAllUIObjects().Any(x => x.WindowRedrawThisObject && x.Enabled.CachedValue && x.Visible.CachedValue);
-
-            // Debug
-            // GetAllUIObjects().Where(x => x.WindowRedrawThisObject && x.Enabled.CachedValue && x.Visible.CachedValue).ToList().ForEach(x => Console.WriteLine(x));
-            // Console.WriteLine("+===+");
-            // Console.WriteLine(Window._isDirty);
-            // Console.WriteLine(Window._fullRedraw);
-            // Console.WriteLine("+===+");
-
-            // Check for other flags and return true if any of them is true
-            return doesAnyObjectRequireRedraw || Window.DebugDisplayAreaCache || Window._isDirty || Window._fullRedraw;
+            // Check for flags, at last check if any elements require repaint
+            return Window.DebugDisplayAreaCache || Window._isDirty || Window._fullRedraw || GetAllUIObjects().Any(x => x.WindowRedrawThisObject && x.GlobalEnabled && x.GlobalVisible);
         }
 
         internal List<UIObject> GetAllUIObjects()
@@ -246,9 +236,6 @@ namespace FenUISharp
                     // Add to clip path
                     clipPath.AddRect(lastbounds);
                 }
-
-                // Reset redraw flag
-                component.WindowRedrawThisObject = false;
             }
 
             // Setting last path to null

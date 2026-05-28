@@ -21,7 +21,8 @@ namespace FenUISharp
         }
         public string WindowClass { get; protected set; }
 
-        public int TargetRefreshRate { get; set; } = 60; // TODO: Ideally use monitors refresh rate
+        public int TargetRefreshRate { get; set; }
+        public bool MatchScreenRefreshrate { get; set; } = true;
 
         // Window components
 
@@ -45,7 +46,7 @@ namespace FenUISharp
 
         public Vector2 ClientMousePosition { get; internal set; }
 
-        public SkiaDirectCompositionContext? SkiaDirectCompositionContext { get; set; }
+        public WindowRenderResources? RenderResources { get; set; }
         public bool DebugDisplayAreaCache { get; set; }
         public bool DebugDisplayBounds { get; set; }
         public bool DebugDisplayObjectIDs { get; set; }
@@ -101,6 +102,7 @@ namespace FenUISharp
             Properties = components.Item5;
             Surface = components.Item6;
 
+            SetTargetRefreshrateToMonitorRefreshrate();
             Callbacks.OnWindowEndMove += (x) => SetTargetRefreshrateToMonitorRefreshrate();
             Properties.UseSystemDarkMode = true; // Default to true, can be changed later
 
@@ -227,9 +229,9 @@ namespace FenUISharp
             // Make sure to activate this window for the current thread
             FContext.WithWindow(this);
 
-            // Create skia render context
-            if (!_disableSDXCC)
-                SkiaDirectCompositionContext = new(this, DrawAction);
+            // Create per-window render resources (shared device from global DXCC/SDXCC)
+            if (!_disableRendering)
+                RenderResources = new(this, DrawAction);
 
             // Create keyboard input for this window
             WindowKeyboardInput = new(this);
@@ -238,14 +240,14 @@ namespace FenUISharp
             Surface.SetupSurface();
         }
 
-        private bool _disableSDXCC = false;
+        private bool _disableRendering = false;
         public void DisableDirectContextCreation()
-            => _disableSDXCC = true;
+            => _disableRendering = true;
 
         /// <summary>
-        /// Is executed automatically by the SkiaDirectCompositionContext
+        /// Is executed automatically by the RenderResources
         /// </summary>
-        /// <param name="canvas"></param>
+        /// <param name="canvas">The target canvas</param>
         protected virtual void DrawAction(SKCanvas canvas)
         {
             Surface.Draw(canvas);
@@ -328,10 +330,6 @@ namespace FenUISharp
             if (_disposingOrDisposed) return;
             FContext.isDisposingWindow = true;
 
-            // The window should always hide first, even if the HideWindowOnClose is false
-            // Hiding the window first is much faster than waiting for the destruction
-            // Properties.IsWindowVisible = false;
-
             // Set disposed flag
             _disposingOrDisposed = true;
 
@@ -345,14 +343,32 @@ namespace FenUISharp
             // Callback
             Callbacks.OnWindowDestroy?.Invoke();
 
-            // Execute DestroyWindow on main thread
-            FLogger.Log<FWindow>($"Invoking window destruction...");
-            WindowDispatcher.Invoke(() =>
-            {
-                // Remove window
-                FLogger.Log<FWindow>($"Destroying window");
-                Win32APIs.DestroyWindow(hWnd);
-            });
+            // Dispose per-window resources immediately
+            FLogger.Log<FWindow>($"Disposing WindowRenderResources directly...");
+            RenderResources?.Dispose();
+            RenderResources = null!;
+
+            // Revoke DragDrop BEFORE destroying the window
+            FLogger.Log<FWindow>($"Revoking DragDrop for window {hWnd}...");
+            try { DragDropRegistration.RevokeDragDrop(hWnd); } catch { }
+
+            // Clear callbacks delegate references so nothing keeps UI objects alive
+            Callbacks?.Dispose();
+            Callbacks = null!;
+
+            // Reset the disposing flag so subsequent windows don't skip cleanup
+            FContext.isDisposingWindow = false;
+
+            // Destroy the Win32 window directly.
+            FLogger.Log<FWindow>($"Destroying window {hWnd}...");
+            Win32APIs.DestroyWindow(hWnd);
+
+            // After DestroyWindow, WM_NCDESTROY has freed the GCHandle and
+            // set _isRunning = false. Ensure userdata is zeroed as a safety measure.
+            Win32APIs.SetWindowLongPtr(hWnd, -21, IntPtr.Zero);
+
+            // Force _isRunning to false as a safety net
+            _isRunning = false;
 
             // Remove this window from the active instances
             FenUI.activeInstances.Remove(this);
@@ -374,15 +390,24 @@ namespace FenUISharp
             WindowKeyboardInput = null;
         }
 
+        private bool _hasCleanedUp;
+
         internal void CleanUp()
         {
+            if (_hasCleanedUp) return;
+            _hasCleanedUp = true;
+
             // Disposing components
             FLogger.Log<FWindow>($"Disposing of window components...");
             Shape?.Dispose();
             Shape = null!;
             Procedure?.Dispose();
             Procedure = null!;
-            Loop?.Dispose();
+            // Do NOT dispose Loop here — Loop.Dispose() tries to join the LogicThread,
+            // which would deadlock if called from WM_NCDESTROY while Dispose() is
+            // waiting for DestroyWindow to return (circular wait).
+            // The LogicThread will exit on its own because _disposingOrDisposed is true
+            // and _shutdownRequested is set, so LoopLogic's exit condition is met.
             Loop = null!;
             Properties?.Dispose();
             Properties = null!;
@@ -392,13 +417,23 @@ namespace FenUISharp
             _screenBuffer?.Dispose();
             _screenBuffer = null!;
 
-            FLogger.Log<FWindow>($"Disposing SkiaDirectCompositionContext...");
-            SkiaDirectCompositionContext?.Dispose();
-            SkiaDirectCompositionContext = null!;
+            // Revoke OLE drag-drop registration for this window
+            FLogger.Log<FWindow>($"Revoking OLE DragDrop for window {hWnd}...");
+            try { DragDropRegistration.RevokeDragDrop(hWnd); } catch { }
+
+            FLogger.Log<FWindow>($"Disposing WindowRenderResources...");
+            RenderResources?.Dispose();
+            RenderResources = null!;
+
+            FLogger.Log<FWindow>($"Disposing WindowCallbacks...");
+            Callbacks?.Dispose();
+            Callbacks = null!;
         }
 
         protected virtual void SetTargetRefreshrateToMonitorRefreshrate()
         {
+            if (!MatchScreenRefreshrate) return;
+            
             FLogger.Log<FWindow>($"Setting the target refresh rate of window {hWnd}...");
 
             DISPLAY_DEVICE d = new DISPLAY_DEVICE();

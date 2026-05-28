@@ -64,7 +64,7 @@ namespace FenUISharp.Materials
             SKImage? blurredWindowArea = null;
 
             {
-                using var blurSurf = FContext.GetCurrentWindow().SkiaDirectCompositionContext?.CreateAdditional(windowArea.Info);
+                using var blurSurf = FContext.GetCurrentWindow().RenderResources?.CreateAdditional(windowArea.Info);
 
                 if (blurSurf == null) return;
 
@@ -92,7 +92,7 @@ namespace FenUISharp.Materials
             caller.Padding.SetStaticState(35, 1);
 
             SKImageInfo skImageInfo = new((int)MathF.Ceiling(pathBounds.Width / DisplacementMapDownscale), (int)MathF.Ceiling(pathBounds.Height / DisplacementMapDownscale));
-            using var displacementSurface = FContext.GetCurrentWindow().SkiaDirectCompositionContext?.CreateAdditional(skImageInfo);
+            using var displacementSurface = FContext.GetCurrentWindow().RenderResources?.CreateAdditional(skImageInfo);
 
             if (displacementSurface == null) return;
 
@@ -177,9 +177,13 @@ namespace FenUISharp.Materials
 
             // Flush and wait for GPU to finish using the resources before disposing
             targetCanvas.Flush();
-            FContext.GetCurrentWindow().SkiaDirectCompositionContext?.grContext?.Flush();
-            FContext.GetCurrentWindow().SkiaDirectCompositionContext?.grContext?.Submit(true);
-            FContext.GetCurrentWindow().SkiaDirectCompositionContext?.WaitForGPU();
+            var res = FContext.GetCurrentWindow().RenderResources;
+            if (res?.grContext != null)
+            {
+                res.grContext.Flush();
+                res.grContext.Submit(true);
+                res.WaitForGpu();
+            }
 
             caller.Invalidate(UIObject.Invalidation.SurfaceDirty);
             blurredWindowArea.Dispose();

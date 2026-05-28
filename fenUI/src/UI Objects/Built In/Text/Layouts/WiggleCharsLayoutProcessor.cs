@@ -36,14 +36,13 @@ namespace FenUISharp.Objects.Text.Layout
 
             for (int i = 0; i < offsetLayout.Count; i++)
             {
-                // offsetLayout[i].Position = new SkiaSharp.SKPoint(offsetLayout[i].Position.X + (float)Math.Sin(time + (float)i * 1.238f + 0.5f) * 4, offsetLayout[i].Position.Y + (float)Math.Sin(time + (float)i * 2.421f) * 4);
                 offsetLayout[i].Position = new SkiaSharp.SKPoint(
                     offsetLayout[i].Position.X + (float)Math.Sin(time + (float)i * PeriodMultiplier.x) * Strength.x,
                     offsetLayout[i].Position.Y + (float)Math.Sin(time + (float)i * PeriodMultiplier.y) * Strength.y);
                 needsFullRebuild = true;
             }
 
-            Owner.Invalidate(Objects.UIObject.Invalidation.SurfaceDirty);
+            Owner.Invalidate(UIObject.Invalidation.SurfaceDirty);
             return offsetLayout;
         }
     }

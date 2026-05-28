@@ -127,7 +127,7 @@ namespace FenUISharp.Objects
         {
             if (globalBounds.Height < 1 || globalBounds.Width < 1) return null;
 
-            SKImage? behind = FContext.GetCurrentWindow().SkiaDirectCompositionContext?.CaptureWindowRegion(globalBounds, quality);
+            SKImage? behind = FContext.GetCurrentWindow().RenderResources?.CaptureWindowRegion(globalBounds, quality);
 
             return behind;
 

@@ -28,6 +28,7 @@ namespace FenUISharp.Objects.Buttons
 
         public void SetSelected(bool isSelected)
         {
+            if (_isSelected == isSelected) return;
             _isSelected = isSelected;
             OnSelectionChanged?.Invoke(isSelected, this);
             Invalidate(Invalidation.SurfaceDirty);
@@ -35,6 +36,7 @@ namespace FenUISharp.Objects.Buttons
 
         public void SilentSetSelected(bool isSelected)
         {
+            if (_isSelected == isSelected) return;
             _isSelected = isSelected;
             OnSelectionChangedSilent?.Invoke(isSelected, this);
             Invalidate(Invalidation.SurfaceDirty);
@@ -59,13 +61,11 @@ namespace FenUISharp.Objects.Buttons
 
                     var colorBefore = RenderMaterial.CachedValue.GetProp<Func<SKColor>>("BaseColor", null);
                     var colorBorderBefore = RenderMaterial.CachedValue.GetProp<Func<SKColor>>("BorderColor", null);
-
-                    RenderMaterial.CachedValue.SetProp("BaseColor", () => EnabledFillColor.CachedValue);
-                    RenderMaterial.CachedValue.SetProp("BorderColor", () => EnabledFillColor.CachedValue.AddMix(new(25, 25, 25)));
-                    RenderMaterial.CachedValue.DrawWithMaterial(canvas, path, this, paint);
-
-                    RenderMaterial.CachedValue.SetProp("BaseColor", colorBefore);
-                    RenderMaterial.CachedValue.SetProp("BorderColor", colorBorderBefore);
+                    
+                    RenderMaterial.CachedValue.WithOverride(new (){
+                        ["BaseColor"] = () => EnabledFillColor.CachedValue,
+                        ["BorderColor"] = () => EnabledFillColor.CachedValue.AddMix(new(25, 25, 25))
+                    }).DrawWithMaterial(canvas, path, this, paint);
                 }
             }
             else

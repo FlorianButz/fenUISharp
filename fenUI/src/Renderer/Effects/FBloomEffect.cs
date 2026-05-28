@@ -43,7 +43,8 @@ namespace FenUISharp.RuntimeEffects
         {
             if (info.source == null || info.target == null) return;
 
-            var grContext = FContext.GetCurrentWindow().SkiaDirectCompositionContext?.grContext;
+            var grContext = FContext.GetCurrentWindow().RenderResources?.grContext;
+            if (grContext == null) return;
 
             var snap = info.source.Snapshot();
             int downscale = RMath.Clamp(Downsampling, 1, 12);
@@ -54,7 +55,7 @@ namespace FenUISharp.RuntimeEffects
             {
                 _downscaledSurface?.Dispose();
                 var downInfo = new SKImageInfo(downWidth, downHeight);
-                _downscaledSurface = FContext.GetCurrentWindow().SkiaDirectCompositionContext?.CreateAdditional(downInfo);
+                _downscaledSurface = FContext.GetCurrentWindow().RenderResources?.CreateAdditional(downInfo);
                 _cachedDownWidth = downWidth;
                 _cachedDownHeight = downHeight;
             }

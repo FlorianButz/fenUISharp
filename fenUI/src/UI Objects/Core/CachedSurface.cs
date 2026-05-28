@@ -47,7 +47,7 @@ namespace FenUISharp.Objects
                 return null;
             }
 
-            _cachedSurface = FContext.GetCurrentWindow()?.SkiaDirectCompositionContext?.CreateAdditional(_cachedImageInfo.Value);
+            _cachedSurface = FContext.GetCurrentWindow().RenderResources?.CreateAdditional(_cachedImageInfo.Value);
 
             if (_cachedSurface != null && _cachedSurface.SkiaSurface != null)
                 FinalizeSurface(_cachedSurface.SkiaSurface);
@@ -169,7 +169,7 @@ namespace FenUISharp.Objects
             Compositor.Dump(_cachedSurface.SkiaSurface.Snapshot(), "buffer_surf_whole");
 
             var snapshot = _cachedSurface.SkiaSurface.Snapshot(new SKRectI((int)region.Left, (int)region.Top, (int)region.Right, (int)region.Bottom));
-            var scaled = RMath.CreateLowResImage(snapshot, RMath.Clamp(quality, 0.01f, 1f), SkiaDirectCompositionContext.SamplingOptions);
+            var scaled = RMath.CreateLowResImage(snapshot, RMath.Clamp(quality, 0.01f, 1f), FenUISharp.SkiaDirectCompositionContext.SamplingOptions);
             snapshot?.Dispose();
 
             Compositor.Dump(scaled, "buffer_cropped_scaled");

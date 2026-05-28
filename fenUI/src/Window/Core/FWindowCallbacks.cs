@@ -75,7 +75,44 @@ namespace FenUISharp
 
         public void Dispose()
         {
-            
+            OnDragEnter = null;
+            OnDragOver = null;
+            OnDragDrop = null;
+            OnDragLeave = null;
+
+            ClientMouseAction = null;
+            TrayMouseAction = null;
+
+            OnMouseScroll = null;
+            OnMouseMove = null;
+            OnMouseLeft = null;
+
+            OnBeginRender = null;
+            OnEndRender = null;
+
+            OnWindowBeforeDraw = null;
+            OnWindowAfterDraw = null;
+
+            OnPostUpdate = null;
+            OnPreUpdate = null;
+
+            OnDevicesChanged = null;
+
+            OnFocusLost = null;
+            OnFocusGained = null;
+
+            OnWindowResize = null;
+            OnWindowEndResize = null;
+            OnWindowMove = null;
+            OnWindowEndMove = null;
+            DPIChanged = null;
+
+            OnWindowClose = null;
+            OnWindowDestroy = null;
+
+            OnKeyboardInputTextReceived = null;
+            OnKeyPressed = null;
+            OnKeyReleased = null;
         }
     }
 }

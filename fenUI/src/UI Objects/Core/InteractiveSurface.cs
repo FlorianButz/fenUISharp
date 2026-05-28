@@ -23,6 +23,8 @@ namespace FenUISharp.Objects
 
         private string uniqueID = Guid.NewGuid().ToString();
 
+        private FWindowCallbacks _callbacks;
+
         public State<int> ExtendInteractionRadius { get; init; }
 
         public State<bool> IgnoreInteractions { get; init; }
@@ -114,9 +116,10 @@ namespace FenUISharp.Objects
             EnableMouseActions = new(() => false, owner, (x) => { });
             EnableMouseScrolling = new(() => false, owner, (x) => { });
 
-            FContext.GetCurrentWindow().Callbacks.ClientMouseAction += FuncOnMouseAction;
-            FContext.GetCurrentWindow().Callbacks.OnMouseScroll += Global_FuncOnMouseScroll;
-            FContext.GetCurrentWindow().Callbacks.OnMouseMove += Global_FuncOnMouseMove;
+            _callbacks = FContext.GetCurrentWindow().Callbacks;
+            _callbacks.ClientMouseAction += FuncOnMouseAction;
+            _callbacks.OnMouseScroll += Global_FuncOnMouseScroll;
+            _callbacks.OnMouseMove += Global_FuncOnMouseMove;
 
             if (_surfaces == null) _surfaces = new();
             _surfaces.Add(this);
@@ -394,11 +397,12 @@ namespace FenUISharp.Objects
                 _surfaces.Remove(this);
             Owner = null;
 
-            if (!FContext.IsDisposingWindow)
+            if (_callbacks != null)
             {
-                FContext.GetCurrentWindow().Callbacks.ClientMouseAction -= FuncOnMouseAction;
-                FContext.GetCurrentWindow().Callbacks.OnMouseScroll -= Global_FuncOnMouseScroll;
-                FContext.GetCurrentWindow().Callbacks.OnMouseMove -= Global_FuncOnMouseMove;
+                _callbacks.ClientMouseAction -= FuncOnMouseAction;
+                _callbacks.OnMouseScroll -= Global_FuncOnMouseScroll;
+                _callbacks.OnMouseMove -= Global_FuncOnMouseMove;
+                _callbacks = null!;
             }
         }
 

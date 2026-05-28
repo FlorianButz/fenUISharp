@@ -13,6 +13,9 @@ namespace FenUISharp
         public bool PauseUpdateLoopWhenLoseFocus { get; set; } = false;
         public bool PauseUpdateLoopWhenHidden { get; set; } = true;
 
+        public bool ReduceRefreshrateWhenInactive { get; set; } = true;
+        public int ReducedRefreshrateWhenInactive { get; set; } = 30;
+
         public bool CapFrameTime { get; set; } = false;
         public float MaxFrameTime { get; set; } = 32;
 
@@ -20,8 +23,8 @@ namespace FenUISharp
         private bool _lastFrameClickable = true;
         private Vector2 _cursorPosLastFrame;
 
-        public Func<bool>? _logicIsRunning { get; set; }
-        public Func<bool>? _windowIsRunning { get; set; }
+        internal Func<bool>? _logicIsRunning { get; set; }
+        internal Func<bool>? _windowIsRunning { get; set; }
         private Thread? LogicThread { get; set; }
 
         private volatile bool _shutdownRequested;
@@ -53,9 +56,11 @@ namespace FenUISharp
 
             // Setting up the Windows message loop for the window
             MSG msg;
-            while (_windowIsRunning?.Invoke() ?? false) // Loop should only run as long as window is alive
+            while (true)
             {
-                // Dispatch queued events
+                // Dispatch queued events (must be called before checking _isRunning
+                // so that DestroyWindow scheduled by Dispose() is executed even
+                // when _isRunning was set to false during message dispatch)
                 Window?.WindowDispatcher?.UpdateQueue();
 
                 // Check if someone messaged me
@@ -66,7 +71,11 @@ namespace FenUISharp
                     Win32APIs.DispatchMessage(ref msg);
                 }
 
-                // Shorter sleep for better message responsiveness (reduced from 15ms to 8ms)
+                // Exit condition
+                if (!(_windowIsRunning?.Invoke() ?? false))
+                    break;
+
+                // Shorter sleep for better message responsiveness
                 Thread.Sleep((Window?.Properties?.IsWindowFocused ?? false) ? 2 : 8);
             }
         }
@@ -77,9 +86,16 @@ namespace FenUISharp
 
             if (LogicThread != null && LogicThread.IsAlive)
             {
+                // Check if being called from the logic thread itself.
+                if (LogicThread.ManagedThreadId == Environment.CurrentManagedThreadId)
+                {
+                    FLogger.Log<FWindowLoop>("InterruptThread called from LogicThread — skipping self-join.");
+                    return;
+                }
+
                 if (!LogicThread.Join(500))
                 {
-                    FLogger.Log<FWindowLoop>("Logic thread did not exit in time.");
+                    FLogger.Log<FWindowLoop>("Logic thread did not exit within 500ms. It will exit on next loop iteration.");
                 }
             }
         }
@@ -94,21 +110,28 @@ namespace FenUISharp
             // Creating stopwatch for frame timing
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            // Calculating frame interval based on target refresh rate
-            double frameInterval = 1000.0 / Window.TargetRefreshRate;
             double nextFrameTime = 0;
             double previousFrameTime = 0;
 
             while ((_logicIsRunning?.Invoke() ?? false) && !_shutdownRequested)
             {
+                bool isFocused = Window.Properties.IsWindowFocused;
+                bool isVisible = Window.Properties.IsWindowVisible;
+
+                // Calculating frame interval based on target refresh rate
+                double frameInterval = 1000.0 / 
+                    (ReduceRefreshrateWhenInactive 
+                        ? ((!isVisible || !isFocused) ? ReducedRefreshrateWhenInactive : Window.TargetRefreshRate) 
+                        : Window.TargetRefreshRate);
+
                 // Getting the current time and calculating the time until the next frame
                 double currentTime = stopwatch.Elapsed.TotalMilliseconds;
                 double timeUntilNextFrame = nextFrameTime - currentTime;
 
-                if (!_delayedFocus && PauseUpdateLoopWhenLoseFocus || !Window.Properties.IsWindowVisible && PauseUpdateLoopWhenHidden)
+                if (!_delayedFocus && PauseUpdateLoopWhenLoseFocus || !isVisible && PauseUpdateLoopWhenHidden)
                 {
                     // Make sure to update delayed focus
-                    _delayedFocus = Window.Properties.IsWindowFocused;
+                    _delayedFocus = isFocused;
 
                     // Make sure delta time doesn't go too crazy when updates are resumed
                     previousFrameTime = currentTime;
@@ -144,7 +167,7 @@ namespace FenUISharp
                         Window.Callbacks.OnBeginRender?.Invoke();
 
                         // Executing the draw action
-                        Window.SkiaDirectCompositionContext?.Draw();
+                        Window.RenderResources?.Draw();
 
                         Window.Callbacks.OnEndRender?.Invoke();
 
@@ -152,6 +175,9 @@ namespace FenUISharp
                         Window._isDirty = false;
                         Window._fullRedraw = false;
                     }
+
+                    // Call end frame after drawing
+                    Window.Surface.RootViewPane?.OnEndFrame();
 
                     // Calculate time until next frame
                     nextFrameTime = currentTime + frameInterval;
@@ -173,7 +199,7 @@ namespace FenUISharp
                     // Spin wait for very short durations (more responsive than sleep)
                     else if (timeUntilNextFrame > 0.1)
                     {
-                        Thread.SpinWait(10);
+                        Thread.SpinWait(100);
                     }
                 }
             }
@@ -231,8 +257,6 @@ namespace FenUISharp
 
                 // Late update iteration, only if not paused
                 Window.Surface.RootViewPane?.OnLateUpdate(); // Second update iteration
-
-                Window.Surface.RootViewPane?.OnEndFrame(); // End frame
             }
         }
 
@@ -240,9 +264,18 @@ namespace FenUISharp
         {
             FLogger.Log<FWindowLoop>("Disposing window loop and logic thread");
 
-            // Destroy and dispose logic thread
-            this.LogicThread?.Interrupt();
-            this.LogicThread = null;
+            if (LogicThread != null)
+            {
+                if (LogicThread.IsAlive)
+                {
+                    _shutdownRequested = true;
+                    if (!LogicThread.Join(500))
+                    {
+                        try { LogicThread.Interrupt(); } catch { }
+                    }
+                }
+                LogicThread = null;
+            }
         }
     }
 }

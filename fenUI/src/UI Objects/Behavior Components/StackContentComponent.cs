@@ -615,7 +615,7 @@ namespace FenUISharp.Behavior
         public override void ClipBehavior(float t, StackContentComponent layout, UIObject child, int childIndex, bool isBottom)
         {
             child.Transform.Scale.SetStaticState(Vector2.Lerp(ClipScale, DefaultScale, t));
-            child.Invalidate(UIObject.Invalidation.TransformDirty);
+            // child.Invalidate(UIObject.Invalidation.TransformDirty);
         }
     }
 

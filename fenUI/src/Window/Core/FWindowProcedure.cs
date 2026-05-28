@@ -240,7 +240,8 @@ namespace FenUISharp
 
                     FLogger.Log<FWindow>($"Resetting userdata (-21) for window {hWnd}...");
                     Win32APIs.SetWindowLongPtrA(hWnd, -21, IntPtr.Zero);
-                    Window.gch.Free();
+                    if (Window.gch.IsAllocated)
+                        Window.gch.Free();
 
                     // Set running flag to false
                     FLogger.Log<FWindow>($"Disabling running flag");

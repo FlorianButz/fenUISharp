@@ -91,6 +91,9 @@ namespace FenUISharp
             var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "fenUICrashlogs");
             if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 
+            // Initialize global DirectX context
+            DirectCompositionContext.Initialize();
+
             Resources.LoadDefault();
             WindowFeatures.TryInitialize(flags.Contains("disable_winfeatures")); // Initialize all window features
         }
@@ -105,9 +108,7 @@ namespace FenUISharp
                 typeof(FWindowProcedure),
                 typeof(FWindowProperties),
                 typeof(FWindowShape),
-                typeof(FWindowSurface),
-                typeof(DirectCompositionContext),
-                typeof(SkiaDirectCompositionContext)
+                typeof(FWindowSurface)
             };
 
             foreach (Type t in forbiddenTypes)
@@ -159,6 +160,9 @@ namespace FenUISharp
             if (!HasBeenInitialized) return;
 
             WindowFeatures.Uninitialize();
+
+            if (DirectCompositionContext.IsInitialized)
+                DirectCompositionContext.Instance.Dispose();
         }
 
         private static string appModelId = "";

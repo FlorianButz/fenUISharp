@@ -322,7 +322,7 @@ namespace FenUISharp.Objects
                 Begin();
                 DispatchBehaviorEvent(BehaviorEventType.AfterBegin);
 
-                // _wasBeginCalled = true;
+                _wasBeginCalled = true;
             }
 
             // Try to run update before evaluating shape and layout. maybe that fixes some issues
@@ -612,7 +612,7 @@ namespace FenUISharp.Objects
         {
             Children?.ForEach(x => x.OnEndFrame());
             LayoutChangedThisFrame = false;
-            // WindowRedrawThisObject = false; // Already done by FWindowSurface
+            WindowRedrawThisObject = false;
         }
 
         public void Dispose()
@@ -662,19 +662,30 @@ namespace FenUISharp.Objects
         {
             if (IsDisposed) return;
 
-            if (!GlobalEnabled || !GlobalVisible)
+            bool isVisible = GlobalEnabled && GlobalVisible;
+
+            if (!isVisible)
             {
-                ObjectSurface.DisposeSurface();
+                if (!_surfaceWasDisposed)
+                {
+                    _surfaceWasDisposed = true;
+                    ObjectSurface.DisposeSurface();
+                }
+            }
+            else if (_surfaceWasDisposed)
+            {
+                _surfaceWasDisposed = false;
                 Invalidate(Invalidation.SurfaceDirty);
             }
         }
+
+        private bool _surfaceWasDisposed = false;
 
         public virtual void OnInternalStateChanged<T>(T value)
         {
             if (IsDisposed) return;
 
-            Invalidate(Invalidation.All); // Make sure to invalidate all when quality or padding is updated. This stuff can break easily if not updated
-            // CheckIfSurfaceCanBeDisposed();
+            Invalidate(Invalidation.SurfaceDirty | Invalidation.LayoutDirty);
         }
 
         public override string ToString()

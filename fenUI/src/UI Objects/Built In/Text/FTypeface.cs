@@ -26,7 +26,7 @@ namespace FenUISharp.Objects.Text.Model
             [UnicodeScript.Cyrillic] = "Segoe UI"
         };
 
-        public static FTypeface Default => new("Segoe UI Variable");
+        public static FTypeface Default => Resources.GetTypeface("inter-variable");
 
         public FTypeface(string familyName)
         {
@@ -77,7 +77,7 @@ namespace FenUISharp.Objects.Text.Model
 
         private readonly Dictionary<(string, SKFontStyleWeight, SKFontStyleWidth, SKFontStyleSlant), SKTypeface> _cache = new();
 
-        private SKTypeface GetCachedTypeface(string family, SKFontStyleWeight w, SKFontStyleWidth wd, SKFontStyleSlant s)
+        protected SKTypeface GetCachedTypeface(string family, SKFontStyleWeight w, SKFontStyleSlant s, SKFontStyleWidth wd)
         {
             var key = (family, w, wd, s);
             if (!_cache.TryGetValue(key, out var tf))
@@ -88,7 +88,7 @@ namespace FenUISharp.Objects.Text.Model
             return tf;
         }
 
-        public SKTypeface CreateSKTypeface(char c,
+        public virtual SKTypeface CreateSKTypeface(char c,
             SKFontStyleWeight weight = SKFontStyleWeight.Normal,
             SKFontStyleSlant slant = SKFontStyleSlant.Upright,
             SKFontStyleWidth width = SKFontStyleWidth.Normal)
@@ -98,8 +98,70 @@ namespace FenUISharp.Objects.Text.Model
             string family = FamilyName;
             if (ScriptFallbacks.TryGetValue(script, out var fallback))
                 family = fallback;
+            
+            return GetCachedTypeface(family, weight, slant, width);
+        }
+    }
 
-            return GetCachedTypeface(family, weight, width, slant);
+    public class FStreamedTypeface : FTypeface
+    {
+        private bool _isStreamed;
+        private Dictionary<(SKFontStyleWeight weight, SKFontStyleSlant slant, SKFontStyleWidth width), SKTypeface> _streamedTypeface;
+
+        public bool UseSystemFallback { get; set; } = true;
+        public string SystemFallbackTypefaceName => "Segoe UI Variable";
+
+        public FStreamedTypeface(string familyName) : base(familyName)
+            => throw new InvalidOperationException("A streamed typeface cannot be initialized with a family name");
+
+        /// <summary>
+        /// Creates a FTypeface with streaming typeface capabilities. 
+        /// Typefaces must be added with AddVariant before usage.
+        /// If no given typeface for a style is registered, it will fallback
+        /// to the first registered typeface.
+        /// 
+        /// If the UseSystemFallback option is chosen (by default true), it will use a
+        /// system variable font that has all styles for a given style
+        /// that is not registered.
+        /// </summary>
+        public FStreamedTypeface() : base("Streamed Font")
+        {
+            _isStreamed = true;
+            _streamedTypeface = new();
+        }
+
+        /// <summary>
+        /// Add a typeface variant for the given style options.
+        /// The options reflect what the typeface looks like, as a
+        /// streamed typeface must have the style built in.
+        /// </summary>
+        /// <param name="resourceStream">The given typeface stream</param>
+        /// <param name="style">The style which the typeface already has</param>
+        public void AddVariant(Stream? resourceStream, (SKFontStyleWeight weight, SKFontStyleSlant slant, SKFontStyleWidth width) style)
+        {
+            _streamedTypeface.Add(style, SKTypeface.FromStream(resourceStream));
+        }
+
+        public bool HasStyle((SKFontStyleWeight weight, SKFontStyleSlant slant, SKFontStyleWidth width) style)
+            => _streamedTypeface.ContainsKey(style);
+
+        public override SKTypeface CreateSKTypeface(char c,
+            SKFontStyleWeight weight = SKFontStyleWeight.Normal,
+            SKFontStyleSlant slant = SKFontStyleSlant.Upright,
+            SKFontStyleWidth width = SKFontStyleWidth.Normal)
+        {
+            if (_streamedTypeface.Count == 0)
+                throw new InvalidOperationException("Cannot use typeface without variants.");
+            
+            var script = DetectScript(c);
+
+            if (ScriptFallbacks.TryGetValue(script, out var fallback))
+                GetCachedTypeface(fallback, weight, slant, width);
+            else
+                if (_isStreamed && _streamedTypeface.TryGetValue((weight, slant, width), out SKTypeface? typeface))
+                    return typeface;
+
+            return UseSystemFallback ? GetCachedTypeface(SystemFallbackTypefaceName, weight, slant, width) : _streamedTypeface.Values.ElementAt(0);
         }
     }
 }

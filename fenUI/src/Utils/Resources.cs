@@ -1,5 +1,6 @@
 using FenUISharp.AnimatedVectors;
 using FenUISharp.Objects.Text.Layout;
+using FenUISharp.Objects.Text.Model;
 using FenUISharp.Themes;
 using SkiaSharp;
 
@@ -14,11 +15,27 @@ namespace FenUISharp
 
         public static void LoadDefault()
         {
-            // RegisterTypeface("fonts/Inter-VariableFont_opsz,wght.ttf", "inter-variable");
             RegisterTypeface("Segoe UI Variable", "segoe-ui");
 
             var asm = typeof(Resources).Assembly;
 
+            RegisterTypeface(
+                asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.fonts.Inter_18pt-Regular.ttf"),
+                (SKFontStyleWeight.Normal, SKFontStyleSlant.Upright, SKFontStyleWidth.Normal),
+                "inter-variable");
+            RegisterTypeface(
+                asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.fonts.Inter_18pt-Italic.ttf"),
+                (SKFontStyleWeight.Normal, SKFontStyleSlant.Italic, SKFontStyleWidth.Normal),
+                "inter-variable");
+            RegisterTypeface(
+                asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.fonts.Inter_18pt-Bold.ttf"),
+                (SKFontStyleWeight.Bold, SKFontStyleSlant.Upright, SKFontStyleWidth.Normal),
+                "inter-variable");
+            RegisterTypeface(
+                asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.fonts.Inter_18pt-BoldItalic.ttf"),
+                (SKFontStyleWeight.Bold, SKFontStyleSlant.Italic, SKFontStyleWidth.Normal),
+                "inter-variable");
+                
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.default.png")), "default");
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.fenui-logo.png")), "fenui-logo");
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.fenui-logo-error.png")), "fenui-logo-error");
@@ -118,6 +135,28 @@ namespace FenUISharp
             return typeface;
 
             throw new IOException("Font with the name " + familyName + " could not be found. ");
+        }
+
+        public static FTypeface RegisterTypeface(Stream? resourceStream, (SKFontStyleWeight weight, SKFontStyleSlant slant, SKFontStyleWidth width) forStyle, string withId)
+        {
+            if (
+                typefaces.Keys.Contains(withId) 
+                && typefaces[withId] is FStreamedTypeface 
+                && ((FStreamedTypeface)typefaces[withId]).HasStyle(forStyle))
+                return typefaces[withId];
+
+            FStreamedTypeface typeface;
+            if (!typefaces.ContainsKey(withId))
+            {
+                typeface = new FStreamedTypeface();
+                typefaces.Add(withId, typeface);
+            } else
+                typeface = (FStreamedTypeface)GetTypeface(withId);
+
+            Console.WriteLine("Registered " + withId + " with " + $"{forStyle.slant} {forStyle.weight} {forStyle.width}");
+
+            typeface.AddVariant(resourceStream, forStyle);
+            return typeface;
         }
 
         public static FTypeface GetTypeface(string id)
