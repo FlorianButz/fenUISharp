@@ -1,9 +1,0 @@
-{
-    "dotnet.defaultSolution": "fenUI.sln",
-    "folder-customization.folders": [
-        {
-            "path": "fenUISharp\\fenUI\\src\\UI Objects\\",
-            "color": "foldercustomization.AnsiColor151"
-        }
-    ]
-}
