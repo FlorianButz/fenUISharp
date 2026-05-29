@@ -411,3 +411,4 @@ fenUI/lib/fenUICrashHandler.dll
 fenUI/lib/fenUICrashHandler.exe
 /fenUI/lib
 /.vscode
+/crash-handler/.vscode
