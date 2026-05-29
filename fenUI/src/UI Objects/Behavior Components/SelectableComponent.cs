@@ -38,8 +38,18 @@ namespace FenUISharp.Behavior
 
             surface.OnMouseAction += OnClick;
 
+            FContext.GetCurrentWindow().Callbacks.ClientMouseAction += GlobalMouseAction;
+
             if (currentlySelected == null)
                 SetSelected(this);
+        }
+
+        private void GlobalMouseAction(MouseInputCode code)
+        {
+            if (this.Surface.IsMouseHovering) return;
+
+            renderSelection = false;
+            currentlySelected?.Owner?.Invalidate(UIObject.Invalidation.SurfaceDirty);
         }
 
         void OnClick(MouseInputCode c)
@@ -97,13 +107,18 @@ namespace FenUISharp.Behavior
         {
             base.ComponentDestroy();
 
-            if (!FContext.IsValidContext()) return;
+            if (!FContext.IsValidContext() || FContext.IsDisposingWindow)
+            {
+                selectableComponents = null!;
+                return;
+            }
 
             if (currentlySelected == this) currentlySelected = null;
             Surface.OnMouseAction -= OnClick;
 
             selectableComponents.Remove(this);
             FContext.GetKeyboardInputManager().UnregisterKeybind(tabKeybind);
+            FContext.GetCurrentWindow().Callbacks.ClientMouseAction -= GlobalMouseAction;
         }
 
         private void OnTabPressed()
