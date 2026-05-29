@@ -45,7 +45,13 @@ namespace FenUISharp.Objects
         public bool DisableWhenOutOfParentBounds { get; set; } = true;
 
         public bool GlobalEnabled { get => Enabled.CachedValue && (Parent?.Enabled.CachedValue ?? true); }
-        public bool GlobalVisible { get => LocalVisible.CachedValue && Visible.CachedValue && (Parent?.Visible.CachedValue ?? true) && (DisableWhenOutOfParentBounds ? _insideParent : true); }
+        public bool GlobalVisible { get => 
+            Visible.CachedValue 
+            && (Parent?.GlobalVisible ?? true) 
+            && (DisableWhenOutOfParentBounds ? _insideParent : true) 
+            && !_imageEffectIsFullyTransparent; }
+
+        internal bool _imageEffectIsFullyTransparent;
 
         private bool _wasBeginCalled = false;
 
@@ -547,13 +553,9 @@ namespace FenUISharp.Objects
         public bool RenderThisFrame()
         {
             if (IsDisposed) return false;
-            
-            if (!RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Shape.Bounds, Shape.GlobalBounds) && DisableWhenOutOfParentBounds) return false;
-            // if (!RMath.IsRectPartiallyInside(Shape.GlobalBounds, FContext.GetCurrentWindow().GetCurrentDirtyClipPath())) return false; // Technically smart, though it wouldn't work like that
-
             if (!GlobalEnabled) return false;
             if (!GlobalVisible) return false;
-
+            if (!RMath.IsRectPartiallyInside(Parent?.Shape.GlobalBounds ?? FContext.GetCurrentWindow().Shape.Bounds, Shape.GlobalBounds) && DisableWhenOutOfParentBounds) return false;
             return true;
         }
 
@@ -561,7 +563,7 @@ namespace FenUISharp.Objects
         {
             if (IsDisposed) return;
             
-            if (!RenderThisFrame() && LocalVisible.CachedValue) return;
+            if (!RenderThisFrame()) return;
             if (canvas == null) return;
 
             int? save = canvas?.Save();

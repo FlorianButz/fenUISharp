@@ -69,7 +69,7 @@ namespace FenUISharp.Behavior.RuntimeEffects
             if (capturedOwner == null)
                 return;
 
-            capturedOwner.Visible.SetStaticState(Opacity.CachedValue != 0, 256);
+            capturedOwner._imageEffectIsFullyTransparent = Opacity.CachedValue == 0;
 
             if (_valuesChanged)
             {
