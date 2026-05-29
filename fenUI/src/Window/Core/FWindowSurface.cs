@@ -33,8 +33,8 @@ namespace FenUISharp
             RootViewPane.Layout.StretchVertical.Value = () => true;
 
             // Window scale
-            RootViewPane.Quality.SetResponsiveState(() =>  1f / (Window.WindowScale / Window.Shape.WindowDPIScale), int.MaxValue);
-            RootViewPane.Transform.Scale.SetResponsiveState(() => 1f / (Window.WindowScale / Window.Shape.WindowDPIScale) * Vector2.One, int.MaxValue);
+            RootViewPane.Quality.SetResponsiveState(() =>  1f * (Window.WindowScale * Window.Shape.WindowDPIScale), int.MaxValue);
+            RootViewPane.Transform.Scale.SetResponsiveState(() => 1f * (Window.WindowScale * Window.Shape.WindowDPIScale) * Vector2.One, int.MaxValue);
             RootViewPane.Transform.Anchor.SetStaticState(Vector2.Zero);
 
             RootViewPane.DisableWhenOutOfParentBounds = false;

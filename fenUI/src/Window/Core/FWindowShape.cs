@@ -56,7 +56,7 @@ namespace FenUISharp
             get
             {
                 Win32APIs.GetClientRect(Window.hWnd, out RECT rect);
-                return new Vector2(rect.Width * Window.WindowScale / WindowDPIScale, rect.Height * Window.WindowScale / WindowDPIScale);
+                return new Vector2(rect.Width / (Window.WindowScale * WindowDPIScale), rect.Height / (Window.WindowScale * WindowDPIScale));
             }
         }
 
