@@ -8,6 +8,8 @@ namespace FenUISharp.Objects
 {
     public class FPopupPanel : FPanel, IStateListener
     {
+        public bool IsShowing { get; private set; }
+
         public bool HasTail { get; set; } = true;
         public float TailHeight { get; set; } = 10;
         public float TailWidth { get; set; } = 7.5f;
@@ -21,6 +23,8 @@ namespace FenUISharp.Objects
         public bool AllowEscapeClosing { get; set; } = true;
         public bool AutoClose { get; set; } = true;
 
+        public bool CloseOnOtherOpen { get; set; } = true;
+
         public State<Vector2> GlobalTargetPoint { get; init; }
         public SKRect GlobalBounds { get; set; }
 
@@ -28,6 +32,9 @@ namespace FenUISharp.Objects
         private StackContentComponent? layout;
 
         private KeyBind closeKeybind;
+
+        [ThreadStatic]
+        private static List<FPopupPanel> _activeInstances = new();
 
         public FPopupPanel(Func<Vector2> size, bool addLayout = true, bool hasTail = true, bool scaleAnimationFromZero = true) : base(() => new(0, 0), size)
         {
@@ -51,9 +58,7 @@ namespace FenUISharp.Objects
 
             _inAnimation = new(this, Easing.EaseOutLessElastic, Easing.EaseInCubic);
             _inAnimation.OnValueUpdate += (x) =>
-            {
                 Transform.Scale.SetStaticState(Vector2.One * RMath.Remap(x, 0f, 1f, ScaleAnimationFromZero ? 0f : 0.6f, 1f));
-            };
             _inAnimation.OnComplete += () => OnCompleteAnim();
 
             Visible.SetStaticState(false);
@@ -70,6 +75,10 @@ namespace FenUISharp.Objects
 
             FContext.GetCurrentWindow().Callbacks.ClientMouseAction += OnClientMouseAction;
             FContext.GetCurrentWindow().Callbacks.OnFocusLost += OnWindowFocusLost;
+
+            Transform.LocalPosition.SetResponsiveState(() => GetPanelPosition(Transform.GlobalToLocal(GlobalTargetPoint.CachedValue), Transform.GlobalToLocal(GlobalBounds), DistanceToTarget));
+
+            _activeInstances.Add(this);
         }
 
         private void OnWindowFocusLost()
@@ -91,8 +100,6 @@ namespace FenUISharp.Objects
             });
         }
 
-        public bool IsShowing { get; private set; }
-
         public void ToggleShow(Func<Vector2>? targetPoint = null)
         {
             if (IsShowing) Close();
@@ -104,7 +111,36 @@ namespace FenUISharp.Objects
             if (_inAnimation.IsRunning) return;
             if (IsShowing) return;
 
+            // Close other running instances if the close on other open flag is true
+            foreach (var instance in _activeInstances.Where(x => x.CloseOnOtherOpen))
+            {
+                if (instance == this || !instance.IsShowing) continue;
+                instance.Close();
+            }
+
             Enabled.SetStaticState(true);
+            Visible.SetStaticState(false);
+
+            Transform.Scale.SetStaticState(Vector2.One);
+
+            // Recalculate the layout
+            FContext.GetCurrentDispatcher().InvokeLater(() =>
+            {
+                layout?.FullUpdateLayout();
+                Children.ForEach(x => x.Invalidate(Invalidation.TransformDirty));
+
+                _inAnimation.OnComplete = () =>
+                {
+                    // Remove the duplicate IsShowing = true
+                    OnCompleteAnim();
+                };
+                _inAnimation.Duration = 0.75f;
+                _inAnimation.Inverse = false;
+                _inAnimation.Restart();
+                OnStartAnim();
+            }, 2L);
+
+            // Make sure to enable the required components
             FContext.GetCurrentDispatcher().InvokeLater(() =>
             {
                 InteractiveSurface.IgnoreInteractions.SetStaticState(false);
@@ -115,15 +151,6 @@ namespace FenUISharp.Objects
                 GlobalTargetPoint.SetResponsiveState(targetPoint);
 
             IsShowing = true; // Set this only once, here
-            _inAnimation.OnComplete = () =>
-            {
-                // Remove the duplicate IsShowing = true
-                OnCompleteAnim();
-            };
-            _inAnimation.Duration = 0.75f;
-            _inAnimation.Inverse = false;
-            _inAnimation.Restart();
-            OnStartAnim();
         }
 
         public void Close(Action? onComplete = null)
@@ -138,6 +165,7 @@ namespace FenUISharp.Objects
             if (_inAnimation.IsRunning)
             {
                 _inAnimation.OnComplete += () => Close(onComplete);
+                _inAnimation.CompleteEarly();
                 return;
             }
 
@@ -157,7 +185,7 @@ namespace FenUISharp.Objects
                 OnCompleteAnim();
                 if (DisposeOnClose) FContext.GetCurrentDispatcher().Invoke(() => Dispose());
             };
-            _inAnimation.Restart();
+            _inAnimation.Start();
         }
 
         void OnCompleteAnim()
@@ -183,8 +211,6 @@ namespace FenUISharp.Objects
 
             // IMPORTANT: Reset (this instance of the) rect of the window to 0, 0 pos as it has to be in client coordinates
             GlobalBounds = new SKRect(0, 0, FContext.GetCurrentWindow().Shape.Bounds.Width, FContext.GetCurrentWindow().Shape.Bounds.Height);
-
-            Transform.LocalPosition.SetStaticState(GetPanelPosition(Transform.GlobalToLocal(GlobalTargetPoint.CachedValue), Transform.GlobalToLocal(GlobalBounds), DistanceToTarget));
 
             // Calc
             GetTailSpecifics(out Vector2 basePoint, out float degrees);
@@ -386,6 +412,8 @@ namespace FenUISharp.Objects
         protected override void OnDispose()
         {
             base.OnDispose();
+
+            _activeInstances.Remove(this);
 
             if (!FContext.IsDisposingWindow)
             {

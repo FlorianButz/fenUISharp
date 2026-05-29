@@ -87,6 +87,12 @@ namespace FenUISharp.Behavior
             IsRunning = false;
         }
 
+        public void CompleteEarly()
+        {
+            IsRunning = false;
+            OnComplete?.Invoke();
+        }
+
         public override void HandleEvent(BehaviorEventType type, out object outData, object? data = null)
         {
             base.HandleEvent(type, out outData, data);
