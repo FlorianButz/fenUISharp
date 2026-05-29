@@ -32,6 +32,11 @@ namespace FenUISharp
             RootViewPane.Layout.StretchHorizontal.Value = () => true;
             RootViewPane.Layout.StretchVertical.Value = () => true;
 
+            // Window scale
+            RootViewPane.Quality.SetResponsiveState(() =>  1f / (Window.WindowScale / Window.Shape.WindowDPIScale), int.MaxValue);
+            RootViewPane.Transform.Scale.SetResponsiveState(() => 1f / (Window.WindowScale / Window.Shape.WindowDPIScale) * Vector2.One, int.MaxValue);
+            RootViewPane.Transform.Anchor.SetStaticState(Vector2.Zero);
+
             RootViewPane.DisableWhenOutOfParentBounds = false;
 
             // Make root pane default
@@ -136,11 +141,7 @@ namespace FenUISharp
                 {
                     // Draw bounds area red
                     using var paint = new SKPaint() { Color = SKColors.Red.WithAlpha(1) };
-                    canvas.DrawRect(SKRect.Create(0, 0, Window.Shape.ClientSize.x, Window.Shape.ClientSize.y), paint);
-
-                    paint.Color = SKColors.Yellow.WithAlpha(25);
-                    paint.IsStroke = true;
-                    paint.StrokeWidth = 2;
+                    canvas.DrawRect(SKRect.Create(0, 0, Window.Shape.Size.x, Window.Shape.Size.y), paint);
                 }
 
                 // Trigger callback
@@ -202,7 +203,7 @@ namespace FenUISharp
             // If the window is dirty, add everything to clip path
             if (Window._isDirty)
             {
-                clipPath.AddRect(SKRect.Create(0, 0, Window.Shape.ClientSize.x, Window.Shape.ClientSize.y));
+                clipPath.AddRect(SKRect.Create(0, 0, Window.Shape.Size.x, Window.Shape.Size.y));
                 _cachedDirtyPath = clipPath;
                 return new SKPath(clipPath); // Return copy
             }

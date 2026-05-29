@@ -278,21 +278,6 @@ namespace FenUISharp
 
                 FLogger.Log<WindowRenderResources>($"Resize completed");
             }
-
-            UpdateResizeDPIScale();
-        }
-
-        private void UpdateResizeDPIScale()
-        {
-            if (_dcompDevice == null || RootVisual == null || !Window.Procedure._isSizeMoving) return;
-
-            var containerVisual = RootVisual;
-            var transform = _dcompDevice.CreateScaleTransform();
-            transform?.SetScaleX(1f / Window.Shape.WindowDPIScale);
-            transform?.SetScaleY(1f / Window.Shape.WindowDPIScale);
-            containerVisual?.SetTransform(transform);
-            RootVisual?.SetContent(containerVisual);
-            _dcompDevice.Commit();
         }
 
         private void EnsureResourcesCreated()
@@ -410,7 +395,6 @@ namespace FenUISharp
 
                 var canvas = _surface.Canvas;
                 canvas.Save();
-                canvas.Scale(Window.Shape.WindowDPIScale, Window.Shape.WindowDPIScale);
 
                 try
                 {

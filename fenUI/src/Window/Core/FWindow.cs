@@ -24,6 +24,15 @@ namespace FenUISharp
         public int TargetRefreshRate { get; set; }
         public bool MatchScreenRefreshrate { get; set; } = true;
 
+        public float WindowScale 
+        { get => _windowScale; set
+            {
+                // Clamp so there can't be extreme values
+                _windowScale = RMath.Clamp(value, 0.05f, 10f);
+            }
+        }
+        private float _windowScale = 1f;
+
         // Window components
 
         private ScreenBuffer? _screenBuffer;
