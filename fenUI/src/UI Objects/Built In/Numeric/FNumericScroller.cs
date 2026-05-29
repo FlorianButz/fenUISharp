@@ -1,4 +1,5 @@
 using System.Globalization;
+using FenUISharp.Behavior;
 using FenUISharp.Mathematics;
 using FenUISharp.Objects.Buttons;
 using FenUISharp.Objects.Text;
@@ -35,16 +36,33 @@ namespace FenUISharp.Objects
         private KeyBind increment;
         private KeyBind decrement;
 
-        // TODO: Fix scroller lines for different popup orientations
-
         public FNumericScroller(FText label, Func<string>? formatProvider = null, Func<Vector2>? position = null, Func<Vector2>? size = null) : base(position: position, size: size ?? (() => new(30, 25)))
         {
             Label = label;
             label.SetParent(this);
 
-            increment = new() { VKCode = 39, AliasVKCodes = new[] { 0x26 }, OnKeybindExecuted = () => { OpenPopup(true); Increment(); } };
-            decrement = new() { VKCode = 37, AliasVKCodes = new[] { 0x28 }, OnKeybindExecuted = () => { OpenPopup(true); Decrement(); } };
+            increment = new() { VKCode = 39, AliasVKCodes = new[] { 0x26 }, 
+                OnKeybindExecuted = () => { 
+                    if(selectableComponent.IsSelected)
+                        OpenPopup(true);
+                    
+                    if(selectableComponent.IsSelected || (activePopup?.IsShowing ?? false))
+                        Increment();
+                } 
+            };
+            decrement = new() { VKCode = 37, AliasVKCodes = new[] { 0x28 }, 
+                OnKeybindExecuted = () => { 
+                    if(selectableComponent.IsSelected)
+                        OpenPopup(true);
+                    
+                    if(selectableComponent.IsSelected || (activePopup?.IsShowing ?? false))
+                        Decrement();
+                } 
+            };
 
+            FContext.GetKeyboardInputManager().RegisterKeybind(this, increment);
+            FContext.GetKeyboardInputManager().RegisterKeybind(this, decrement);
+            
             RenderMaterial.Value = FContext.GetCurrentWindow().WindowThemeManager.CurrentTheme.TransparentInteractableMaterial;
 
             label.Layout.StretchHorizontal.SetStaticState(true);
@@ -123,21 +141,6 @@ namespace FenUISharp.Objects
                 activePopup?.Show(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
             else
                 activePopup?.ToggleShow(() => Transform.LocalToGlobal(Transform.LocalPosition.CachedValue));
-
-            if (activePopup?.IsShowing ?? false)
-            {
-                FContext.GetKeyboardInputManager()?.RegisterKeybind(increment);
-                FContext.GetKeyboardInputManager()?.RegisterKeybind(decrement);
-                activePopup.OnObjectDisposed += () =>
-                {
-                    FContext.GetKeyboardInputManager()?.UnregisterKeybind(increment);
-                    FContext.GetKeyboardInputManager()?.UnregisterKeybind(decrement);
-                };
-            } else
-            {
-                FContext.GetKeyboardInputManager()?.UnregisterKeybind(increment);
-                FContext.GetKeyboardInputManager()?.UnregisterKeybind(decrement);
-            }
         }
 
         private void CreatePopup()
@@ -149,7 +152,7 @@ namespace FenUISharp.Objects
             activePopup.InteractiveSurface.EnableMouseScrolling.SetStaticState(true);
             activePopup.InteractiveSurface.OnMouseScroll += OnPopupScroll;
 
-            new NumericScrollerPopupScrollDisplay(() => Value, () => Step.CachedValue, Decrement, Increment).SetParent(activePopup);
+            new NumericScrollerPopupScrollDisplay(() => Value, () => Step.CachedValue, () => Shape.GlobalBounds.MidY, Decrement, Increment).SetParent(activePopup);
 
             activePopup.OnObjectDisposed += () =>
             {
@@ -159,6 +162,9 @@ namespace FenUISharp.Objects
 
         void Increment()
         {
+            // if (!activePopup?.IsShowing ?? true) 
+            //     return;
+            
             Value += Step.CachedValue;
 
             OnValueChanged?.Invoke(Value);
@@ -167,6 +173,9 @@ namespace FenUISharp.Objects
 
         void Decrement()
         {
+            // if (!activePopup?.IsShowing ?? true)
+            //     return;
+            
             Value -= Step.CachedValue;
 
             OnValueChanged?.Invoke(Value);
@@ -175,6 +184,9 @@ namespace FenUISharp.Objects
 
         void OnPopupScroll(float x)
         {
+            if (!activePopup?.IsShowing ?? true)
+                return;
+            
             if (MathF.Abs(x) < 120) return;
             x = RMath.Clamp(x, -1, 1);
 
@@ -187,9 +199,6 @@ namespace FenUISharp.Objects
         protected override void OnDispose()
         {
             base.OnDispose();
-
-            FContext.GetKeyboardInputManager()?.UnregisterKeybind(increment);
-            FContext.GetKeyboardInputManager()?.UnregisterKeybind(decrement);
 
             if (activePopup != null && !activePopup.IsDisposed)
                 activePopup.Dispose();

@@ -1,3 +1,4 @@
+using FenUISharp.Objects;
 using FenUISharp.WinFeatures;
 
 namespace FenUISharp
@@ -129,12 +130,36 @@ namespace FenUISharp
             return vkCode;
         }
 
+        /// <summary>
+        /// Register a keybind
+        /// </summary>
+        /// <param name="keybind">The given keybind</param>
         public void RegisterKeybind(KeyBind keybind)
         {
-            if (keybinds.Contains(keybind)) return;
+            // Do not check if it is already contained,
+            // otherwise multiple keybinds that are the same
+            // will not be registered
             keybinds.Add(keybind);
         }
 
+        /// <summary>
+        /// Register a keybind with an owner object.
+        /// The keybind will automatically be unregistered 
+        /// on owner dispose.
+        /// </summary>
+        /// <param name="owner">The owning UIObject</param>
+        /// <param name="keybind">The given keybind</param>
+        public void RegisterKeybind(UIObject owner, KeyBind keybind)
+        {
+            keybinds.Add(keybind);
+            owner.OnObjectDisposed += () => UnregisterKeybind(keybind);
+        }
+
+        /// <summary>
+        /// Removes a keybind from the registered list.
+        /// The keybind will no longer fire.
+        /// </summary>
+        /// <param name="keybind">The given keybind</param>
         public void UnregisterKeybind(KeyBind keybind)
         {
             if (!keybinds.Contains(keybind)) return;
@@ -160,7 +185,7 @@ namespace FenUISharp
         public KeyBindFlags Flags { get; init; }
         public int VKCode { get; init; }
         public int[] AliasVKCodes { get; init; }
-
+        
         public bool IgnoreFocus { get; init; }
         
         public Action? OnKeybindExecuted { get; set; }

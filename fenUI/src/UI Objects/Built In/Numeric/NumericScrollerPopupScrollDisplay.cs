@@ -10,6 +10,7 @@ namespace FenUISharp.Objects
         private float smoothedValue = 0f;
         public State<float> ReferenceValue { get; init; }
         public State<float> StepValue { get; init; }
+        public State<float> ScrollerPositionY { get; init; }
 
         public Spring ValueSpring { get; set; }
 
@@ -21,7 +22,7 @@ namespace FenUISharp.Objects
 
         private float? startValue = null;
 
-        public NumericScrollerPopupScrollDisplay(Func<float> value, Func<float> step, Action? leftArrowClick = null, Action? rightArrowClick = null)
+        public NumericScrollerPopupScrollDisplay(Func<float> value, Func<float> step, Func<float> scrollerPosY, Action? leftArrowClick = null, Action? rightArrowClick = null)
         {
             Layout.StretchHorizontal.SetStaticState(true);
             Layout.StretchVertical.SetStaticState(true);
@@ -32,6 +33,7 @@ namespace FenUISharp.Objects
 
             ReferenceValue = new(value, this, this);
             StepValue = new(step, this, this);
+            ScrollerPositionY = new(scrollerPosY, this, this);
 
             const float btnSize = 20f;
 
@@ -68,7 +70,7 @@ namespace FenUISharp.Objects
             if (startValue == null)
             {
                 ValueSpring.ResetVector(new(ReferenceValue.CachedValue / StepValue.CachedValue, 0f));
-            smoothedValue = ValueSpring.Update(FContext.DeltaTime, new(ReferenceValue.CachedValue / StepValue.CachedValue, 0f)).x;
+                smoothedValue = ValueSpring.Update(FContext.DeltaTime, new(ReferenceValue.CachedValue / StepValue.CachedValue, 0f)).x;
                 startValue = ReferenceValue.CachedValue / StepValue.CachedValue;
             }
 
@@ -82,11 +84,13 @@ namespace FenUISharp.Objects
             base.Render(canvas);
 
             int layer = canvas.SaveLayer();
-
             var lineBounds = Shape.LocalBounds;
-            // lineBounds.Inflate(-20, 0);
 
             canvas.ClipRect(lineBounds);
+
+            // Flip the display if the popup is oriented downwards
+            if (ScrollerPositionY.CachedValue < Shape.GlobalBounds.MidY)
+                canvas.Scale(1f, -1f, Shape.SurfaceDrawRect.MidX, Shape.SurfaceDrawRect.MidY);
 
             using var renderPaint = GetRenderPaint();
 
