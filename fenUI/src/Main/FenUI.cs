@@ -26,8 +26,14 @@ namespace FenUISharp
         private static bool _isMainThread;
         public static bool IsMainThread { get => _isMainThread; }
 
-        public static string[] Flags { get; private set; } = {};
+        public static List<string> Flags { get; private set; } = new();
 
+        /// <summary>
+        /// Initializes FenUI with the given flags and sets up
+        /// the required resources and graphics devices.
+        /// </summary>
+        /// <param name="flags"></param>
+        /// <exception cref="InvalidOperationException"></exception>
         public static void Init(string[]? flags = null)
         {
             if (HasBeenInitialized) return;
@@ -38,7 +44,7 @@ namespace FenUISharp
 
             // Create array if null
             flags = flags ?? new string[0];
-            Flags = flags;
+            Flags = flags.ToList();
 
             // Route console to capture
             ConsoleCapture.StartCapture();
@@ -98,6 +104,23 @@ namespace FenUISharp
             WindowFeatures.TryInitialize(flags.Contains("disable_winfeatures")); // Initialize all window features
         }
 
+        /// <summary>
+        /// Adds a flag to the flag list
+        /// </summary>
+        /// <param name="flag">The target flag</param>
+        /// <param name="isOn">If it should be added or removed</param>
+        public static void ToggleFlag(string flag, bool isOn)
+        {
+            if (isOn && !Flags.Contains(flag))
+                Flags.Add(flag);
+            else if (!isOn && Flags.Contains(flag))
+                Flags.Remove(flag);
+        }
+
+        /// <summary>
+        /// Decides if the debug output capabilities should be activated.
+        /// </summary>
+        /// <param name="allow">Will enable the debug logging if set to true</param>
         public static void AllowDebugOutput(bool allow)
         {
             Type[] forbiddenTypes = new Type[] {
@@ -189,6 +212,9 @@ namespace FenUISharp
             AllowDebugOutput(true);
         }
 
+        /// <summary>
+        /// Instances the demo window
+        /// </summary>
         public static void Demo()
         {
             FNativeWindow window = new FNativeWindow("Demo", "demoClass", size: new Vector2(900, 800));

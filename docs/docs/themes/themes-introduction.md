@@ -1,8 +1,8 @@
 # Themes Introduction
 
-Themes are a great way to dynamically change the colors of your app without having to change them individually across all your components.
-FenUISharp uses a combination of three layers for the dynamic coloring of your app to work.
+FenUI uses a two-layer system for dynamic coloring across your app.
 
-1. The `Theme` class. It stores all the color fields
-2. The `ThemeColor` class. It dynamically provides the wanted color of the current theme.
-3. The `ThemeManager` class. It provides the window with the current theme and notifies when it changes.
+1. **Theme** - Stores all color fields for a color scheme.
+3. **ThemeManager** - Per-window theme state, notifies on changes.
+
+When the call to `ThemeManager.SetTheme()` is made, every `ThemeColor` in the window automatically updates and all UIObjects invalidate their surfaces.

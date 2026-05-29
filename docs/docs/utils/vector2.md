@@ -1,27 +1,27 @@
-# Vector 2
+# Vector2
 
-`Vector2` is a struct which implements basic functionality to store a 2-Dimensional vector.
+A struct for 2D vectors.
 
 ## Constructors
 
-`Vector2(float x, float y)`
+```csharp
+Vector2 v = new Vector2(100f, 200f);
+Vector2 copy = new Vector2(v); // copy constructor
+```
 
-`Vector2(Vector2 v)` copies the vector.
+## Methods
 
-## Public Methods
+| Method | Description |
+|--------|-------------|
+| `Clamp(min, max)` | Clamp within bounds |
+| `Lerp(from, to, t)` | Linear interpolation |
+| `Swap()` | Swap x and y |
 
-`static Vector2 Clamp(Vector2 value, Vector2 min, Vector2 max)` clamps a vector inside given bounds.
+## Properties
 
-`static Vector2 Lerp(Vector2 from, Vector2 to, float t)` linearly interpolates between two given vectors using `t`.
-
-`void Swap()` swaps the vector's values.
-
-## Public Fields
-
-`float Magnitude { get; }` returns the magnitude of the vector.
-
-`Vector2 Swapped { get; }` returns a new vector that represents the swapped version of the original.
-
-`float x` the horizontal value.
-
-`float y` the vertical value.
+| Property | Description |
+|----------|-------------|
+| `x` | Horizontal value |
+| `y` | Vertical value |
+| `Magnitude` | Vector length |
+| `Swapped` | New vector with x/y swapped |

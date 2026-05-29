@@ -35,7 +35,7 @@ namespace FenUISharp
                 asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.fonts.Inter_18pt-BoldItalic.ttf"),
                 (SKFontStyleWeight.Bold, SKFontStyleSlant.Italic, SKFontStyleWidth.Normal),
                 "inter-variable");
-                
+            
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.default.png")), "default");
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.fenui-logo.png")), "fenui-logo");
             RegisterImage(SKImage.FromEncodedData(asm.GetManifestResourceStream($"{FenUI.ResourceLibName}.images.fenui-logo-error.png")), "fenui-logo-error");
@@ -161,7 +161,7 @@ namespace FenUISharp
 
         public static FTypeface GetTypeface(string id)
         {
-            return typefaces.ContainsKey(id) ? typefaces[id] : new("Segoe UI Variable");
+            return typefaces.ContainsKey(id) ? typefaces[id] : FTypeface.Default;
         }
 
         public static Theme RegisterTheme(Theme theme, string withId)

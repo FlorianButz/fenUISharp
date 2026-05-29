@@ -136,7 +136,7 @@ namespace FenUISharp.Behavior.RuntimeEffects
             float brightness = Brightness.CachedValue;
             float opacity = Opacity.CachedValue;
 
-            if (blurRadius != 0 && opacity != 0)
+            if (blurRadius != 0 && opacity != 0 && !FenUI.Flags.Contains("disable_blureffects"))
             {
                 var blurQuality = RMath.Clamp(1f - ((blurRadius - 5f) / 20f), 0.25f, 1f);
 

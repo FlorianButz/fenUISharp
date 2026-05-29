@@ -39,9 +39,12 @@ namespace FenUISharp.Materials
 
             paint.Color = BaseColor();
             targetCanvas.DrawPath(path, paint);
-
-            using (var blur = SKImageFilter.CreateBlur(BlurRadius(), BlurRadius()))
-                paint.ImageFilter = blur;
+            
+            if (!FenUI.Flags.Contains("disable_blureffects"))
+            {
+                using (var blur = SKImageFilter.CreateBlur(BlurRadius(), BlurRadius()))
+                    paint.ImageFilter = blur;
+            }
 
             var displayArea = caller.Shape.SurfaceDrawRect;
             targetCanvas.DrawImage(windowArea, displayArea, sampling: new(SKFilterMode.Linear, SKMipmapMode.Linear), paint);

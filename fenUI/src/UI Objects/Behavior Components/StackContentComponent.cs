@@ -200,7 +200,7 @@ namespace FenUISharp.Behavior
 
             SKImageFilter? finalFilter = null;
 
-            if (ContentBlur)
+            if (ContentBlur && !FenUI.Flags.Contains("disable_blureffects"))
             {
                 // Progressive blur at edges, sharp content in center, edges remain opaque.
                 var blurredContent = BuildProgressiveBlurFilter(start, end, blurT);

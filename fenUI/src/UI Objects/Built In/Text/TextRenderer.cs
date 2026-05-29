@@ -73,9 +73,11 @@ namespace FenUISharp.Objects.Text.Rendering
                     }
                 }
 
-                using (var blur = SKImageFilter.CreateBlur(glyph.Style.BlurRadius, glyph.Style.BlurRadius))
                 using (var font = CreateFont(glyph.Character, model.Typeface, glyph.Style))
                 {
+                    SKImageFilter? blur = null;
+                    if (!FenUI.Flags.Contains("disable_blureffects"))
+                        blur = SKImageFilter.CreateBlur(glyph.Style.BlurRadius, glyph.Style.BlurRadius);
                     if (glyph.Style.BlurRadius > 0) fontPaint.ImageFilter = blur;
 
                     if (glyph.Style.Opacity < 1 && glyph.Style.Opacity >= 0)
@@ -104,6 +106,8 @@ namespace FenUISharp.Objects.Text.Rendering
 
                     var position = glyph.Position;
                     canvas.DrawText(glyph.Character.ToString(), position, SKTextAlign.Center, font, fontPaint);
+
+                    blur?.Dispose();
                 }
 
                 if (glyph.Style.Underlined)

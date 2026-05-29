@@ -1,47 +1,84 @@
-# Introduction to BehaviorComponent
+# Behavior Components
 
-Behavior components are a way to extend the behaivor of a `UIComponent`. Components are stored in a list inside every UIComponent. `BehaviorComponent` implements the `IDisposable` interface.
+Behavior components extend the behavior of a `UIObject`. They are stored in a list inside every UIObject and implement `IDisposable`.
 
-!> A `BehaviorComponent` always need a `UIComponent` as parent in order to work. This also means every BehaviorComponent automatically adds itself to the BehaviorComponents list inside the parent UIComponent. It also automatically removes itself from the list when it gets disposed.
+> A `BehaviorComponent` always requires a parent `UIObject`. It auto-registers with the parent on creation and auto-removes on dispose.
 
-## Constructors
+Behavior components intercept lifecycle events through the `HandleEvent` method. Every event type corresponds to a point in the UIObject lifecycle (update, render, layout, etc.).
 
-`BehaviorComponent(UIComponent parent)`
+## Creating a BehaviorComponent
 
-## Virtual Methods
+```csharp
+public class MyComponent : BehaviorComponent
+{
+    public MyComponent(UIComponent parent) : base(parent) { }
 
-`virtual void OnBeforeRender(SKCanvas canvas) { }`
+    public override void HandleEvent(
+        BehaviorEventType type,
+        out object outData,
+        object? data = null) 
+    {
+        switch(type) {
+            case BehaviorEventType.BeforeUpdate:
+                // Custom update logic
+                break;
+            case BehaviorEventType.AfterRender:
+                // Post-render logic
+                break;
+        }
+    }
 
-`virtual void OnAfterRender(SKCanvas canvas) { }`
+    public override void ComponentDestroy()
+    {
+        // Cleanup when component is disposed
+    }
+}
+```
 
-`virtual void OnBeforeRenderCache(SKCanvas canvas) { }`
+## Built-in Behavior Components
 
-`virtual void OnAfterRenderCache(SKCanvas canvas) { }`
+| Component | Description | Base Type |
+|-----------|-------------|-----------|
+| `AnimatorComponent` | Drives float animations with easing | BehaviorComponent |
+| `CursorComponent` | Changes cursor on hover | BehaviorComponent |
+| `DropComponent` | Drop target handling | BehaviorComponent |
+| `LayoutComponent` | Abstract base for layout behaviors | BehaviorComponent |
+| `LayoutObject` | Per-child layout control | BehaviorComponent |
+| `Rotation3DTransformComponent` | 3D rotation transform | BehaviorComponent |
+| `SelectableComponent` | Selection state management | BehaviorComponent |
+| `StackContentComponent` | Stack/scroll layout of children | LayoutComponent |
+| `ImageEffects` | Opacity, blur, saturation, brightness | BehaviorComponent |
 
-`virtual void OnBeforeRenderChildren(SKCanvas canvas) { }`
+## Behavior Event Types
 
-`virtual void OnAfterRenderChildren(SKCanvas canvas) { }`
+| Event | When Called |
+|-------|-------------|
+| `BeforeBegin` | Before the Begin() method is called |
+| `AfterBegin` | After the Begin() method is called |
+| `BeforeLateBegin` | Before the LateBegin() method is called |
+| `AfterLateBegin` | After the LateBegin() method is called |
+| `BeforeSurfaceDraw` | Before the DrawToSurface() method is called |
+| `AfterSurfaceDraw` | After the DrawToSurface() method is called |
+| `BeforeRender` | Before the Render() method is called |
+| `AfterRender` | After the Render() method is called |
+| `BeforeDrawChildren` | Before all children are drawn |
+| `AfterDrawChildren` | After all children are drawn |
+| `BeforeDrawChild` | Before one child is drawn |
+| `AfterDrawChild` | After one child is drawn |
+| `BeforeEarlyUpdate` | Before the early update is called |
+| `AfterEarlyUpdate` | After the early update is called |
+| `BeforeUpdate` | Before the update is called |
+| `AfterUpdate` | After the update is called |
+| `BeforeLateUpdate` | Before the late update is called |
+| `AfterLateUpdate` | After the late update is called |
+| `BeforeTransform` | Before the transform is refreshed |
+| `AfterTransform` | After the transform is refreshed |
+| `BeforeLayout` | Before the layout is rebuilt |
+| `AfterLayout` | After the layout is rebuilt |
 
-`virtual void ComponentSetup() { }`
+## Properties
 
-`virtual void ComponentUpdate() { }`
-
-`virtual void ComponentDestroy() { }`
-
-`virtual void Selected() { }`
-
-`virtual void SelectedLost() { }`
-
-`virtual void MouseEnter() { }`
-
-`virtual void MouseExit() { }`
-
-`virtual void MouseAction(MouseInputCode inputCode) { }`
-
-`virtual void GlobalMouseAction(MouseInputCode inputCode) { }`
-
-`virtual void MouseMove(Vector2 pos) { }`
-
-## Public Fields
-
-`UIComponent Parent { get; init; }` returns the parent it belongs to.
+| Property | Description |
+|----------|-------------|
+| `Parent` | The UIComponent this component belongs to |
+| `Enabled` | If the component is enabled |

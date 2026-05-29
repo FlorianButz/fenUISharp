@@ -1,17 +1,64 @@
 # FenUI
 
-`FenUI` is the base class which helps setup the app.
+The base class for initializing and managing the FenUISharp framework.
 
-## Public Methods
+## Initialization
 
-`static void Init()` initializes all window features and loads the default resources. It is recommended to call this before anyhing else in your program.
+```csharp
+// Must be called first; loads resources, sets up window features
+FenUI.Init();
 
-`static void Shutdown()` is for cleaning up at the end of every program.
+// Required for some Windows features (notifications, etc.)
+FenUI.SetupAppModel("com.example.app"); 
 
-`static void SetupAppModel(string appModelId)` sets up an app model for the current process. This is required for some Windows related features.
+// ... your app code ...
 
-## Public Fields
+// Cleanup at program end
+FenUI.Shutdown();
+```
 
-`static Version FenUIVersion { get; }` is the current version of FenUISharp.
+`Init()` calls `Resources.LoadDefault()` to register built-in typefaces (Inter, Segoe UI), images, and themes (default-dark, default-light).
 
-`static bool HasBeenInitialized { get; }` indicates whether the class has been initialized already or not.
+## Properties
+
+| Property | Description |
+|----------|-------------|
+| `static Version FenUIVersion` | The current FenUISharp version |
+| `static bool HasBeenInitialized` | Whether `Init()` has been called |
+| `static HashSet<string> Flags` | Feature flags that modify framework behavior |
+
+### Flags
+
+- `"disable_crashhandler"`: Disables the crash handler. This flag can only be passed into the `Init()` function
+- `"disable_winfeatures"`: Disables the initialization of window features like the media controls or toast messages. This flag can only be passed into the `Init()` function
+- `"disable_pixelsnap"`: Disables pixel snapping on all transforms. Useful for highly dynamic interfaces that require smooth position changes. This flag can be enabled at any point
+- `"disable_blureffects"`: Disables all FenUI blur effects. This flag can be enabled at any point
+
+## Demo
+
+```csharp
+FenUI.Demo(); // Launches the built-in demonstration window
+```
+
+## FContext
+
+The `FContext` static class provides access to the current window context from anywhere in your code:
+
+```csharp
+FWindow window = FContext.GetCurrentWindow();
+Dispatcher dispatcher = FContext.GetCurrentDispatcher();
+ModelViewPane rootPane = FContext.GetRootViewPane();
+ThemeManager theme = FContext.GetCurrentThemeManager();
+KeyboardInputManager keyboard = FContext.GetKeyboardInputManager();
+
+float deltaTime = FContext.DeltaTime;
+float time = FContext.Time;
+```
+
+All context methods are `[ThreadStatic]`, meaning each UI thread has its own window context. Calls to `FContext` methods are only valid within a window's update/render callbacks.
+
+## Version
+
+```csharp
+Console.WriteLine($"FenUISharp v{FenUI.FenUIVersion}");
+```

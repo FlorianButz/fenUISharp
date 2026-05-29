@@ -1,11 +1,11 @@
 # Cursor
 
-`Cursor` is an enum which contains the different types of native Windows cursors.
+`Cursor` is an enum for native Windows cursor types.
 
-```
-ARROW = 32512,
-IBEAM = 32513,
-WAIT = 32514,
-BLOCK = 32648,
-HAND = 32649
-```
+| Value | Cursor |
+|-------|--------|
+| `32512` | ARROW |
+| `32513` | IBEAM |
+| `32514` | WAIT |
+| `32648` | BLOCK |
+| `32649` | HAND |

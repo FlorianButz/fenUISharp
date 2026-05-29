@@ -71,9 +71,15 @@ namespace FenUISharp.Materials
                 using var blurCanv = blurSurf.SkiaSurface.Canvas;
 
                 var bRadius = BlurRadius();
-                using var blur = SKImageFilter.CreateBlur(bRadius / 1.25f, bRadius / 1.25f);
-                using var blurPaint = new SKPaint { IsAntialias = true, ImageFilter = blur };
-                blurCanv.DrawImage(windowArea, 0, 0, blurPaint);
+
+                if (!FenUI.Flags.Contains("disable_blureffects"))
+                {
+                    using var blur = SKImageFilter.CreateBlur(bRadius / 1.25f, bRadius / 1.25f);
+                    using var blurPaint = new SKPaint { IsAntialias = true, ImageFilter = blur };
+                    blurCanv.DrawImage(windowArea, 0, 0, blurPaint);
+                }
+                else
+                    blurCanv.DrawImage(windowArea, 0, 0);
 
                 blurredWindowArea = blurSurf.SkiaSurface.Snapshot();
             }

@@ -1,22 +1,47 @@
 # Theme Manager
 
-The `ThemeManager` class manages the current theme and can notify a change in the theme. Every `UIComponent` automatically invalidates when a change in theme occurs.
-For getting a theme color, an instance of the ThemeManager is required. Every `Window` already has a `ThemeManager` instance and changing the theme there does not change it globally (for all other windows).
+Manages the current theme for a window and notifies when it changes. Every `UIObject` auto-invalidates on theme change.
 
-However, using the window's `ThemeManager` is not required. Creating another `ThemeManager` that handles a specific area is also possible, however most UIComponents default to using the window's `ThemeManager`.
+## Creating a ThemeManager
 
-## Constructors
+```csharp
+ThemeManager tm = new ThemeManager(myTheme);
+```
 
-`ThemeManager(Theme initialTheme)` creates a `ThemeManager` and sets the initial theme to the first parameter.
+## Getting Colors
 
-## Public Methods
+```csharp
+SKColor primary = tm.CurrentTheme.Primary;
+SKColor bg      = tm.CurrentTheme.Background;
+```
 
-`void SetTheme(Theme newTheme)` sets the current theme.
+## Switching Themes
 
-`ThemeColor GetColor(Func<Theme, SKColor> selector)` gets a specific type of color from the `Theme` class using the selector and returns it as a `ThemeColor`.
+```csharp
+tm.SetTheme(newTheme);
+```
 
-## Public Fields
+## Window ThemeManager
 
-`Theme CurrentTheme { get; }` returns the current `Theme`.
+Every `FWindow` has its own `ThemeManager`. Changing the theme on one window does not affect others.
 
-`event Action ThemeChanged` is invoked when the current theme changes.
+```csharp
+FContext.GetCurrentWindow().WindowThemeManager.SetTheme(darkTheme);
+```
+
+## System Dark Mode
+
+```csharp
+window.Properties.UseSystemDarkMode = true;
+// The window theme will be set
+```
+
+Changing the system theme does not affect the FenUI window theme.
+
+## Events
+
+```csharp
+tm.ThemeChanged += () => {
+    // Theme changed
+};
+```
