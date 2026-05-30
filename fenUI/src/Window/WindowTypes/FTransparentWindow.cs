@@ -33,21 +33,22 @@ namespace FenUISharp
                 position = new Vector2((r.right - r.left) / 2 - (size.x / 2), (r.bottom - r.top) / 2 - (size.y / 2));
             }
 
-            var hWnd = Win32APIs.CreateWindowExA(
-                (int)WindowStyles.WS_EX_NOREDIRECTIONBITMAP,
-                this.WindowClass,
-                this.WindowTitle,
-                (int)WindowStyles.WS_POPUP,
-                (int)position.x,
-                (int)position.y,
-                (int)size.x,
-                (int)size.y,
-                IntPtr.Zero,
-                IntPtr.Zero,
-                wndClass.hInstance,
-                IntPtr.Zero);
+            var created_hWnd = Win32APIs.CreateWindowExA(
+                dwExStyle:      (int)WindowStyles.WS_EX_NOREDIRECTIONBITMAP,
+                lpClassName:    (string)this.WindowClass,
+                lpWindowName:   this.WindowTitle,
+                dwStyle:        (int)WindowStyles.WS_POPUP,
+                x:              (int)position.x,
+                y:              (int)position.y,
+                nWidth:         (int)size.x,
+                nHeight:        (int)size.y,
+                hWndParent:     IntPtr.Zero,
+                hMenu:          IntPtr.Zero,
+                hInstance:      wndClass.hInstance,
+                lpParam:        IntPtr.Zero
+            );
 
-            return hWnd;
+            return created_hWnd;
         }
 
         public override bool IsAreaClickable(Vector2 mousePosition)

@@ -28,8 +28,14 @@ namespace FenUISharp.Objects
         [ThreadStatic]
         internal static bool _zOrderCacheValid = false;
 
-        // Per-instance child list cache
+        // Generation counter — incremented whenever the UI tree structure changes
+        [ThreadStatic]
+        private static int _childrenCacheGeneration = 0;
+        internal static void InvalidateChildrenCaches() => _childrenCacheGeneration++;
+
+        // Per-instance child list cache + generation tracking
         private List<UIObject>? _cachedChildrenList;
+        private int _cachedChildGen = -1;
 
         public static bool EnableDump { get; set; } = false;
 
@@ -70,12 +76,13 @@ namespace FenUISharp.Objects
 
         public List<UIObject> GetZOrderedListOfChildren(UIObject root)
         {
-            if (_cachedChildrenList == null || !_zOrderCacheValid)
+            if (_cachedChildrenList == null || _cachedChildGen != _childrenCacheGeneration)
             {
                 _cachedChildrenList = root.Children
                     .OrderBy(child => child.Composition.LocalZIndex.CachedValue)
                     .ThenBy(child => child.Composition.CreationIndex)
                     .ToList();
+                _cachedChildGen = _childrenCacheGeneration;
             }
             return _cachedChildrenList;
         }

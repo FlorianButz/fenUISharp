@@ -1,4 +1,5 @@
 using FenUISharp.Behavior;
+using FenUISharp.Logging;
 using FenUISharp.Mathematics;
 using FenUISharp.States;
 using FenUISharp.WinFeatures;
@@ -10,20 +11,27 @@ namespace FenUISharp.Objects
     {
         public bool IsShowing { get; private set; }
 
+        
+        /* Tail Specific */
+        
+        private SKPath? tailPath = null;
+        private SKPath? tailClip = null;
+
         public bool HasTail { get; set; } = true;
         public float TailHeight { get; set; } = 10;
         public float TailWidth { get; set; } = 7.5f;
         public float TailCornerRadius { get; set; } = 3.5f;
 
+        /* Popup Behavior */
+
         private bool ScaleAnimationFromZero { get; set; } = true;
-
         public int DistanceToTarget { get; set; } = 15;
-
         public bool DisposeOnClose { get; set; } = false;
         public bool AllowEscapeClosing { get; set; } = true;
         public bool AutoClose { get; set; } = true;
-
         public bool CloseOnOtherOpen { get; set; } = true;
+
+        /* Shape and Positioning */
 
         public State<Vector2> GlobalTargetPoint { get; init; }
         public SKRect GlobalBounds { get; set; }
@@ -32,6 +40,7 @@ namespace FenUISharp.Objects
         private StackContentComponent? layout;
 
         private KeyBind closeKeybind;
+        private Vector2 lastPos = new();
 
         [ThreadStatic]
         private static List<FPopupPanel> _activeInstances = new();
@@ -95,7 +104,10 @@ namespace FenUISharp.Objects
             {
                 if (code.state != MouseInputState.Down) return;
 
-                if (!Shape.GlobalBounds.Contains(new SKPoint(FContext.GetCurrentWindow().ClientMousePosition.x, FContext.GetCurrentWindow().ClientMousePosition.y)))
+                var mousePos = FContext.GetCurrentWindow().ClientMousePosition;
+                var gb = Shape.GlobalBounds;
+                bool contains = gb.Contains(new SKPoint(mousePos.x, mousePos.y));
+                if (!contains)
                     Close(); // Close this pop-up
             });
         }
@@ -155,7 +167,6 @@ namespace FenUISharp.Objects
 
         public void Close(Action? onComplete = null)
         {
-            // Add a flag to track if we're in the process of closing
             if (!IsShowing && !_inAnimation.IsRunning)
             {
                 onComplete?.Invoke();
@@ -200,10 +211,6 @@ namespace FenUISharp.Objects
 
             layout?.FullUpdateLayout();
         }
-
-        private SKPath tailPath;
-        private SKPath tailClip;
-        private Vector2 lastPos = new();
 
         protected override void LateUpdate()
         {
@@ -325,7 +332,7 @@ namespace FenUISharp.Objects
         {
             var paint = GetRenderPaint();
 
-            if (HasTail)
+            if (HasTail && tailPath != null)
             {
                 RenderMaterial.CachedValue.DrawWithMaterial(canvas, tailPath, this, paint);
 

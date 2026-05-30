@@ -236,13 +236,18 @@ namespace FenUISharp.Objects
                 parent.Children.Add(this);
             }
 
-            // Invalidate z-order cache when structure changes
+            // Invalidate z-order cache and per-Compositor children caches when structure changes
             Compositor._zOrderCacheValid = false;
+            Compositor.InvalidateChildrenCaches();
         }
 
         void RemoveFromParent()
         {
-            if (Parent != null) Parent.Children.Remove(this);
+            if (Parent != null)
+            {
+                Parent.Children.Remove(this);
+                Compositor.InvalidateChildrenCaches();
+            }
             Parent = null;
         }
 

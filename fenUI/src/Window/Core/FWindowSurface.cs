@@ -203,7 +203,7 @@ namespace FenUISharp
             // If the window is dirty, add everything to clip path
             if (Window._isDirty)
             {
-                clipPath.AddRect(SKRect.Create(0, 0, Window.Shape.Size.x, Window.Shape.Size.y));
+                clipPath.AddRect(SKRect.Create(0, 0, Window.Shape.ClientSize.x, Window.Shape.ClientSize.y));
                 _cachedDirtyPath = clipPath;
                 return new SKPath(clipPath); // Return copy
             }

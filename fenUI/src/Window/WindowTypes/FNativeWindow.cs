@@ -20,18 +20,18 @@ namespace FenUISharp
             }
 
             var created_hWnd = Win32APIs.CreateWindowExA(
-                dwExStyle: (int)(WindowStyles.WS_EX_NOREDIRECTIONBITMAP),
-                lpClassName: (string)this.WindowClass,
-                lpWindowName: null,
-                dwStyle: (int)(WindowStyles.WS_NATIVE | WindowStyles.WS_OVERLAPPEDWINDOW),
-                x: (int)position.x,
-                y: (int)position.y,
-                nWidth: (int)size.x,
-                nHeight: (int)size.y,
-                hWndParent: IntPtr.Zero,
-                hMenu: IntPtr.Zero,
-                hInstance: wndClass.hInstance,
-                lpParam: IntPtr.Zero
+                dwExStyle:      (int)WindowStyles.WS_EX_NOREDIRECTIONBITMAP,
+                lpClassName:    (string)this.WindowClass,
+                lpWindowName:   null,
+                dwStyle:        (int)(WindowStyles.WS_NATIVE | WindowStyles.WS_OVERLAPPEDWINDOW),
+                x:              (int)position.x,
+                y:              (int)position.y,
+                nWidth:         (int)size.x,
+                nHeight:        (int)size.y,
+                hWndParent:     IntPtr.Zero,
+                hMenu:          IntPtr.Zero,
+                hInstance:      wndClass.hInstance,
+                lpParam:        IntPtr.Zero
             );
 
             return created_hWnd;
