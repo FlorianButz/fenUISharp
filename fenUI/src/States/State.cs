@@ -75,7 +75,7 @@ namespace FenUISharp.States
 
         private Func<T> GetValue()
         {
-            if (_isDisposed) return default;
+            if (_isDisposed) return default!;
             if (values.Count == 0) throw new InvalidOperationException("No values available");
             return _resolver(values).Value;
         }
@@ -135,6 +135,7 @@ namespace FenUISharp.States
 
         public void DissolvePriority(uint priority)
         {
+            if (_isDisposed) return;
             if (values.Any(x => x.Priority == priority)) values.RemoveAll(x => x.Priority == priority);
         }
 
@@ -158,12 +159,14 @@ namespace FenUISharp.States
 
         private void Update()
         {
+            if (_isDisposed) return;
             if (!ManualResolve)
                 ReevaluateValue();
         }
 
         public void ReevaluateValue(bool forceReevaluation = false)
         {
+            if (_isDisposed) return;
             if (Value == null) return;
             var value = _processor(Value());
 
