@@ -33,6 +33,7 @@ FenUI.Shutdown();
 - `"disable_winfeatures"`: Disables the initialization of window features like the media controls or toast messages. This flag can only be passed into the `Init()` function
 - `"disable_pixelsnap"`: Disables pixel snapping on all transforms. Useful for highly dynamic interfaces that require smooth position changes. This flag can be enabled at any point
 - `"disable_blureffects"`: Disables all FenUI blur effects. This flag can be enabled at any point
+- `"force_snapshotblit"`: Forces `CachedSurface` to use snapshots for composition
 
 ## Demo
 

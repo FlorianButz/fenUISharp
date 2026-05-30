@@ -73,9 +73,12 @@ namespace FenUISharp.Objects
             Step = new(() => 0.1f, this, this);
 
             Suffix = new(() => "", this, this);
-            PopupDistance = new(() => (int)(Layout.ClampSize(Transform.Size.CachedValue).y / 2 - 5), this, this);
+            PopupDistance = new(() => (int)(Transform.VisibleSize.y / 2 - 10), this, this);
             FormatProvider = new(formatProvider ?? (() => ""), this, this);
             Culture = new(() => System.Globalization.CultureInfo.CurrentCulture, this, this);
+
+            InteractiveSurface.EnableMouseScrolling.SetResponsiveState(() => activePopup?.IsShowing ?? false);
+            InteractiveSurface.OnMouseScroll += OnPopupScroll;
 
             UpdateText();
         }

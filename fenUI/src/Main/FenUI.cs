@@ -217,7 +217,7 @@ namespace FenUISharp
         /// </summary>
         public static void Demo()
         {
-            FNativeWindow window = new FNativeWindow("Demo", "demoClass", size: new Vector2(900, 800));
+            FNativeWindow window = new("Demo", "demoClass");
 
             window.Properties.MicaBackdropType = MicaBackdropType.TransientWindow;
             window.Properties.UseSystemDarkMode = true;

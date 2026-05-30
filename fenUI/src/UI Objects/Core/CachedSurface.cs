@@ -110,7 +110,7 @@ namespace FenUISharp.Objects
                     _cachedSnapshot?.Dispose();
                     _cachedSnapshot = null;
 
-                    if (UseSnapshotBlit)
+                    if (UseSnapshotBlit || FenUI.Flags.Contains("force_snapshotblit"))
                         _cachedSnapshot = surface?.Snapshot();
 
                     return surface;

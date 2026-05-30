@@ -28,6 +28,7 @@ namespace FenUISharp.States
         /// Will ignore the default value if the set is not empty. Useful to avoid interference with custom resolvers
         /// </summary>
         public bool IgnoreFirstValueIfSetNotEmpty { get; set; } = true;
+        private bool _isDisposed;
 
         public State(Func<T> defaultValue, UIObject owner, Action<T>? action = null, bool manualResolve = false)
         {
@@ -74,6 +75,7 @@ namespace FenUISharp.States
 
         private Func<T> GetValue()
         {
+            if (_isDisposed) return default;
             if (values.Count == 0) throw new InvalidOperationException("No values available");
             return _resolver(values).Value;
         }
@@ -84,6 +86,7 @@ namespace FenUISharp.States
         /// <param name="resolver"></param>
         public void SetResolver(Func<List<StateEntry<T>>, StateEntry<T>>? resolver)
         {
+            if (_isDisposed) return;
             if (resolver == null)
                 _resolver = entries => entries.OrderBy(x => x.Priority).Last();
             else
@@ -97,11 +100,14 @@ namespace FenUISharp.States
         /// <param name="processor"></param>
         public void SetProcessor(Func<T, T> processor)
         {
+            if (_isDisposed) return;
             _processor = processor;
         }
 
         public void SetStaticState(T value, uint priority = 0)
         {
+            if (_isDisposed) return;
+
             // Always add 1 to priority, so the default value does not get overriden
             if (priority != uint.MaxValue)
                 priority++;
@@ -115,6 +121,8 @@ namespace FenUISharp.States
 
         public void SetResponsiveState(Func<T> value, uint priority = 0)
         {
+            if (_isDisposed) return;
+
             if (priority != uint.MaxValue)
                 priority++;
 
@@ -132,7 +140,7 @@ namespace FenUISharp.States
 
         public void UpdateList()
         {
-            if (values.Count == 0) return;
+            if (values.Count == 0 || _isDisposed) return;
 
             var valuesMod = new List<StateEntry<T>>(values);
             if (IgnoreFirstValueIfSetNotEmpty && values.Count > 1) valuesMod.RemoveAt(0);
@@ -166,6 +174,7 @@ namespace FenUISharp.States
 
         private void Notify(T value)
         {
+            if (_isDisposed) return;
             _listener.ToList().ForEach(x => x.OnInternalStateChanged<T>(value));
             _action.ToList().ForEach(x => x?.Invoke(value));
         }
@@ -178,16 +187,22 @@ namespace FenUISharp.States
 
         public void Dispose()
         {
+            if (_isDisposed)
+                return;
+
             if (FContext.IsValidContext())
                 FContext.GetCurrentWindow().Callbacks.OnPreUpdate -= Update;
 
             if (Owner.TryGetTarget(out var target))
                 target.OnObjectDisposed -= Dispose;
 
-            values = new();
+            values = null!;
             _resolver = entries => entries.OrderBy(x => x.Priority).Last();
-            _listener = new();
-            _action = new();
+            _listener = null!;
+            _action = null!;
+            _processor = null!;
+
+            _isDisposed = true;
         }
     }
 

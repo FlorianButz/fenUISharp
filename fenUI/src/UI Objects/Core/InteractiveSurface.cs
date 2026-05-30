@@ -404,6 +404,19 @@ namespace FenUISharp.Objects
                 _callbacks.OnMouseMove -= Global_FuncOnMouseMove;
                 _callbacks = null!;
             }
+
+            OnMouseAction = null!;
+            OnMouseEnter = null!;
+            OnMouseExit = null!;
+            OnMouseMove = null!;
+            OnMouseScroll = null!;
+            OnDoubleMouseAction = null!;
+            OnDrag = null!;
+            OnDragDelta = null!;
+            OnDragEnd = null!;
+            OnDragStart = null!;
+            OnMouseStay = null!;
+            OnLongMouseAction = null!;
         }
 
         public static void PrintTopmostSurfaces()
