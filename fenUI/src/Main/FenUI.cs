@@ -105,6 +105,15 @@ namespace FenUISharp
         }
 
         /// <summary>
+        /// Exits the application and closes all windows
+        /// </summary>
+        public static void Exit()
+        {
+            activeInstances.ToList().ForEach(x => x.Dispose());
+            Environment.Exit(0);
+        }
+
+        /// <summary>
         /// Adds a flag to the flag list
         /// </summary>
         /// <param name="flag">The target flag</param>

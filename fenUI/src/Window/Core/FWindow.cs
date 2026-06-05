@@ -412,15 +412,12 @@ namespace FenUISharp
             Shape = null!;
             Procedure?.Dispose();
             Procedure = null!;
-            // Do NOT dispose Loop here — Loop.Dispose() tries to join the LogicThread,
-            // which would deadlock if called from WM_NCDESTROY while Dispose() is
-            // waiting for DestroyWindow to return (circular wait).
-            // The LogicThread will exit on its own because _disposingOrDisposed is true
-            // and _shutdownRequested is set, so LoopLogic's exit condition is met.
+            Loop.Dispose();
             Loop = null!;
             Properties?.Dispose();
             Properties = null!;
 
+            Surface.Dispose();
             Surface = null!;
 
             _screenBuffer?.Dispose();
