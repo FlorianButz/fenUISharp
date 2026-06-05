@@ -15,7 +15,7 @@ namespace FenUISharp
     public class FenUI
     {
         public static string ResourceLibName => "fenUI";
-        public static Version FenUIVersion => new(0, 0, 2, 9);
+        public static Version FenUIVersion => new(0, 0, 3, 0);
 
         internal static List<FWindow> activeInstances { get; private set; } = new();
 

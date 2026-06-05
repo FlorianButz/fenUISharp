@@ -267,10 +267,13 @@ namespace FenUISharp
 
         internal bool MouseHitTest(Vector2 vector2)
         {
-            var list = RootViewPane?.Composition.GetZOrderedListOfChildren(RootViewPane);
+            var list = RootViewPane?.Composition?.GetZOrderedListOfChildren(RootViewPane);
             if (list == null) return false;
             foreach (var x in list)
+            {
+                if (x.IsDisposed) continue;
                 if (x.Transform.DrawLocalToGlobal(x.Shape.LocalBounds).Contains(new SKPoint(vector2.x, vector2.y))) return true;
+            }
             return false;
         }
     }

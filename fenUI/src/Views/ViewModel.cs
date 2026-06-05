@@ -2,11 +2,12 @@ namespace FenUISharp.Objects
 {
     public abstract class View
     {
+        public bool IsDisposed { get; internal set; }
         public ModelViewPane? PaneRoot { get; set; }
 
         public abstract List<UIObject> Create();
-        public virtual void OnViewShown() { }
-        public virtual void OnViewDestroyed() { }
+        public virtual void OnViewShown() { IsDisposed = false; }
+        public virtual void OnViewDestroyed() { IsDisposed = true; }
         public virtual void Update() { }
 
         protected void AddUIObjectToRegisteredList(UIObject uiObject)

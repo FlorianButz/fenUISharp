@@ -136,7 +136,6 @@ namespace FenUISharp.Objects
             string sksl = @"
                 uniform float2 iResolution;
                 uniform float2 iOff;
-                uniform float2 iGlobOff;
                 uniform float4 iColor;
 
                 half4 lerp(half4 a, half4 b, half t) {
@@ -148,7 +147,7 @@ namespace FenUISharp.Objects
 
                     half4 col = half4(iColor.rgb, 1);
 
-                    float2 coord = fragCoord - (iGlobOff);
+                    float2 coord = fragCoord;
                     
                     float checker = mod(floor(coord.x / 5) + floor(coord.y / 5), 2.0);
                     checker = clamp(checker, 0.6, 0.9);
@@ -166,10 +165,6 @@ namespace FenUISharp.Objects
             var uniforms = new SKRuntimeEffectUniforms(effect);
             uniforms["iResolution"] = new float[] { rect.Width, rect.Height };
             uniforms["iOff"] = new float[] { rect.Left, rect.Top };
-            uniforms["iGlobOff"] = new float[] {
-                Transform.DrawLocalToGlobal(new Vector2(0, 0)).x,
-                Transform.DrawLocalToGlobal(new Vector2(0, 0)).y
-             };
             uniforms["iColor"] = new float[] {
                 ((float)color.Red) / 255f,
                 ((float)color.Green) / 255f,

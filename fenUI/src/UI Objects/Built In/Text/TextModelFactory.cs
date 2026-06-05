@@ -7,7 +7,7 @@ namespace FenUISharp.Objects.Text.Model
     public class TextModelFactory
     {
         public static TextModel CreateBasic(string text, float textSize = 14, bool bold = false, bool italic = false, bool underlined = false,
-            Func<SKColor>? textColor = null, Func<SKColor>? backgroundColor = null, TextAlign? align = null)
+            Func<SKColor>? textColor = null, Func<SKColor>? backgroundColor = null, TextAlign? align = null, FTypeface typeface = null)
         {
             TextStyle style = new()
             {
@@ -20,11 +20,11 @@ namespace FenUISharp.Objects.Text.Model
             };
             TextAlign algn = align ?? new() { HorizontalAlign = TextAlign.AlignType.Middle, VerticalAlign = TextAlign.AlignType.Middle };
 
-            return new(new List<TextSpan>() { new TextSpan(text, style) }, algn, FTypeface.Default);
+            return new(new List<TextSpan>() { new TextSpan(text, style) }, algn, typeface ?? FTypeface.Default);
         }
 
         public static TextModel CopyBasic(TextModel old, float? textSize = null, bool? bold = null, bool? italic = null, bool? underlined = null,
-            Func<SKColor>? textColor = null, Func<SKColor>? backgroundColor = null, TextAlign? align = null)
+            Func<SKColor>? textColor = null, Func<SKColor>? backgroundColor = null, TextAlign? align = null, FTypeface typeface = null)
         {
             List<TextSpan> spans = new();
 
@@ -39,7 +39,7 @@ namespace FenUISharp.Objects.Text.Model
                 spans.Add(span);
             }
 
-            return new(spans, align ?? old.Align, FTypeface.Default);
+            return new(spans, align ?? old.Align, typeface ?? old.Typeface);
         }
 
         public static TextModel CopyBasicNew(string newText, TextModel old)
@@ -56,7 +56,7 @@ namespace FenUISharp.Objects.Text.Model
             });
             spans.Add(span);
 
-            return new(spans, old.Align, FTypeface.Default);
+            return new(spans, old.Align, old.Typeface);
         }
 
         public static TextModel CreateTest(string text)

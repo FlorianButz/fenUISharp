@@ -26,7 +26,7 @@ namespace FenUISharp.Objects.Text.Model
             [UnicodeScript.Cyrillic] = "Segoe UI"
         };
 
-        public static FTypeface Default => Resources.GetTypeface("inter-variable");
+        public static FTypeface Default = Resources.GetTypeface("inter-variable");
 
         public FTypeface(string familyName)
         {

@@ -5,6 +5,14 @@ using SkiaSharp;
 
 namespace FenUISharp.Behavior.RuntimeEffects
 {
+    public struct DropShadowInfo
+    {
+        public float radius;
+        public Vector2 offset;
+        public SKColor color;
+        public int overdraw;
+    }
+
     public class ImageEffects : BehaviorComponent, IStateListener
     {
         /// <summary>
@@ -32,6 +40,11 @@ namespace FenUISharp.Behavior.RuntimeEffects
         /// </summary>
         public State<float> Brightness { get; init; }
 
+        /// <summary>
+        /// Sets a drop shadow
+        /// </summary>
+        public State<DropShadowInfo> DropShadow { get; init; }
+
         public ImageEffects(UIObject owner) : base(owner)
         {
             SelfOpacity = new(() => 1f, Owner, this);
@@ -51,6 +64,8 @@ namespace FenUISharp.Behavior.RuntimeEffects
             BlurRadius = new(() => 0f, Owner, this);
             BlurRadius.SetResolver(StateResolverTemplates.BiggestFloatResolver);
             BlurRadius.SetProcessor((x) => Math.Abs(x));
+
+            DropShadow = new(() => new(), Owner, this);
 
             Owner.Padding.SetResponsiveState(GetPadding, 10);
         }
@@ -73,6 +88,9 @@ namespace FenUISharp.Behavior.RuntimeEffects
 
             if (_valuesChanged)
             {
+                _filterPaint?.Dispose();
+                _filterPaintSelf?.Dispose();
+
                 _valuesChanged = false;
                 _filterPaint = null;
                 _filterPaintSelf = null;
@@ -135,6 +153,7 @@ namespace FenUISharp.Behavior.RuntimeEffects
             float saturation = Saturation.CachedValue;
             float brightness = Brightness.CachedValue;
             float opacity = Opacity.CachedValue;
+            var dropShadow = DropShadow.CachedValue;
 
             if (blurRadius != 0 && opacity != 0 && !FenUI.Flags.Contains("disable_blureffects"))
             {
@@ -196,6 +215,24 @@ namespace FenUISharp.Behavior.RuntimeEffects
                 }
             }
 
+            if (dropShadow.radius != 0 && dropShadow.color.Alpha != 0)
+            {
+                var dropShadowFilter = SKImageFilter.CreateDropShadow(dropShadow.offset.x, dropShadow.offset.y, dropShadow.radius, dropShadow.radius, dropShadow.color);
+
+                if (paint.ImageFilter == null) paint.ImageFilter = dropShadowFilter;
+                else
+                {
+                    using var compose = SKImageFilter.CreateCompose(paint.ImageFilter, dropShadowFilter);
+                    paint.ImageFilter = compose;
+                }
+
+                for (int o = 0; o < dropShadow.overdraw; o++)
+                {
+                    using var compose = SKImageFilter.CreateCompose(paint.ImageFilter, dropShadowFilter);
+                    paint.ImageFilter = compose;
+                }
+            }
+
             paint.Color = SKColors.White.WithAlpha((byte)(opacity * 255));
             return paint;
         }
@@ -213,6 +250,7 @@ namespace FenUISharp.Behavior.RuntimeEffects
                 blurRadius != 0f ||
                 saturation != 1f ||
                 brightness != 1f ||
+                (DropShadow.CachedValue.color.Alpha != 0 && DropShadow.CachedValue.radius != 0) ||
                 (selfAffecting && selfopacity != 1f);
         }
 
