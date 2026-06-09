@@ -276,11 +276,13 @@ namespace FenUISharp
                 // When the window is destroyed
                 case (int)WindowMessages.WM_DESTROY:
 
-                    // Check if on main thread. If this is not done the process will crash when closing a child window
-                    if (FenUI.IsMainThread)
+                    // Only post quit when this is the last remaining window
+                    // PostQuitMessage posts WM_QUIT to this thread's queue. While PeekMessage
+                    // handles it without exiting, it can interfere with nested message pumps
+                    // and other windows sharing the same thread.
+                    if (FenUI.activeInstances.Count <= 1)
                     {
-                        // Post the quit message. 0 means OK
-                        FLogger.Log<FWindowProcedure>("WM_DESTROY: Posting quit message 0");
+                        FLogger.Log<FWindowProcedure>("WM_DESTROY: Posting quit message 0 (last window)");
                         Win32APIs.PostQuitMessage(0);
                     }
 

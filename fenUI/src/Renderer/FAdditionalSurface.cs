@@ -41,16 +41,25 @@ namespace FenUISharp
             this.WindowResources.OnRebuildAdditionals += RebuildSurface;
             this.WindowResources.OnDisposeAdditionals += Dispose;
 
-            var newResources = WindowResources.CreateAdditional(Info);
+            try
+            {
+                var newResources = WindowResources.CreateAdditional(Info);
 
-            SkiaSurface = newResources.SkiaSurface;
-            Texture = newResources.Texture;
-            ResourceInfo = newResources.ResourceInfo;
-            BackendTexture = newResources.BackendTexture;
+                SkiaSurface = newResources.SkiaSurface;
+                Texture = newResources.Texture;
+                ResourceInfo = newResources.ResourceInfo;
+                BackendTexture = newResources.BackendTexture;
 
-            _disposed = false;
-
-            WasRebuilt = true;
+                _disposed = false;
+                WasRebuilt = true;
+            }
+            catch
+            {
+                _disposed = true;
+                this.WindowResources.OnRebuildAdditionals -= RebuildSurface;
+                this.WindowResources.OnDisposeAdditionals -= Dispose;
+                throw;
+            }
         }
 
         public bool RemoveRebuiltFlag()

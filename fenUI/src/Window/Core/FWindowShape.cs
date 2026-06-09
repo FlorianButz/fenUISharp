@@ -90,6 +90,27 @@ namespace FenUISharp
         /// </summary>
         public nint CurrentMonitorHandle => Win32APIs.MonitorFromWindow(Window.hWnd, 0x00000002 /* MONITOR_DEFAULTTONEAREST */);
 
+        public SKRect CurrentMonitorBounds 
+        { 
+            get 
+            {
+                MONITORINFOEX info = new MONITORINFOEX();
+                info.cbSize = Marshal.SizeOf(info);
+                
+                if (Win32APIs.GetMonitorInfo(CurrentMonitorHandle, ref info))
+                {
+                    return SKRect.Create(
+                        info.rcMonitor.left, 
+                        info.rcMonitor.top, 
+                        info.rcMonitor.Width, 
+                        info.rcMonitor.Height
+                    );
+                }
+                
+                return SKRect.Empty;
+            } 
+        }
+
         public FWindowShape(FWindow window)
         {
             this.window = new WeakReference<FWindow>(window);

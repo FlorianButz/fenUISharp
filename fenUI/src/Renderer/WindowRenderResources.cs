@@ -616,9 +616,10 @@ namespace FenUISharp
                     try { WaitForGpu(); } catch { }
                 }
 
-                DisposeRenderTarget();
+                try { DisposeRenderTarget(); }
+                catch { FLogger.Error("DisposeRenderTarget failed, continuing cleanup..."); }
 
-                _lastBackBuffer?.Dispose();
+                try { _lastBackBuffer?.Dispose(); } catch { }
                 _lastBackBuffer = null;
 
                 if (grContext != null)
@@ -635,15 +636,15 @@ namespace FenUISharp
                     grContext = null;
                 }
 
-                _commandAllocator?.Dispose();
+                try { _commandAllocator?.Dispose(); } catch { }
                 _commandAllocator = null;
-                _commandList?.Dispose();
+                try { _commandList?.Dispose(); } catch { }
                 _commandList = null;
 
                 try { _fenceEvent?.Set(); } catch { }
-                _fenceEvent?.Dispose();
+                try { _fenceEvent?.Dispose(); } catch { }
                 _fenceEvent = null;
-                _fence?.Dispose();
+                try { _fence?.Dispose(); } catch { }
                 _fence = null;
 
                 // Clear DComp references before disposal so the composition tree
@@ -659,21 +660,21 @@ namespace FenUISharp
                 }
                 catch { }
 
-                SwapChain?.Dispose();
+                try { SwapChain?.Dispose(); } catch { }
                 SwapChain = null;
 
-                RootVisual?.Dispose();
+                try { RootVisual?.Dispose(); } catch { }
                 RootVisual = null;
-                DCompTarget?.Dispose();
+                try { DCompTarget?.Dispose(); } catch { }
                 DCompTarget = null;
 
-                _dcompDevice?.Dispose();
+                try { _dcompDevice?.Dispose(); } catch { }
                 _dcompDevice = null!;
 
-                _commandQueue?.Dispose();
+                try { _commandQueue?.Dispose(); } catch { }
                 _commandQueue = null;
 
-                _backendContext?.Dispose();
+                try { _backendContext?.Dispose(); } catch { }
                 _backendContext = null;
 
                 DrawAction = null;

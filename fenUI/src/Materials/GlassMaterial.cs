@@ -55,6 +55,18 @@ namespace FenUISharp.Materials
             set => SetProp("GrabQuality", value);
         }
 
+        public Func<float> FalloffPower
+        {
+            get => GetProp<Func<float>>("FalloffPower", () => 3f);
+            set => SetProp("FalloffPower", value);
+        }
+
+        public Func<Vector2> ScaleInput
+        {
+            get => GetProp<Func<Vector2>>("ScaleInput", () => Vector2.One);
+            set => SetProp("ScaleInput", value);
+        }
+
         private int DisplacementMapDownscale = 1;
 
         public GlassMaterial(Func<SKImage?> grabPassFunction)
@@ -66,6 +78,28 @@ namespace FenUISharp.Materials
         {
             using var windowArea = GrabPassFunction();
             if (windowArea == null) return;
+
+            float quality = Math.Clamp(GrabQuality(), 0.1f, 1f);
+
+            int w = (int)(windowArea.Width * quality);
+            int h = (int)(windowArea.Height * quality);
+
+            using var scaledSurface = FContext.GetCurrentWindow()
+                .RenderResources?
+                .CreateAdditional(new SKImageInfo(w, h));
+
+            if (scaledSurface == null) return;
+
+            using (var c = scaledSurface.SkiaSurface.Canvas)
+            {
+                c.Clear(SKColors.Transparent);
+
+                c.Scale(quality, quality);
+
+                c.DrawImage(windowArea, 0, 0);
+            }
+
+            using var lowResWindowArea = scaledSurface.SkiaSurface.Snapshot();
 
             var grabQuality = GrabQuality();
             path.GetBounds(out SKRect pathBounds);
@@ -84,10 +118,10 @@ namespace FenUISharp.Materials
                 {
                     using var blur = SKImageFilter.CreateBlur(bRadius / 1.25f, bRadius / 1.25f);
                     using var blurPaint = new SKPaint { IsAntialias = true, ImageFilter = blur };
-                    blurCanv.DrawImage(windowArea, 0, 0, blurPaint);
+                    blurCanv.DrawImage(lowResWindowArea, 0, 0, blurPaint);
                 }
                 else
-                    blurCanv.DrawImage(windowArea, 0, 0);
+                    blurCanv.DrawImage(lowResWindowArea, 0, 0);
             }
 
             using var blurredWindowArea = blurSurf.SkiaSurface.Snapshot();
@@ -126,9 +160,16 @@ namespace FenUISharp.Materials
             using SKShader displacementMap = dispImage.ToShader(
                 SKShaderTileMode.Decal, SKShaderTileMode.Decal,
                 new SKSamplingOptions(SKFilterMode.Nearest, SKMipmapMode.Nearest));
+
+            SKMatrix scale = SKMatrix.CreateScale(
+                1f / grabQuality,
+                1f / grabQuality);
+
             using var grabPassShader = blurredWindowArea.ToShader(
-                SKShaderTileMode.Decal, SKShaderTileMode.Decal,
-                new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
+                SKShaderTileMode.Decal,
+                SKShaderTileMode.Decal,
+                new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear),
+                scale);
 
             string sksl = @"
                 uniform shader contentShader;
@@ -143,60 +184,30 @@ namespace FenUISharp.Materials
                 uniform float iDisplacement;
                 uniform float iDownscale;
                 uniform float iGrabQuality;
-
-                float rand(float x) {
-                    return fract(sin(x * 12.9898) * 43758.5453123);
-                }
-
-                float4 colorLerp(float4 a, float4 b, float t) {
-                    return mix(a, b, t);
-                }
-
-                float remapOffset(float x) {
-                    return pow(x, 2);
-                }
+                uniform float iFalloffPower;
+                uniform float2 iScale;
 
                 half4 main(float2 fragCoord) {
-                    float2 uv = (fragCoord - iOff);
-                    float2 grabSampleUV = fragCoord;
+                    float2 uv = (fragCoord - iOff) * iScale;
+                    float2 dispUV = (fragCoord + iPathCorrection) * iDownscale;
 
-                    float4 offsetAmount = contentShader.eval((fragCoord + iPathCorrection) * iDownscale);
-                    float4 simpleBack = float4(0, 0, 0, 0);
-                    float4 backColor = float4(0, 0, 0, 0);
+                    float offsetAmount = contentShader.eval(dispUV).r;
+                    float edgeDist = 1.0 - offsetAmount;
 
-                    {
-                        float offsetSA = remapOffset(1.0 - (offsetAmount.r)) * iDisplacement;
+                    float eps = 2.0;
+                    float2 grad;
+                    grad.x = contentShader.eval(dispUV + float2(eps, 0)).r
+                           - contentShader.eval(dispUV - float2(eps, 0)).r;
+                    grad.y = contentShader.eval(dispUV + float2(0, eps)).r
+                           - contentShader.eval(dispUV - float2(0, eps)).r;
 
-                        float2 noiseVec = vec2(
-                            rand(dot(grabSampleUV, vec2(12.9898, 78.233))),
-                            rand(dot(grabSampleUV, vec2(39.3468, 11.135))));
-                        float2 offset = float2(-offsetSA, offsetSA) + (noiseVec - 0.5) * 0.1;
+                    float gradLen = length(grad);
+                    float2 dir = gradLen > 0.001 ? -grad / gradLen : float2(0, 0);
 
-                        float2 displacedUV = (uv + offset) * iGrabQuality;
-                        simpleBack += grabPass.eval(displacedUV);
-                    }
-
-                    if (offsetAmount.r > 0.99)
-                    {
-                        backColor = simpleBack;
-                    }
-                    else
-                    {
-                        const float samples = 6;
-                        for (float i = 0; i < samples; ++i) {
-                            float offsetSA = remapOffset(1.0 - (offsetAmount.r)) * iDisplacement;
-
-                            float2 noiseVec = vec2(
-                                rand(dot(grabSampleUV, vec2(12.9898, 78.233))),
-                                rand(dot(grabSampleUV, vec2(39.3468, 11.135))));
-                            float2 offset = float2(-offsetSA, offsetSA) + (noiseVec - 0.5) * 0.1;
-
-                            float2 displacedUV = (uv + offset) * iGrabQuality;
-                            backColor += grabPass.eval(displacedUV);
-                        }
-                        backColor /= samples;
-                        backColor = colorLerp(backColor, simpleBack, (offsetAmount.r));
-                    }
+                    float displacement = mix(iDisplacement * 0.05, iDisplacement, pow(edgeDist, iFalloffPower));
+                    float2 displacedUV = (uv + dir * displacement);
+                    float2 sampledUV = displacedUV;
+                    float4 backColor = grabPass.eval(sampledUV);
 
                     float4 returnColor = (backColor * iBright + ((iBright - 1) / 2)) * float4(iBaseMix, 1);
                     returnColor.a = 1;
@@ -220,6 +231,8 @@ namespace FenUISharp.Materials
             uniforms["iBright"] = (float)Brightness();
             uniforms["iDownscale"] = (float)DisplacementMapDownscale;
             uniforms["iGrabQuality"] = grabQuality;
+            uniforms["iFalloffPower"] = (float)FalloffPower();
+            uniforms["iScale"] = new float[] { (float)ScaleInput().x, (float)ScaleInput().y };
 
             var children = new SKRuntimeEffectChildren(effect);
             children["contentShader"] = displacementMap;

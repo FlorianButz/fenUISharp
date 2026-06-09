@@ -70,6 +70,7 @@ namespace FenUISharp
 
                 OnPreUpdate += InteractiveSurface.CacheTopmostMouseAction;
                 OnPreUpdate += InteractiveSurface.CacheTopmostMouseScroll;
+                // OnPreUpdate += Objects.Compositor.CacheZOrderedListOfEverything;
             });
         }
 

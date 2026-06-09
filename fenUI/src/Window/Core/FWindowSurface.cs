@@ -164,14 +164,9 @@ namespace FenUISharp
 
         internal List<UIObject> GetAllUIObjects()
         {
-            List<UIObject> list = new();
+            if (RootViewPane == null) return new List<UIObject>();
 
-            // If RootViewPane is null, return empty list
-            if (RootViewPane == null) return list;
-            // Else return zordered list of all children
-            else list = RootViewPane.Composition.GetZOrderedListOfEverything();
-
-            return list;
+            return RootViewPane.Composition.GetZOrderedListOfEverything();
         }
 
         // private void RecursiveAddChildrenToList(UIObject parent, List<UIObject> list)
@@ -196,6 +191,7 @@ namespace FenUISharp
         {
             // Clear the old cached path
             _cachedDirtyPath?.Dispose();
+            _cachedDirtyPath = null;
 
             // Create new clip path
             var clipPath = new SKPath();
@@ -239,14 +235,14 @@ namespace FenUISharp
                 }
             }
 
-            // Setting last path to null
-            SKPath lastPath = null!;
-
-            // Setting last path to dirty clip path of last frame
-            if (_lastDirtyPath != null) lastPath = new SKPath(_lastDirtyPath);
-
-            // Disposing the path of last frame
-            _lastDirtyPath?.Dispose();
+            // Setting last path from last frame
+            SKPath? lastPath = null;
+            if (_lastDirtyPath != null)
+            {
+                lastPath = new SKPath(_lastDirtyPath);
+                _lastDirtyPath.Dispose();
+                _lastDirtyPath = null;
+            }
 
             // Setting last path to the current one
             _lastDirtyPath = new SKPath(clipPath);
@@ -254,10 +250,10 @@ namespace FenUISharp
             // Checking if last path is not null,
             // if that is the case, add to current dirty clip path as well
             if (lastPath != null)
+            {
                 clipPath.AddPath(lastPath, SKPathAddMode.Append);
-
-            // Dispose old cache
-            if (_cachedDirtyPath != null) _cachedDirtyPath.Dispose();
+                lastPath.Dispose();
+            }
 
             // Cache current path
             _cachedDirtyPath = new SKPath(clipPath);

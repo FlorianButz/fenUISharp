@@ -339,6 +339,9 @@ namespace FenUISharp
             if (_disposingOrDisposed) return;
             FContext.isDisposingWindow = true;
 
+            // Make window invisible right away to fake a faster close
+            Properties.IsWindowVisible = false;
+
             // Set disposed flag
             _disposingOrDisposed = true;
 
@@ -364,6 +367,10 @@ namespace FenUISharp
             // Clear callbacks delegate references so nothing keeps UI objects alive
             Callbacks?.Dispose();
             Callbacks = null!;
+
+            // Drain dispatcher queues to release captured references
+            LogicDispatcher?.Dispose();
+            WindowDispatcher?.Dispose();
 
             // Reset the disposing flag so subsequent windows don't skip cleanup
             FContext.isDisposingWindow = false;
@@ -434,6 +441,9 @@ namespace FenUISharp
             FLogger.Log<FWindow>($"Disposing WindowCallbacks...");
             Callbacks?.Dispose();
             Callbacks = null!;
+
+            LogicDispatcher?.Dispose();
+            WindowDispatcher?.Dispose();
         }
 
         protected virtual void SetTargetRefreshrateToMonitorRefreshrate()

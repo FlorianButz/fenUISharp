@@ -94,9 +94,6 @@ namespace FenUISharp.Objects
         private bool ParentIgnoreChild { get => (owner?.Parent?.InteractiveSurface.IgnoreChildInteractions.CachedValue ?? false) || (owner?.Parent?.InteractiveSurface.ParentIgnoreChild ?? false); }
 
         [ThreadStatic]
-        private static List<InteractiveSurface> _surfaces = new();
-
-        [ThreadStatic]
         private static InteractiveSurface? _topmostSurface;
         [ThreadStatic]
         internal static InteractiveSurface? _topmostSurfaceMouseAction;
@@ -120,31 +117,26 @@ namespace FenUISharp.Objects
             _callbacks.ClientMouseAction += FuncOnMouseAction;
             _callbacks.OnMouseScroll += Global_FuncOnMouseScroll;
             _callbacks.OnMouseMove += Global_FuncOnMouseMove;
-
-            if (_surfaces == null) _surfaces = new();
-            _surfaces.Add(this);
         }
 
         internal static void CacheTopmostMouseAction()
         {
             var ordered = Compositor.GetZOrderedListOfEnabled();
-            // GetZOrderedListOfEnabled returns back-to-front, so reverse for front-to-back
-            ordered.Reverse();
+            // GetZOrderedListOfEnabled returns back-to-front, iterate reverse for front-to-back
+            // without mutating the cached list
 
             _topmostSurfaceMouseAction = null;
 
-            foreach (var obj in ordered)
+            for (int i = ordered.Count - 1; i >= 0; i--)
             {
-                var surface = _surfaces.FirstOrDefault(s =>
-                    s.owner == obj &&
-                    s.owner.GlobalEnabled &&
-                    !s.IgnoreInteractions.CachedValue &&
-                    !s.ParentIgnoreChild &&
-                    s.EnableMouseActions.CachedValue &&
-                    s.TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition)
-                );
-
-                if (surface != null)
+                var obj = ordered[i];
+                if (obj.IsDisposed) continue;
+                var surface = obj.InteractiveSurface;
+                if (surface != null &&
+                    !surface.IgnoreInteractions.CachedValue &&
+                    !surface.ParentIgnoreChild &&
+                    surface.EnableMouseActions.CachedValue &&
+                    surface.TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition))
                 {
                     _topmostSurfaceMouseAction = surface;
                     break;
@@ -160,16 +152,13 @@ namespace FenUISharp.Objects
 
             foreach (var obj in ordered)
             {
-                var surface = _surfaces.FirstOrDefault(s =>
-                    s.owner == obj &&
-                    s.owner.GlobalEnabled &&
-                    !s.IgnoreInteractions.CachedValue &&
-                    !s.ParentIgnoreChild &&
-                    s.EnableMouseScrolling.CachedValue &&
-                    s.TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition)
-                );
-
-                if (surface != null)
+                if (obj.IsDisposed) continue;
+                var surface = obj.InteractiveSurface;
+                if (surface != null &&
+                    !surface.IgnoreInteractions.CachedValue &&
+                    !surface.ParentIgnoreChild &&
+                    surface.EnableMouseScrolling.CachedValue &&
+                    surface.TestForGlobalPoint(FContext.GetCurrentWindow().ClientMousePosition))
                 {
                     _topmostSurfaceMouseScroll = surface;
                     break;
@@ -393,8 +382,6 @@ namespace FenUISharp.Objects
 
         public void Dispose()
         {
-            if (_surfaces != null)
-                _surfaces.Remove(this);
             Owner = null;
 
             if (_callbacks != null)

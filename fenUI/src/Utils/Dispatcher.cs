@@ -7,6 +7,7 @@ namespace FenUISharp
         private ulong _currentTick = 0;
         private readonly ConcurrentQueue<DispatcherCall> dispatcherCalls = new();
         private readonly ConcurrentDictionary<string, bool> uniqueIds = new();
+        private bool _disposed;
 
         internal void UpdateQueue()
         {
@@ -127,6 +128,18 @@ namespace FenUISharp
         /// Gets the current number of unique IDs being tracked
         /// </summary>
         public int UniqueIdsCount => uniqueIds.Count;
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            while (dispatcherCalls.TryDequeue(out var call))
+            {
+                call.action = null;
+            }
+            uniqueIds.Clear();
+        }
     }
 
     internal class DispatcherCall

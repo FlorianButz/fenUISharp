@@ -91,10 +91,13 @@ namespace FenUISharp.Objects
 
         public Action? OnObjectDisposed { get; set; }
 
+        private ThemeManager _themeManager;
+
         public UIObject(Func<Vector2>? position = null, Func<Vector2>? size = null)
         {
             if (!FContext.IsValidContext()) throw new Exception("Invalid FenUISharp window context.");
-            FContext.GetCurrentWindow().WindowThemeManager.ThemeChanged += OnThemeChanged;
+            _themeManager = FContext.GetCurrentWindow().WindowThemeManager;
+            _themeManager.ThemeChanged += OnThemeChanged;
 
             InstanceID = _lastInstanceID++;
 
@@ -629,6 +632,10 @@ namespace FenUISharp.Objects
                 FLogger.Warn($"{GetType().FullName} has already been disposed.");
                 return;
             }
+
+            if (_themeManager != null)
+                _themeManager.ThemeChanged -= OnThemeChanged;
+            _themeManager = null;
 
             OnObjectDisposed?.Invoke();
             OnObjectDisposed = null;

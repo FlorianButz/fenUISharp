@@ -213,7 +213,12 @@ namespace FenUISharp.Objects
         public void Dispose()
         {
             LockInvalidation = false;
-            DisposeSurface();
+            
+            _cachedSnapshot?.Dispose();
+            _cachedSurface?.Dispose();
+
+            _cachedSnapshot = null;
+            _cachedSurface = null;
         }
 
         internal void DisposeSurface()

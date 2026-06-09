@@ -29,6 +29,7 @@ namespace FenUISharp.States
         /// </summary>
         public bool IgnoreFirstValueIfSetNotEmpty { get; set; } = true;
         private bool _isDisposed;
+        private FWindowCallbacks? _windowCallbacks;
 
         public State(Func<T> defaultValue, UIObject owner, Action<T>? action = null, bool manualResolve = false)
         {
@@ -43,10 +44,11 @@ namespace FenUISharp.States
 
             this.ManualResolve = manualResolve;
 
-            if (FContext.GetCurrentWindow() == null)
+            var window = FContext.GetCurrentWindow();
+            if (window == null)
                 throw new Exception("States can only be declared in a valid FenUISharp window context");
-            else
-                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += Update;
+            _windowCallbacks = window.Callbacks;
+            _windowCallbacks.OnPreUpdate += Update;
 
             owner.OnObjectDisposed += Dispose;
         }
@@ -64,11 +66,11 @@ namespace FenUISharp.States
 
             this.ManualResolve = manualResolve;
 
-            // I guess this is stupid since it requires removing the state in a dispose method, meaning every state would need to be disposed
-            if (FContext.GetCurrentWindow() == null)
+            var window = FContext.GetCurrentWindow();
+            if (window == null)
                 throw new Exception("States can only be declared in a valid FenUISharp window context");
-            else
-                FContext.GetCurrentWindow().Callbacks.OnPreUpdate += Update;
+            _windowCallbacks = window.Callbacks;
+            _windowCallbacks.OnPreUpdate += Update;
 
             owner.OnObjectDisposed += Dispose;
         }
@@ -193,8 +195,9 @@ namespace FenUISharp.States
             if (_isDisposed)
                 return;
 
-            if (FContext.IsValidContext())
-                FContext.GetCurrentWindow().Callbacks.OnPreUpdate -= Update;
+            if (_windowCallbacks != null)
+                _windowCallbacks.OnPreUpdate -= Update;
+            _windowCallbacks = null;
 
             if (Owner.TryGetTarget(out var target))
                 target.OnObjectDisposed -= Dispose;

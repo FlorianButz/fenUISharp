@@ -222,7 +222,9 @@ namespace FenUISharp.Objects
             // Calc
             GetTailSpecifics(out Vector2 basePoint, out float degrees);
 
+            tailPath?.Dispose();
             tailPath = GetTailPath(new(basePoint.x, basePoint.y), degrees);
+            tailClip?.Dispose();
             tailClip = GetTailClip(new(basePoint.x, basePoint.y), degrees);
 
             if (lastPos != Transform.LocalToGlobal(Transform.Position))
@@ -420,7 +422,10 @@ namespace FenUISharp.Objects
         {
             base.OnDispose();
 
-            _activeInstances.Remove(this);
+            tailPath?.Dispose();
+            tailClip?.Dispose();
+
+            dispatcher?.Invoke(() => _activeInstances.Remove(this));
 
             if (!FContext.IsDisposingWindow)
             {

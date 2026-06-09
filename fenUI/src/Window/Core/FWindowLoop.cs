@@ -71,9 +71,13 @@ namespace FenUISharp
                     Win32APIs.DispatchMessage(ref msg);
                 }
 
-                // Exit condition
+                // Exit condition: only exit when this window is done AND no other windows remain
                 if (!(_windowIsRunning?.Invoke() ?? false))
-                    break;
+                {
+                    if (FenUI.activeInstances.Count == 0)
+                        break;
+                    // Other windows still active — keep pumping messages for them
+                }
 
                 // Shorter sleep for better message responsiveness
                 Thread.Sleep((Window?.Properties?.IsWindowFocused ?? false) ? 2 : 8);
@@ -241,9 +245,12 @@ namespace FenUISharp
 
                 // Reverse update iteration, only if not paused
                 // Get the tree of all ui objects
-                var tree = Window.Surface.RootViewPane?.Composition.GetZOrderedListOfEverything().ToList();
-                // Reverse and execute in order
-                tree?.Reverse(); tree?.ForEach(x => { x.OnReverseUpdate(); });
+                var tree = Window.Surface.RootViewPane?.Composition.GetZOrderedListOfEverything();
+                if (tree != null)
+                {
+                    for (int i = tree.Count - 1; i >= 0; i--)
+                        tree[i].OnReverseUpdate();
+                }
 
                 // Normal update iteration, only if not paused
                 Window.Surface.RootViewPane?.OnEarlyUpdate();
@@ -252,8 +259,12 @@ namespace FenUISharp
                 // Post update iteration, only if not paused
                 Window.Callbacks.OnPostUpdate?.Invoke();
 
-                // Second reverse update, re-use reversed tree from first iteration
-                tree?.ForEach(x => { x.OnLateReverseUpdate(); });
+                // Second reverse update, iterate in reverse again
+                if (tree != null)
+                {
+                    for (int i = tree.Count - 1; i >= 0; i--)
+                        tree[i].OnLateReverseUpdate();
+                }
 
                 // Late update iteration, only if not paused
                 Window.Surface.RootViewPane?.OnLateUpdate(); // Second update iteration
